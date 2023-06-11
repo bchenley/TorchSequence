@@ -63,7 +63,7 @@ Contributions to TorchSequence are welcome! If you want to contribute to the pro
 
 ## License
 
-TorchSequence is released under the [MIT License].
+TorchSequence is released under the [MIT License](https://github.com/bchenley/TorchSequence/blob/main/LICENSE.txt).
 
 ## Acknowledgments
 
