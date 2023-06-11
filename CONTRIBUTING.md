@@ -27,7 +27,7 @@ To contribute code to TorchSequence, please follow these steps:
 
 ## Getting Help
 
-If you need any assistance or have questions related to contributing, feel free [email me](henley.brandon@gmail.com).
+If you need any assistance or have questions related to contributing, feel free email me at henley.brandon@gmail.com.
 
 I appreciate your support and contribution to TorchSequence!
 
