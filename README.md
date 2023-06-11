@@ -35,7 +35,7 @@ Before using TorchSequence, you need to prepare your time series data. Ensure th
 
 ### Dataset and Dataloader
 
-Utilize the provided Dataset and Dataloader classes to load and preprocess your time series data. These classes handle batching, shuffling, and other common data loading operations, making it easy to feed your data to the model.
+Utilize the provided Dataset and Dataloader classes to load and preprocess your time series data. These classes handle batching, time series windowing, and other common data loading operations, streamlining the process of feeding data to your model.
 
 ### Model Development
 
