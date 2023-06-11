@@ -23,11 +23,11 @@ To use TorchSequence, follow these steps:
 2. Activate the virtual environment:
    - Windows: `.\torchsequence-env\Scripts\activate`
    - Linux/Mac: `source torchsequence-env/bin/activate`
-3. Install the required dependencies: `pip install torch torchaudio torchvision`
+3. Install the required dependencies: `pip install torch`
 
 ## Getting Started
 
-TorchSequence simplifies time series analysis with the following steps:
+TorchSequence facilitates time series analysis with the following steps:
 
 ### Preparing Time Series Data
 
@@ -47,7 +47,7 @@ Train and evaluate your TorchSequence model using the provided training and eval
 
 ## PyTorch Lightning Integration
 
-TorchSequence seamlessly integrates with PyTorch Lightning, providing an easy-to-use interface for training and running experiments. Leverage the power of PyTorch Lightning's capabilities, such as distributed training and automatic optimization, to enhance your time series analysis workflow.
+TorchSequence integrates with PyTorch Lightning, providing an easy-to-use interface for training and running experiments. Leverage the power of PyTorch Lightning's capabilities, such as distributed training and automatic optimization, to enhance your time series analysis workflow.
 
 ## Result Visualization
 
@@ -63,7 +63,7 @@ Contributions to TorchSequence are welcome! If you want to contribute to the pro
 
 ## License
 
-TorchSequence is released under the [MIT License](link-to-license).
+TorchSequence is released under the [MIT License].
 
 ## Acknowledgments
 
