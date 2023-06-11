@@ -1,6 +1,6 @@
 # TorchSequence: PyTorch Time Series Analysis Pipeline
 
-TorchSequence is a versatile PyTorch-based pipeline for time series analysis. This project provides a comprehensive framework that enables users to apply machine learning techniques to any time series data. With its flexible architecture and powerful modeling capabilities, TorchSequence simplifies the process of preprocessing, modeling, training, and predicting on time series datasets.
+TorchSequence is a versatile PyTorch-based pipeline for time series analysis and modeling. This project provides a comprehensive framework that enables users to apply machine learning techniques to any time series data. With its flexible architecture and powerful modeling capabilities, TorchSequence simplifies the process of preprocessing, modeling, training, and predicting on time series datasets.
 
 ## Table of Contents
 
