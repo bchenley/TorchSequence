@@ -1,3 +1,5 @@
+import torch
+
 class FeatureTransform():
   '''
   A class for performing feature scaling and transformation operations on data.
