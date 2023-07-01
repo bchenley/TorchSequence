@@ -48,6 +48,33 @@ from .FeatureTransform import FeatureTransform # type:ignore
 from .Loss import Loss # type:ignore
 
 __all__ = ['FeatureTransform',
-           'Loss']
+           'Loss', 
+           'fft', 
+           'periodogram', 
+           'moving_average', 
+           'butter', 
+           'fill', 
+           'Interpolator', 
+           'remove_outliers', 
+           'BaselineModel', 
+           'Polynomial', 
+           'LRU', 
+           'HiddenLayer', 
+           'ModulationLayer',
+           'LegendreModulator',
+           'ChebychevModulator', 
+           'FourierModulator', 
+           'SigmoidModulator', 
+           'Attention', 
+           'TransformerEncoderLayer',
+           'TransformerDecoderLayer', 
+           'SequenceModelBase', 
+           'SequenceModel', 
+           'Seq2SeqModel', 
+           'Embedding', 
+           'PositionalEncoding', 
+           'SequenceDataset', 
+           'DataModule', 
+           'SequenceModule']
 
 print("Done")
