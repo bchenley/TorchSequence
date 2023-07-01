@@ -1,5 +1,7 @@
 import torch
 
+from src import HiddenLayer
+
 class Seq2SeqModel(torch.nn.Module):
   '''
   Sequence-to-Sequence Model that consists of an encoder and a decoder.
