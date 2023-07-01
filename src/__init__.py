@@ -44,9 +44,6 @@ import time
 
 import pdb
 
-from .FeatureTransform import FeatureTransform # type:ignore
-from .Loss import Loss # type:ignore
-
 __all__ = ['FeatureTransform',
            'Loss', 
            'fft', 
@@ -76,5 +73,9 @@ __all__ = ['FeatureTransform',
            'SequenceDataset', 
            'DataModule', 
            'SequenceModule']
+
+for module_name in __all__:
+    module = importlib.import_module(f'.{module_name}', __name__)
+    globals()[module_name] = getattr(module, module_name)
 
 print("Done")
