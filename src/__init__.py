@@ -42,8 +42,8 @@ import time
 
 import pdb
 
-from .FeatureTransform import FeatureTransform
-from .Loss import Loss
+from .FeatureTransform import FeatureTransform # type:ignore
+from .Loss import Loss # type:ignore
 
 __all__ = ['FeatureTransform',
            'Loss']
