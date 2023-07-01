@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import pandas as pd
 
-from src import SequenceDataloader
+from src import SequenceDataset
 
 class DataModule(pl.LightningDataModule):
   def __init__(self,
