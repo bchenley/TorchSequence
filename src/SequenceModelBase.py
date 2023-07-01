@@ -1,5 +1,7 @@
 import torch 
 
+from src import HiddenLayer, Embedding, Attention, PositionalEncoding
+
 class SequenceModelBase(torch.nn.Module):
   '''
   Base class for sequence models.
