@@ -1,3 +1,5 @@
+print("Initializing TorchTimeSeries package...")
+
 import torch
 from torchsummary import summary
 
@@ -47,3 +49,5 @@ from .Loss import Loss # type:ignore
 
 __all__ = ['FeatureTransform',
            'Loss']
+
+print("Done")
