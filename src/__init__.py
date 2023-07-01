@@ -28,8 +28,9 @@ __all__ = ['FeatureTransform',
            'Seq2SeqModel', 
            'Embedding', 
            'PositionalEncoding', 
-           'SequenceDataset', 
-           'DataModule', 
+           'SequenceDataset',                        
+           'SequenceDataloader',
+           'DataModule',
            'SequenceModule']
 
 for module_name in __all__:
