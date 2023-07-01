@@ -1,6 +1,6 @@
-# TorchTimeSeries: PyTorch Time Series Analysis Pipeline
+# TorchTimeSeries: PyTorch Time Series Analysis Package
 
-TorchTimeSeries is a versatile PyTorch-based pipeline for time series analysis and modeling. This project provides a framework that enables users to apply machine learning techniques to any time series data. With its flexible architecture and powerful modeling capabilities, TorchTimeSeries is intended to facilitate the process of preprocessing, modeling, training, and predicting on time series datasets.
+TorchTimeSeries is a versatile PyTorch-based package for time series analysis and modeling. This project provides a framework that enables users to apply machine learning techniques to any time series data. With its flexible architecture modeling capabilities, TorchTimeSeries is intended to provide a useful starting point for the preprocessing, modeling, training, and predicting on time series datasets. 
 
 ## Table of Contents
 
