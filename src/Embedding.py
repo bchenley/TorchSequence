@@ -1,3 +1,5 @@
+import torch
+
 class Embedding(torch.nn.Module):
     '''
     Embedding layer that maps input tokens to continuous vectors.
