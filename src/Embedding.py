@@ -1,5 +1,7 @@
 import torch
 
+from src import HiddenLayer
+
 class Embedding(torch.nn.Module):
     '''
     Embedding layer that maps input tokens to continuous vectors.
