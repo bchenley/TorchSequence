@@ -364,9 +364,9 @@ class SequenceModule(pl.LightningModule):
       ax_i += 1
       ax = fig.add_subplot(num_params, 1, ax_i)
       ax.plot(train_history[x_label], train_history[param], label = 'Train')
-      if (self.val_history is not None) & (x_label == 'epochs'):
+      if (self.val_history is not None) & (param in self.val_history) & (x_label == 'epochs'):
         N = np.min([self.val_history[x_label].shape[0], self.val_history[param].shape[0]])
-        
+
         if self.loss_fn.name in param:
           metric = self.val_history[param][:N]
         elif self.metric_fn.name is not None:
