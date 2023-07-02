@@ -141,7 +141,7 @@ class LRU(torch.nn.RNN):
 
         output, hiddens = self.forward(impulse, hiddens)
 
-        return output
+        return output.squeeze(0)
 
   def clamp_relax(self):
     '''
