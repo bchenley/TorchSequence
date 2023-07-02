@@ -1,12 +1,9 @@
 import pytorch_lightning as pl
 import torch
 import numpy as np
-import time
 
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
-
-from src import Loss
 
 class SequenceModule(pl.LightningModule):
   def __init__(self,
@@ -62,16 +59,16 @@ class SequenceModule(pl.LightningModule):
                                         encoder_output= encoder_output)
 
     return output, hiddens
-
+  
   ## Configure optimizers
   def configure_optimizers(self):
     return self.opt
   ##
-
+   
   ## train model
   def on_train_start(self):
     self.run_time = time.time()
-
+   
   def training_step(self, batch, batch_idx):
 
     # constrain model if desired
@@ -364,9 +361,15 @@ class SequenceModule(pl.LightningModule):
       ax_i += 1
       ax = fig.add_subplot(num_params, 1, ax_i)
       ax.plot(train_history[x_label], train_history[param], label = 'Train')
-      if (self.val_history is not None) & (x_label == 'epochs') & ((self.loss_fn.name in param) | (self.metric_fn.name in param)):
+      if (self.val_history is not None) & (x_label == 'epochs'):
+        if self.loss_fn.name in param:
+          metric = self.val_history[param][:N]
+        elif self.metric_fn.name is not None:
+          if self.metric_fn.name in param:
+            metric = self.val_history[param][:N]
+            
         N = np.min([self.val_history[x_label].shape[0], self.val_history[param].shape[0]])
-        ax.plot(self.val_history[x_label][:N], self.val_history[param][:N], label = 'Val')
+        ax.plot(self.val_history[x_label][:N], metric, label = 'Val')
       ax.set_title(param)
       ax.set_ylabel(param)
       ax.legend()
