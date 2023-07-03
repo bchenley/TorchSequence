@@ -464,10 +464,10 @@ class SequenceModule(pl.LightningModule):
 
     pad_dim = self.trainer.datamodule.start_step*int(self.trainer.datamodule.pad_data)
 
-    hiddens = None
     with torch.no_grad():
 
       ## Predict training data
+      self.hiddens = None
       self.predict_output_mask = self.trainer.datamodule.train_output_mask
       self.predict_output_window_idx = self.trainer.datamodule.train_output_window_idx
 
