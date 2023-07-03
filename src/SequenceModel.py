@@ -514,8 +514,6 @@ class SequenceModel(torch.nn.Module):
 
           base_output_if, _ = self.seq_base[i](input = impulse_i)
 
-          weight = self.hidden_layer[i].F[0].weight
-
-          impulse_response[i][f] = base_output_if.squeeze(0) @ weight.t()
+          impulse_response[i][f] = self.hidden_layer[i].F[0](base_output_if)
 
     return impulse_response
