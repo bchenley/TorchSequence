@@ -53,7 +53,8 @@ class HiddenLayer(torch.nn.Module):
                                  bias=bias, device=device, dtype=dtype)
 
             if in_features == 1:
-              f1.weight.data = torch.ones_like(f1.weight, requires_grad = False)
+              f1.weight.data = torch.ones_like(f1.weight)
+              f1.weight.requires_grad = False
 
     if activation == 'identity':
         f2 = torch.nn.Identity()
