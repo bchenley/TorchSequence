@@ -104,7 +104,8 @@ class SequenceModel(torch.nn.Module):
     seq_base, hidden_layer = torch.nn.ModuleList([]), torch.nn.ModuleList([])
     for i in range(num_inputs):
       # input-associated sequence layer
-
+      print(base_hidden_size)
+      print(base_transformer_dim_feedforward)
       if base_transformer_feedforward_activation[i] == 'identity':
         base_transformer_dim_feedforward[i] = base_hidden_size[i]
 
