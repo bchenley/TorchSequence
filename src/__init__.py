@@ -43,10 +43,6 @@ __all__ = []
 for module_info in pkgutil.iter_modules([package]):
     module_name = module_info.name
     module = importlib.import_module(f'{package}.{module_name}')
-    for attribute_name in dir(module):
-        attribute = getattr(module, attribute_name)
-        if isinstance(attribute, type):
-            globals()[attribute_name] = attribute
-            __all__.append(attribute_name)
+    globals()[module_name] = module
 
 print("Done")
