@@ -96,12 +96,11 @@ class SequenceModel(torch.nn.Module):
 
       if isinstance(value, list) and any(x in arg for x in ['seq_type', 'input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):  
         if len(value) == 1:          
-          setattr(self, arg, value * num_inputs)
+          eval(f"{arg} = {arg} * num_inputs") # setattr(self, arg, value * num_inputs)
           
       elif isinstance(value, list) and any(x in arg for x in ['output_size', 'output_']):        
-        if len(value) == 1:
-          
-          setattr(self, arg, value * num_outputs)
+        if len(value) == 1:          
+          eval(f"{arg} = {arg} * num_outputs") # setattr(self, arg, value * num_outputs)
     
     seq_base, hidden_layer = torch.nn.ModuleList([]), torch.nn.ModuleList([])
     for i in range(num_inputs):
