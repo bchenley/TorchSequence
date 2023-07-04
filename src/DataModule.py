@@ -118,7 +118,7 @@ class DataModule(pl.LightningDataModule):
         self.output_names, self.num_outputs = ['y'], 1
         self.output_feature_names = self.output_names_original
 
-        for name in self.input_output_names_original: del self.data[name]
+        for name in [self.input_names_original + self.output_names_original]: del self.data[name]
       else:
         self.input_output_names = self.input_output_names_original
         
