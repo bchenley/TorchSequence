@@ -31,9 +31,5 @@ class Interpolator():
           y: The y-coordinates of the data points.
 
       '''
-      if isinstance(x, torch.Tensor):
-          x = x.detach().numpy()
-      if isinstance(y, torch.Tensor):
-          y = y.detach().numpy()
 
       self.interp_fn = sc.interpolate.interp1d(x, y, kind=self.kind, axis=self.axis)
