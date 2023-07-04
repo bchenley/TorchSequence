@@ -757,11 +757,7 @@ class SequenceModule(pl.LightningModule):
             val_baseline_prediction_if = self.val_prediction_data[f"{output_name}_baseline_prediction"][:, f]
             val_baseline_loss_if = np.round(self.val_prediction_data[f"{output_name}_baseline_{self.loss_fn.name}"][f].item(),2)
             val_baseline_metric_if = np.round(self.val_prediction_data[f"{output_name}_baseline_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
-          
-          print(val_time.shape)
-          print(val_target_if.shape)
-          dfdfdf
-          
+        
           ax_if.plot(val_time, val_target_if, '-k')
           ax_if.plot(val_time, val_prediction_if, '-r')
           val_label = f"Val ({self.loss_fn.name} = {val_loss_if}, {self.metric_fn.name} = {val_metric_if})" \
