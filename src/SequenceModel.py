@@ -102,7 +102,10 @@ class SequenceModel(torch.nn.Module):
         if len(value) == 1:
           
           setattr(self, arg, value * num_outputs)
-      
+
+    print(base_transformer_feedforward_activation)
+    dfdf
+                 
     seq_base, hidden_layer = torch.nn.ModuleList([]), torch.nn.ModuleList([])
     for i in range(num_inputs):
       # input-associated sequence layer
