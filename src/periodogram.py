@@ -1,6 +1,6 @@
 from scipy import signal as sp
 
-def periodogram(X, sf=1, window='hann', nfft=512,
+def periodogram(X, fs=1, window='hann', nfft=512,
                 detrend=None, return_onesided=True,
                 scaling='density', axis=0):
   '''
@@ -8,7 +8,7 @@ def periodogram(X, sf=1, window='hann', nfft=512,
 
   Args:
       X: The input signal.
-      sf: The sampling frequency of the input signal.
+      fs: The sampling frequency of the input signal.
       window: The window function to apply to the signal.
       nfft: The number of points to compute the FFT.
       detrend: The detrend function to remove a trend from the signal.
@@ -24,7 +24,7 @@ def periodogram(X, sf=1, window='hann', nfft=512,
       nfft = X.shape[axis]
       print(f'nfft set to {nfft}')
 
-  f, psd = sp.periodogram(X, sf=sf, window=window, nfft=nfft,
+  f, psd = sp.periodogram(X, fs=fs, window=window, nfft=nfft,
                           detrend=detrend, return_onesided=return_onesided,
                           scaling=scaling, axis=axis)
 
