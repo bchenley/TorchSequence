@@ -38,7 +38,7 @@ import importlib, pkgutil
 #     globals()[module_name] = getattr(module, module_name)
 
 __all__ = [ ]
-for module_info in pkgutil.iter_modules([package]):
+for module_info in pkgutil.iter_modules(['src']):
     module_name = module_info.name
     __all__.append(module_name)
     module = importlib.import_module(f'{package}.{module_name}')
