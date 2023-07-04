@@ -95,10 +95,9 @@ class SequenceModel(torch.nn.Module):
       value = locals_copy[arg]
 
       if isinstance(value, list) and any(x in arg for x in ['seq_type', 'input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):  
-        if len(value) == 1:
-          print("Before setting attribute:", arg, "value:", value)
+        if len(value) == 1:          
           setattr(self, arg, value * num_inputs)
-          print("After setting attribute:", arg, "value:", getattr(self, arg))
+          
       elif isinstance(value, list) and any(x in arg for x in ['output_size', 'output_']):        
         if len(value) == 1:
           
