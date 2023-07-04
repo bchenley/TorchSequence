@@ -463,8 +463,7 @@ class SequenceModule(pl.LightningModule):
     self.trainer.enable_progress_bar = False
 
     pad_dim = self.trainer.datamodule.start_step # *int(self.trainer.datamodule.pad_data)
-    print(pad_dim)
-    dfdf
+
     with torch.no_grad():
 
       ## Predict training data
