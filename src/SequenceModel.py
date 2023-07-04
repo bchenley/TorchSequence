@@ -98,7 +98,9 @@ class SequenceModel(torch.nn.Module):
         if arg == 'base_transformer_feedforward_activation':
           print(base_transformer_feedforward_activation, len(base_transformer_feedforward_activation))
         if len(value) == 1:
+          print('before',value)
           setattr(self, arg, value * num_inputs)
+          print('after',value)
         if arg == 'base_transformer_feedforward_activation':
           print(base_transformer_feedforward_activation, len(base_transformer_feedforward_activation))
           
