@@ -503,9 +503,6 @@ class SequenceModule(pl.LightningModule):
         self.predict_output_window_idx = self.trainer.datamodule.val_output_window_idx
 
         self.trainer.predict(self, self.trainer.datamodule.val_dl.dl) ;
-
-        if not self.trainer.datamodule.pad_data:
-          self.prediction, self.target, self.output_steps = self.prediction[start_step:], self.target[start_step:], self.output_steps[start_step:]
         
         val_prediction, val_output_steps = self.generate_reduced_output(self.prediction, self.output_steps,
                                                                         reduction = reduction, transforms=self.trainer.datamodule.transforms)
@@ -519,6 +516,9 @@ class SequenceModule(pl.LightningModule):
 
         val_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name]
 
+        if not self.trainer.datamodule.pad_data:
+          val_time = val_time[start_step:]
+                  
         val_baseline_pred, val_baseline_loss = None, None
         if self.baseline_model is not None:
           val_baseline_pred = self.baseline_model(val_target)
@@ -536,9 +536,6 @@ class SequenceModule(pl.LightningModule):
 
         self.trainer.predict(self, self.trainer.datamodule.test_dl.dl) ;
 
-        if not self.trainer.datamodule.pad_data:
-          self.prediction, self.target, self.output_steps = self.prediction[start_step:], self.target[start_step:], self.output_steps[start_step:]
-                  
         test_prediction, test_output_steps = self.generate_reduced_output(self.prediction, self.output_steps,
                                                                           reduction = reduction, transforms=self.trainer.datamodule.transforms)
 
@@ -551,6 +548,9 @@ class SequenceModule(pl.LightningModule):
 
         test_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name]
 
+        if not self.trainer.datamodule.pad_data:
+          test_time = test_time[start_step:]
+                  
         test_baseline_pred, test_baseline_loss = None, None
         if self.baseline_model is not None:
           test_baseline_pred = self.baseline_model(test_target)
