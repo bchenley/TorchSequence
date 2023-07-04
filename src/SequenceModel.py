@@ -93,6 +93,8 @@ class SequenceModel(torch.nn.Module):
     locals_copy = locals().copy() # copy the local variables
     for arg in locals_copy:
       value = locals_copy[arg]
+
+      print(f"arg: {arg}, value: {value}, num_inputs: {num_inputs}")
       
       if isinstance(value, list) and any(x in arg for x in ['seq_type', 'input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):  
         if len(value) == 1:
@@ -100,6 +102,8 @@ class SequenceModel(torch.nn.Module):
       elif isinstance(value, list) and any(x in arg for x in ['output_size', 'output_']):
         if len(value) == 1:
           setattr(self, arg, value * num_outputs)
+
+      print(f"arg: {arg}, value: {value}, num_inputs: {num_inputs}")
       
     seq_base, hidden_layer = torch.nn.ModuleList([]), torch.nn.ModuleList([])
     for i in range(num_inputs):
