@@ -96,11 +96,12 @@ class SequenceModel(torch.nn.Module):
 
       if isinstance(value, list) and any(x in arg for x in ['seq_type', 'input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):  
         if len(value) == 1:
-          print("Setting attribute:", arg, "to", value * num_inputs)
+          print("Before setting attribute:", arg, "value:", value)
           setattr(self, arg, value * num_inputs)
+          print("After setting attribute:", arg, "value:", getattr(self, arg))
       elif isinstance(value, list) and any(x in arg for x in ['output_size', 'output_']):        
         if len(value) == 1:
-          print("Setting attribute:", arg, "to", value * num_inputs)
+          
           setattr(self, arg, value * num_outputs)
       
     seq_base, hidden_layer = torch.nn.ModuleList([]), torch.nn.ModuleList([])
