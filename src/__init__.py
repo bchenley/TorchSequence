@@ -1,6 +1,6 @@
 print("Initializing TorchTimeSeries package...")
 
-import importlib
+import importlib, sys
 
 __all__ = ['FeatureTransform',
            'Loss', 
