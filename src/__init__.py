@@ -35,6 +35,7 @@ __all__ = ['FeatureTransform',
 
 for module_name in __all__:
     module = importlib.import_module(f'.{module_name}', __name__)
-    globals()[module_name] = getattr(module, module_name)
+    # globals()[module_name] = getattr(module, module_name)
+    setattr(sys.modules[__name__], module_name, module)
 
 print("Done")
