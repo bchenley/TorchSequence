@@ -462,7 +462,7 @@ class SequenceModule(pl.LightningModule):
 
     self.trainer.enable_progress_bar = False
 
-    pad_dim = self.trainer.datamodule.start_step*int(self.trainer.datamodule.pad_data)
+    start_step = self.trainer.datamodule.start_step
 
     with torch.no_grad():
 
@@ -473,7 +473,8 @@ class SequenceModule(pl.LightningModule):
 
       self.trainer.predict(self, self.trainer.datamodule.train_dl.dl)
 
-      self.prediction, self.target, self.output_steps = self.prediction[pad_dim:], self.target[pad_dim:], self.output_steps[pad_dim:]
+      if self.trainer.datamodule.pad_data:
+        self.prediction, self.target, self.output_steps = self.prediction[start_step:], self.target[start_step:], self.output_steps[start_step:]
 
       train_prediction, train_output_steps = self.generate_reduced_output(self.prediction, self.output_steps,
                                                                           reduction = reduction, transforms=self.trainer.datamodule.transforms)
@@ -486,7 +487,7 @@ class SequenceModule(pl.LightningModule):
 
       # train_loss = torch.stack([l.sum() for l in train_loss.split(self.model.input_size, -1)], 0)
 
-      train_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name][pad_dim:]
+      train_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name][start_step:]
       
       train_baseline_pred, train_baseline_loss = None, None
       if self.baseline_model is not None:
