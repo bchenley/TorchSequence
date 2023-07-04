@@ -90,19 +90,16 @@ class SequenceModel(torch.nn.Module):
 
     self.to(device = device, dtype = dtype)
     
-    locals_ = locals() 
-    for arg in locals_:
-      print(arg)
-    dfdf
-    for arg in locals_:
+    locals_ = locals()
+    for arg in locals():
       value = locals_[arg]
       
       if isinstance(value, list) and any(x in arg for x in ['seq_type', 'input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):  
-        if len(value) == 1:          
-          setattr(self, arg, value * num_inputs) # value = value * num_inputs
+        if len(value) == 1:        
+          exec(f"{arg} = {arg} * num_inputs") # setattr(self, arg, value * num_inputs)
       elif isinstance(value, list) and any(x in arg for x in ['output_size', 'output_']):        
-        if len(value) == 1:          
-          setattr(self, arg, value * num_outputs) # value = value * num_outputs
+        if len(value) == 1:
+          exec(f"{arg} = {arg} * num_outputs") # setattr(self, arg, value * num_outputs)
     
     seq_base, hidden_layer = torch.nn.ModuleList([]), torch.nn.ModuleList([])
     for i in range(num_inputs):
