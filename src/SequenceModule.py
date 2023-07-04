@@ -486,8 +486,12 @@ class SequenceModule(pl.LightningModule):
 
       # train_loss = torch.stack([l.sum() for l in train_loss.split(self.model.input_size, -1)], 0)
 
+      print(pad_dim)
+      print(self.trainer.datamodule.train_data[self.trainer.datamodule.time_name])
       train_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name][pad_dim:]
-
+      print(train_time.shape)
+      dfdf
+      
       train_baseline_pred, train_baseline_loss = None, None
       if self.baseline_model is not None:
         train_baseline_pred = self.baseline_model(train_target)
