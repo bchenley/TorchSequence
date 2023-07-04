@@ -94,8 +94,13 @@ class SequenceModel(torch.nn.Module):
     for arg in locals_copy:
       value = locals_copy[arg]
       if isinstance(value, list) and any(x in arg for x in ['seq_type', 'input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):
+        if value == 'base_transformer_feedforward_activation':
+          print(base_transformer_feedforward_activation, len(base_transformer_feedforward_activation))
         if len(value) == 1:
           setattr(self, arg, value * num_inputs)
+        if value == 'base_transformer_feedforward_activation':
+          print(base_transformer_feedforward_activation, len(base_transformer_feedforward_activation))
+          
       elif isinstance(value, list) and any(x in arg for x in ['output_size', 'output_']):
         if len(value) == 1:
           setattr(self, arg, value * num_outputs)
