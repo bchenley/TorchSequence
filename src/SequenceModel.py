@@ -90,8 +90,9 @@ class SequenceModel(torch.nn.Module):
 
     self.to(device = device, dtype = dtype)
     
-    locals_ = locals()
-    for arg in locals():
+    locals_ = locals().copy()
+                 
+    for arg in locals_:
       value = locals_[arg]
       
       if isinstance(value, list) and any(x in arg for x in ['seq_type', 'input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):  
