@@ -90,20 +90,16 @@ class SequenceModel(torch.nn.Module):
 
     self.to(device = device, dtype = dtype)
     
-    locals_copy = locals().copy() # copy the local variables
+    locals_ = locals() 
     for arg in locals_copy:
       value = locals_copy[arg]
 
       if isinstance(value, list) and any(x in arg for x in ['seq_type', 'input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):  
-        if len(value) == 1:
-          if arg == 'base_transformer_feedforward_activation':
-            print(eval(arg))
-          exec(f"{arg} = {arg} * num_inputs") # setattr(self, arg, value * num_inputs)
-          if arg == 'base_transformer_feedforward_activation':
-            print(eval(arg))
+        if len(value) == 1:          
+          locals_[arg] = value * num_inputs # setattr(self, arg, value * num_inputs)   
       elif isinstance(value, list) and any(x in arg for x in ['output_size', 'output_']):        
         if len(value) == 1:          
-          exec(f"{arg} = {arg} * num_outputs") # setattr(self, arg, value * num_outputs)
+          locals_[arg] = value * num_outputs # setattr(self, arg, value * num_outputs)
     
     seq_base, hidden_layer = torch.nn.ModuleList([]), torch.nn.ModuleList([])
     for i in range(num_inputs):
