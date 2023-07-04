@@ -487,7 +487,7 @@ class SequenceModule(pl.LightningModule):
       # train_loss = torch.stack([l.sum() for l in train_loss.split(self.model.input_size, -1)], 0)
 
       print(pad_dim)
-      print(self.trainer.datamodule.train_data[self.trainer.datamodule.time_name])
+      print(self.trainer.datamodule.train_data[self.trainer.datamodule.time_name].shape)
       train_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name][pad_dim:]
       print(train_time.shape)
       dfdf
