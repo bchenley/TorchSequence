@@ -96,8 +96,10 @@ class SequenceModel(torch.nn.Module):
       value = locals_[arg]
       
       if isinstance(value, list) and any(x in arg for x in ['seq_type', 'input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):  
-        if len(value) == 1:        
+        if len(value) == 1:  
+          print(locals_[arg])
           setattr(self, arg, value * num_inputs) # exec(f"{arg} = {arg} * num_inputs")
+          print(locals_[arg])
       elif isinstance(value, list) and any(x in arg for x in ['output_size', 'output_']):        
         if len(value) == 1:
           setattr(self, arg, value * num_outputs) # exec(f"{arg} = {arg} * num_outputs")
