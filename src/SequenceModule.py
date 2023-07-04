@@ -504,9 +504,12 @@ class SequenceModule(pl.LightningModule):
 
         self.trainer.predict(self, self.trainer.datamodule.val_dl.dl) ;
 
+        if not self.trainer.datamodule.pad_data:
+          self.prediction, self.target, self.output_steps = self.prediction[start_step:], self.target[start_step:], self.output_steps[start_step:]
+        
         val_prediction, val_output_steps = self.generate_reduced_output(self.prediction, self.output_steps,
                                                                         reduction = reduction, transforms=self.trainer.datamodule.transforms)
-
+        
         val_target, _ = self.generate_reduced_output(self.target, self.output_steps,
                                                      reduction = reduction, transforms=self.trainer.datamodule.transforms)
 
@@ -533,6 +536,9 @@ class SequenceModule(pl.LightningModule):
 
         self.trainer.predict(self, self.trainer.datamodule.test_dl.dl) ;
 
+        if not self.trainer.datamodule.pad_data:
+          self.prediction, self.target, self.output_steps = self.prediction[start_step:], self.target[start_step:], self.output_steps[start_step:]
+                  
         test_prediction, test_output_steps = self.generate_reduced_output(self.prediction, self.output_steps,
                                                                           reduction = reduction, transforms=self.trainer.datamodule.transforms)
 
