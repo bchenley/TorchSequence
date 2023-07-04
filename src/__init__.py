@@ -37,11 +37,16 @@ import importlib, pkgutil
 #     module = importlib.import_module(f'.{module_name}', __name__)
 #     globals()[module_name] = module
 
-__all__ = [ ]
-for module_info in pkgutil.iter_modules(['src']):
+package = 'src'
+__all__ = []
+
+for module_info in pkgutil.iter_modules([package]):
     module_name = module_info.name
-    __all__.append(module_name)
-    module = importlib.import_module(f'src.{module_name}')
-    globals()[module_name] = module
+    module = importlib.import_module(f'{package}.{module_name}')
+    for attribute_name in dir(module):
+        attribute = getattr(module, attribute_name)
+        if isinstance(attribute, type):
+            globals()[attribute_name] = attribute
+            __all__.append(attribute_name)
 
 print("Done")
