@@ -513,7 +513,7 @@ class SequenceModule(pl.LightningModule):
         #                         val_target.unsqueeze(0))
         # val_loss = torch.stack([l.sum() for l in val_loss.split(self.model.input_size, -1)], 0)
 
-        val_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name]
+        val_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name][pad_dim:]
 
         val_baseline_pred, val_baseline_loss = None, None
         if self.baseline_model is not None:
@@ -542,7 +542,7 @@ class SequenceModule(pl.LightningModule):
         #                         test_target.unsqueeze(0))
         # test_loss = torch.stack([l.sum() for l in test_loss.split(self.model.input_size, -1)], 0)
 
-        test_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name]
+        test_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name][pad_dim:]
 
         test_baseline_pred, test_baseline_loss = None, None
         if self.baseline_model is not None:
