@@ -93,6 +93,7 @@ class SequenceModel(torch.nn.Module):
     locals_copy = locals().copy() # copy the local variables
     for arg in locals_copy:
       value = locals_copy[arg]
+      print(value)
       if isinstance(value, list) and any(x in arg for x in ['seq_type', 'input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):
         if value == 'base_transformer_feedforward_activation':
           print(base_transformer_feedforward_activation, len(base_transformer_feedforward_activation))
