@@ -86,7 +86,7 @@ class SequenceModel(torch.nn.Module):
                #
                device = 'cpu', dtype = torch.float32):
     
-    super(SequenceModel, self).__init__()
+    super().__init__() # SequenceModel, self
 
     self.to(device = device, dtype = dtype)
     
