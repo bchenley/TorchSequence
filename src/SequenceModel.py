@@ -96,12 +96,7 @@ class SequenceModel(torch.nn.Module):
 
       if isinstance(value, list) and any(x in arg for x in ['seq_type', 'input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):  
         if len(value) == 1:
-          if arg == 'base_transformer_feedforward_activation':
-            print(base_transformer_feedforward_activation)
           exec(f"{arg} = {value} * num_inputs") # setattr(self, arg, value * num_inputs)
-          print(f"{arg} = {value} * num_inputs")
-          if arg == 'base_transformer_feedforward_activation':
-            print(base_transformer_feedforward_activation)
       elif isinstance(value, list) and any(x in arg for x in ['output_size', 'output_']):        
         if len(value) == 1:          
           exec(f"{arg} = {value} * num_outputs") # setattr(self, arg, value * num_outputs)
