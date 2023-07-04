@@ -490,7 +490,6 @@ class SequenceModule(pl.LightningModule):
       print(self.trainer.datamodule.train_data[self.trainer.datamodule.time_name].shape)
       train_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name][pad_dim:]
       print(train_time.shape)
-      dfdf
       
       train_baseline_pred, train_baseline_loss = None, None
       if self.baseline_model is not None:
@@ -559,14 +558,17 @@ class SequenceModule(pl.LightningModule):
 
     if val_prediction is not None: val_prediction_data = {self.trainer.datamodule.time_name: val_time}
     if test_prediction is not None: test_prediction_data = {self.trainer.datamodule.time_name: test_time}
-
+    print('train_time.shape', train_time.shape)
+    print('train_target', train_target.shape)
+    dfdf
+                
     j = 0
     for i,output_name in enumerate(self.trainer.datamodule.output_names):
 
       # train
       train_target_i = train_target[:, j:(j+self.trainer.datamodule.output_size[i])]
       train_prediction_i = train_prediction[:, j:(j+self.trainer.datamodule.output_size[i])]
-
+      
       train_prediction_data[f"{output_name}_actual"] = train_target_i
       train_prediction_data[f"{output_name}_prediction"] = train_prediction_i
 
