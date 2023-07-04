@@ -9,7 +9,7 @@ class DataModule(pl.LightningDataModule):
   def __init__(self,
                 data,
                 time_name, input_names, output_names,
-                fuse_features=None, transforms=None,
+                combine_features=None, transforms=None,
                 pct_train_val_test=[1., 0., 0.],
                 batch_size=-1,
                 input_len=[1], output_len=[1], shift=[0], stride=1,
@@ -27,7 +27,7 @@ class DataModule(pl.LightningDataModule):
           time_name (str): Name of the column in the data that represents time.
           input_names (list): List of input feature names.
           output_names (list): List of output feature names.
-          fuse_features (list, optional): List of features to fuse into a single feature. Defaults to None.
+          combine_features (list, optional): List of features to fuse into a single feature. Defaults to None.
           transforms (dict, optional): Dictionary specifying the transformations to be applied to each feature. Defaults to None.
           pct_train_val_test (list, optional): List specifying the percentage of data to use for training,
                                                 validation, and testing, respectively. Defaults to [1., 0., 0.].
@@ -53,7 +53,7 @@ class DataModule(pl.LightningDataModule):
       self.time_name = time_name
       self.input_names = input_names
       self.output_names = output_names
-      self.fuse_features = fuse_features
+      self.combine_features = combine_features
       self.transforms = transforms
       self.pct_train_val_test = pct_train_val_test
       self.batch_size = batch_size
@@ -107,31 +107,19 @@ class DataModule(pl.LightningDataModule):
       self.data = data
 
       self.feature_names = None
-      if self.fuse_features is not None:
-          self.feature_names = {}
-          for feature in self.fuse_features:
-              self.data[feature] = torch.cat([self.data[name] for name in self.data if feature in name], -1)
-              input_output_names_with_feature = [name for name in self.input_output_names if feature in name]
-              if len(input_output_names_with_feature) > 0:
-                  for name in input_output_names_with_feature:
-                      _, feature_name = name.split('_', 1)
-                      if feature not in self.feature_names:
-                          self.feature_names[feature] = [feature_name]
-                      else:
-                          self.feature_names[feature] += [feature_name]
+      if self.combine_features:
+        self.data['X'] = torch.cat([self.data[name] for name in self.input_names_original],-1)        
+        self.input_names, self.num_inputs = ['X'], 1
+        self.input_feature_names = self.input_names_original
 
-                      self.input_output_names.remove(name)
+        self.data['y'] = torch.cat([self.data[name] for name in self.output_names_original],-1)        
+        self.output_names, self.num_outputs = ['y'], 1
+        self.output_feature_names = self.output_names_original
 
-                      if name in self.data:
-                          del self.data[name]
-
-                  if any(feature in name for name in self.input_names):
-                      self.input_names = [name for name in self.input_names if feature not in name] + [feature]
-                  if any(feature in name for name in self.output_names):
-                      self.output_names = [name for name in self.output_names if feature not in name] + [feature]
-              else:
-                  self.feature_names[feature] = []
-
+        for name in self.input_output_names_original: del self.data[name]
+      else:
+        self.input_output_names = self.input_output_names_original
+        
       self.input_output_names = np.unique(self.input_names + self.output_names).tolist()
       self.num_inputs, self.num_outputs = len(self.input_names), len(self.output_names)
       self.input_size = [self.data[name].shape[-1] for name in self.input_names]
