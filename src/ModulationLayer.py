@@ -39,83 +39,73 @@ class ModulationLayer(torch.nn.Module):
 
     super(ModulationLayer, self).__init__()
 
-    legendre_idx, chebychev_idx, hermite_idx, fourier_idx, sigmoid_idx = None, None, None, None, None
+    locals_ = locals().copy()
+
+    for arg in locals_:
+      setattr(self, arg, locals_[arg])
+        
     idx = 1
 
-    num_modulators, m = 0, 0
+    self.num_modulators, m = 0, 0
 
-    F = []
+    self.F = []
 
-    modulators = torch.nn.ModuleList([])
-    F_legendre, legendre_idx = None, None
-    if legendre_degree is not None:
+    self.modulators = torch.nn.ModuleList([])
+    F_legendre, self.legendre_idx = None, None
+    if self.legendre_degree is not None:
         m += 1
-        F_legendre = LegendreModulator(window_len=window_len, scale=True, degree=legendre_degree,
-                                       zero_order=zero_order, device=device, dtype=dtype)
-        modulators.append(F_legendre)
+        F_legendre = LegendreModulator(window_len = self.window_len, scale = True, degree = self.legendre_degree,
+                                       zero_order = self.zero_order, device = self.device, dtype = self.dtype)
+        self.modulators.append(F_legendre)
         F.append(F_legendre.functions)
-        legendre_idx = [m, torch.arange(idx, idx + F_legendre.num_modulators)]
+        self.legendre_idx = [m, torch.arange(idx, idx + F_legendre.num_modulators)]
         idx += F_legendre.num_modulators
 
-    F_chebychev, chebychev_idx = None, None
-    if chebychev_degree is not None:
+    F_chebychev, self.chebychev_idx = None, None
+    if self.chebychev_degree is not None:
         m += 1
-        F_chebychev = ChebychevModulator(window_len=window_len, scale=True, kind=1, degree=chebychev_degree,
-                                          zero_order=zero_order * (len(F) == 0), device=device, dtype=dtype)
-        modulators.append(F_chebychev)
-        F.append(F_chebychev.functions)
-        chebychev_idx = [m, torch.arange(idx, idx + F_chebychev.num_modulators)]
+        F_chebychev = ChebychevModulator(window_len = self.window_len, scale = True, kind = 1, degree = self.chebychev_degree,
+                                         zero_order = self.zero_order * (len(self.F) == 0), device = self.device, dtype = self.dtype)
+        self.modulators.append(F_chebychev)
+        self.F.append(F_chebychev.functions)
+        self.chebychev_idx = [m, torch.arange(idx, idx + F_chebychev.num_modulators)]
         idx += F_chebychev.num_modulators
 
-    F_fourier, fourier_idx = None, None
-    if num_freqs is not None:
+    F_fourier, self.fourier_idx = None, None
+    if self.num_freqs is not None:
         m += 1
-        F_fourier = FourierModulator(window_len=window_len, num_freqs=num_freqs, dt=dt,
-                                      freq_init=freq_init, freq_train=freq_train,
-                                      phase_init=phase_init, phase_train=phase_train,
-                                      device=device, dtype=dtype)
-        modulators.append(F_fourier)
-        F.append(F_fourier.functions)
-        fourier_idx = [m, torch.arange(idx, idx + F_fourier.num_modulators)]
+        F_fourier = FourierModulator(window_len = self.window_len, num_freqs = self.num_freqs, dt = self.dt,
+                                      freq_init = self.freq_init, freq_train = self.freq_train,
+                                      phase_init = self.phase_init, phase_train = self.phase_train,
+                                      device = self.device, dtype = self.dtype)
+        self.modulators.append(F_fourier)
+        self.F.append(F_fourier.functions)
+        self.fourier_idx = [m, torch.arange(idx, idx + F_fourier.num_modulators)]
         idx += F_fourier.num_modulators
 
-    F_sigmoid, s, bs, sigmoid_idx = None, None, None, None
-    if num_sigmoids is not None:
+    F_sigmoid self.sigmoid_idx = None, None
+    if self.num_sigmoids is not None:
         m += 1
-        F_sigmoid = SigmoidModulator(window_len=window_len, num_sigmoids=num_sigmoids,
-                                      slope_init=slope_init, slope_train=slope_train,
-                                      shift_init=shift_init, shift_train=shift_train,
-                                      device=device, dtype=dtype)
-        modulators.append(F_sigmoid)
-        F.append(F_sigmoid.functions)
-        sigmoid_idx = [m, torch.arange(idx, idx + F_sigmoid.num_modulators)]
+        F_sigmoid = SigmoidModulator(window_len = self.window_len, num_sigmoids = self.num_sigmoids,
+                                      slope_init = self.slope_init, slope_train = self.slope_train,
+                                      shift_init = self.shift_init, shift_train = self.shift_train,
+                                      device = self.device, dtype = self.dtype)
+        self.modulators.append(F_sigmoid)
+        self.F.append(F_sigmoid.functions)
+        self.sigmoid_idx = [m, torch.arange(idx, idx + F_sigmoid.num_modulators)]
         idx += F_sigmoid.num_modulators
 
-    F = torch.cat(F, -1)
+    self.F = torch.cat(self.F, -1)
 
-    num_modulators = F.shape[-1]
+    self.num_modulators = self.F.shape[-1]
 
-    linear_fn = HiddenLayer(in_features=in_features + int(pure),
-                            out_features=num_modulators,
-                            bias=bias,
-                            activation='identity',
-                            weight_reg=weight_reg,
-                            weight_norm=weight_norm,
-                            device=device, dtype=dtype)
-
-    self.window_len = window_len
-    self.in_features = in_features
-    self.associated = associated
-    self.weight_reg, self.weight_norm = weight_reg, weight_norm
-    self.bias = bias
-    self.modulators, self.num_modulators = modulators, num_modulators
-    self.pure = pure
-
-    self.linear_fn, self.F = linear_fn, F
-    self.legendre_idx, self.chebychev_idx, self.hermite_idx, self.fourier_idx, self.sigmoid_idx = legendre_idx, chebychev_idx, hermite_idx, fourier_idx, sigmoid_idx
-    self.dt = dt
-
-    self.device, self.dtype = device, dtype
+    self.linear_fn = HiddenLayer(in_features = self.in_features + int(self.pure),
+                                 out_features = self.num_modulators,
+                                 bias = self.bias,
+                                 activation = 'identity',
+                                 weight_reg = self.weight_reg,
+                                 weight_norm = self.weight_norm,
+                                 device = self.device, dtype = self.dtype)
 
   def forward(self, input, steps):
     '''
