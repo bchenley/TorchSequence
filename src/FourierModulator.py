@@ -22,24 +22,23 @@ class FourierModulator(torch.nn.Module):
                phase_train=True, device='cpu', dtype=torch.float32):
     super(FourierModulator, self).__init__()
 
-    if freq_init is None:
-        freq_init = ((1 / dt) / 4) * torch.ones(size=(1, num_freqs))
+    locals_ = locals().copy()
+
+    for arg in locals_:
+      setattr(self, arg, locals_[arg])
+        
+    if self.freq_init is None:
+        self.freq_init = ((1 / dt) / 4) * torch.ones(size=(1, self.num_freqs))
     else:
-        freq_init = freq_init
+        self.freq_init = self.freq_init
 
-    if phase_init is None:
-        phase_init = torch.zeros(size=(1, num_freqs))
+    if self.phase_init is None:
+        self.phase_init = torch.zeros(size=(1, self.num_freqs))
     else:
-        phase_init = phase_init
+        self.phase_init = self.phase_init
 
-    freq = torch.nn.Parameter(data=freq_init.to(device=device, dtype=dtype), requires_grad=freq_train)
-    phase = torch.nn.Parameter(data=phase_init.to(device=device, dtype=dtype), requires_grad=phase_train)
-
-    self.dt = dt
-    self.window_len = window_len
-    self.freq, self.phase = freq, phase
-    self.num_modulators = num_freqs
-    self.device, self.dtype = device, dtype
+    self.freq = torch.nn.Parameter(data = self.freq_init.to(device=device, dtype = selfdtype), requires_grad = self.freq_train)
+    self.phase = torch.nn.Parameter(data = self.phase_init.to(device=device, dtype=dtype), requires_grad = self.phase_train)
 
     self.generate_basis_functions()
 
