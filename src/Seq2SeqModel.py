@@ -31,7 +31,8 @@ class Seq2SeqModel(torch.nn.Module):
     locals_ = locals().copy()
 
     for arg in locals_:
-      setattr(self, arg, locals_[arg])
+      if arg != 'self':
+        setattr(self, arg, locals_[arg])
         
     self.enc2dec_init_input_block = None
     if self.learn_decoder_init_input:
