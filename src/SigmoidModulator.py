@@ -21,20 +21,21 @@ class SigmoidModulator(torch.nn.Module):
                 shift_init=None, shift_train=True, device='cpu', dtype=torch.float32):
     super(SigmoidModulator, self).__init__()
 
-    if slope_init is None:
-        slope_init = torch.nn.init.normal_(torch.empty((1, num_sigmoids)), mean=0, std=1 / window_len)
-    slope = torch.nn.Parameter(data=slope_init.to(device=device, dtype=dtype), requires_grad=slope_train)
+    locals_ = locals().copy()
+  
+    for arg in locals_:
+      setattr(self, arg, locals_[arg])
+        
+    if self.slope_init is None:
+        self.slope_init = torch.nn.init.normal_(torch.empty((1, self.num_sigmoids)), mean = 0, std=1 / self.window_len)
+    self.slope = torch.nn.Parameter(data = self.slope_init.to(device = self.device, dtype = self.dtype), requires_grad = self.slope_train)
 
-    if shift_init is None:
-        shift_init = torch.nn.init.uniform_(torch.empty((1, num_sigmoids)), a=-1, b=1)
-    shift = torch.nn.Parameter(data=shift_init.to(device=device, dtype=dtype), requires_grad=shift_train)
+    if self.shift_init is None:
+        self.shift_init = torch.nn.init.uniform_(torch.empty((1, self.num_sigmoids)), a=-1, b=1)
+    self.shift = torch.nn.Parameter(data = self.shift_init.to(device=device, dtype = self.dtype), requires_grad = self.shift_train)
 
-    self.window_len = window_len
     self.num_modulators = num_sigmoids
-    self.scale = scale
-    self.slope, self.shift = slope, shift
-    self.device, self.dtype = device, dtype
-
+    
     self.functions = self.generate_basis_functions()
 
   def generate_basis_functions(self):
