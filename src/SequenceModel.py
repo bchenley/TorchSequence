@@ -25,7 +25,7 @@ class SequenceModel(torch.nn.Module):
                base_encoder_bias = [False], base_decoder_bias = [False],
                base_rnn_weight_reg = [[0.001, 1]], base_rnn_weight_norm = [None],
                # LRU parameters
-               base_relax_init = [[0.5]], base_relax_train = [True], base_relax_minmax = [[0.1, 0.9]], base_num_filterbanks = [1],
+               base_relax_init = [[0.5]], base_relax_train = [True], base_relax_minmax = [[[0.1, 0.9]]], base_num_filterbanks = [1],
                # CNN parameters
                base_cnn_kernel_size = [(1,)], base_cnn_stride = [(1,)], base_cnn_padding = [(0,)], base_cnn_dilation = [(1,)], base_cnn_groups = [1], base_cnn_bias = [False],
                # Transformer parameters
