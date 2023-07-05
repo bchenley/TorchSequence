@@ -42,7 +42,8 @@ class ModulationLayer(torch.nn.Module):
     locals_ = locals().copy()
 
     for arg in locals_:
-      setattr(self, arg, locals_[arg])
+      if arg != 'self':
+        setattr(self, arg, locals_[arg])
         
     idx = 1
 
