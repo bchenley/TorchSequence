@@ -1,6 +1,6 @@
 print("Initializing TorchTimeSeries package...")
 
-import importlib, pkgutil
+import importlib
 
 __all__ = ['FeatureTransform',
            'Loss', 
