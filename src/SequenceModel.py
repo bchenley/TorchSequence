@@ -91,6 +91,10 @@ class SequenceModel(torch.nn.Module):
     self.to(device = device, dtype = dtype)
     
     locals_ = locals().copy()
+
+    args = list(locals().keys())[1:]   
+    print(args)
+    dfdf
                  
     for arg in locals_:
       value = locals_[arg]
