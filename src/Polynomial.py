@@ -21,17 +21,17 @@ class Polynomial(torch.nn.Module):
                device='cpu', dtype=torch.float32):
       super(Polynomial, self).__init__()
 
-      self.to(device=device, dtype=dtype)
+      locals_ = locals().copy()
 
-      if coef_init is None:
-          coef_init = torch.nn.init.normal_(torch.empty(in_features, degree + int(zero_order)))
+      for arg in locals_:
+        setattr(self, arg, locals_[arg])
+        
+      self.to(device = self.device, dtype = self.dtype)
+      
+      if self.coef_init is None:
+          self.coef_init = torch.nn.init.normal_(torch.empty(self.in_features, self.degree + int(self.zero_order)))
 
-      coef = torch.nn.Parameter(data=coef_init.to(device=device, dtype=dtype), requires_grad=coef_train)
-
-      self.coef, self.coef_reg = coef, coef_reg
-      self.in_features, self.degree = in_features, degree
-      self.zero_order = zero_order
-      self.device, self.dtype = device, dtype
+      self.coef = torch.nn.Parameter(data = self.coef_init.to(device = self.device, dtype = self.dtype), requires_grad = self.coef_train)
 
   def forward(self, X):
     '''
