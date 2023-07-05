@@ -18,10 +18,11 @@ class PositionalEncoding(torch.nn.Module):
                 device='cpu', dtype=torch.float32):
       super(PositionalEncoding, self).__init__()
 
-      self.dim, self.seq_len = dim, seq_len
-      self.encoding_type = encoding_type
-      self.device, self.dtype = device, dtype
+      locals_ = locals().copy()
 
+      for arg in locals_:
+        setattr(self, arg, locals_[arg])
+        
       self.positional_encoding = self.generate_positional_encoding()
 
   def generate_positional_encoding(self):
