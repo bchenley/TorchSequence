@@ -120,8 +120,6 @@ class DataModule(pl.LightningDataModule):
 
         for name in list(np.unique(self.input_names_original + self.output_names_original)): 
           del self.data[name]
-      else:
-        self.input_output_names = self.input_output_names_original
         
       self.input_output_names = np.unique(self.input_names + self.output_names).tolist()
       self.num_inputs, self.num_outputs = len(self.input_names), len(self.output_names)
