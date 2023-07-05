@@ -79,96 +79,101 @@ class TransformerDecoderLayer(torch.nn.TransformerDecoderLayer):
                                                     device=device,
                                                     dtype=dtype)
 
-      self.dropout.p = dropout_p
+      locals_ = locals().copy()
 
-      self.self_attn = Attention(embed_dim=d_model,
-                                 num_heads=nhead,
-                                 attn_type=self_attn_type,
-                                 query_weight_reg=query_weight_reg,
-                                 query_weight_norm=query_weight_norm,
-                                 query_bias=query_bias,
-                                 key_weight_reg=key_weight_reg,
-                                 key_weight_norm=key_weight_norm,
-                                 key_bias=key_bias,
-                                 value_weight_reg=value_weight_reg,
-                                 value_weight_norm=value_weight_norm,
-                                 value_bias=value_bias,
-                                 gen_weight_reg=gen_weight_reg,
-                                 gen_weight_norm=gen_weight_norm,
-                                 gen_bias=gen_bias,
-                                 concat_weight_reg=concat_weight_reg,
-                                 concat_weight_norm=concat_weight_norm,
-                                 concat_bias=concat_bias,
-                                 average_attn_weights=average_attn_weights,
-                                 is_causal=memory_is_causal,
-                                 dropout_p=dropout_p,
-                                 device=device,
-                                 dtype=dtype)
+      for arg in locals_:
+        setattr(self, arg, locals_[arg])
+        
+      self.dropout.p = self.dropout_p
 
-      self.multihead_attn = Attention(embed_dim=d_model,
-                                      num_heads=nhead,
-                                      attn_type=multihead_attn_type,
-                                      query_weight_reg=query_weight_reg,
-                                      query_weight_norm=query_weight_norm,
-                                      query_bias=query_bias,
-                                      key_weight_reg=key_weight_reg,
-                                      key_weight_norm=key_weight_norm,
-                                      key_bias=key_bias,
-                                      value_weight_reg=value_weight_reg,
-                                      value_weight_norm=value_weight_norm,
-                                      value_bias=value_bias,
-                                      gen_weight_reg=gen_weight_reg,
-                                      gen_weight_norm=gen_weight_norm,
-                                      gen_bias=gen_bias,
-                                      concat_weight_reg=concat_weight_reg,
-                                      concat_weight_norm=concat_weight_norm,
-                                      concat_bias=concat_bias,
-                                      average_attn_weights=average_attn_weights,
-                                      is_causal=tgt_is_causal,
-                                      dropout_p=dropout1_p,
-                                      device=device,
-                                      dtype=dtype)
+      self.self_attn = Attention(embed_dim = self.d_model,
+                                 num_heads = self.nhead,
+                                 attn_type = self.self_attn_type,
+                                 query_weight_reg = self.query_weight_reg,
+                                 query_weight_norm = self.query_weight_norm,
+                                 query_bias = self.query_bias,
+                                 key_weight_reg = self.key_weight_reg,
+                                 key_weight_norm = self.key_weight_norm,
+                                 key_bias = self.key_bias,
+                                 value_weight_reg = self.value_weight_reg,
+                                 value_weight_norm = self.value_weight_norm,
+                                 value_bias = self.value_bias,
+                                 gen_weight_reg = self.gen_weight_reg,
+                                 gen_weight_norm = self.gen_weight_norm,
+                                 gen_bias = self.gen_bias,
+                                 concat_weight_reg = self.concat_weight_reg,
+                                 concat_weight_norm = self.concat_weight_norm,
+                                 concat_bias = self.concat_bias,
+                                 average_attn_weights = self.average_attn_weights,
+                                 is_causal = self.memory_is_causal,
+                                 dropout_p = self.dropout_p,
+                                 device = self.device,
+                                 dtype = self.dtype)
 
-      self.dropout2.p = dropout2_p
-      self.dropout3.p = dropout3_p
+      self.multihead_attn = Attention(embed_dim = self.d_model,
+                                      num_heads = self.nhead,
+                                      attn_type = self.multihead_attn_type,
+                                      query_weight_reg = self.query_weight_reg,
+                                      query_weight_norm = self.query_weight_norm,
+                                      query_bias = self.query_bias,
+                                      key_weight_reg = self.key_weight_reg,
+                                      key_weight_norm = self.key_weight_norm,
+                                      key_bias = self.key_bias,
+                                      value_weight_reg = self.value_weight_reg,
+                                      value_weight_norm = self.value_weight_norm,
+                                      value_bias = self.value_bias,
+                                      gen_weight_reg = self.gen_weight_reg,
+                                      gen_weight_norm = self.gen_weight_norm,
+                                      gen_bias = self.gen_bias,
+                                      concat_weight_reg = self.concat_weight_reg,
+                                      concat_weight_norm = self.concat_weight_norm,
+                                      concat_bias = self.concat_bias,
+                                      average_attn_weights = self.average_attn_weights,
+                                      is_causal = self.tgt_is_causal,
+                                      dropout_p = self.dropout1_p,
+                                      device = self.device,
+                                      dtype = self.dtype)
 
-      if feedforward_activation == "identity":
+      self.dropout2.p = self.dropout2_p
+      self.dropout3.p = self.dropout3_p
+
+      if self.feedforward_activation == "identity":
         self.activation = torch.nn.Identity()
         self.linear2 = torch.nn.Identity()
         self.norm3 = torch.nn.Identity()
         self.dropout3 = torch.nn.Identity()
-      elif feedforward_activation == "relu":
+      elif self.feedforward_activation == "relu":
         self.activation = torch.nn.ReLU()
-      elif feedforward_activation == "gelu":
+      elif self.feedforward_activation == "gelu":
         self.activation = torch.nn.GELU()
-      elif feedforward_activation == "polynomial":
-        self.activation = Polynomial(in_features=dim_feedforward,
-                                    degree=degree,
-                                    coef_init=coef_init,
-                                    coef_train=coef_train,
-                                    coef_reg=coef_reg,
-                                    zero_order=zero_order,
-                                    device=device,
-                                    dtype=dtype)
+      elif self.feedforward_activation == "polynomial":
+        self.activation = Polynomial(in_features = self.dim_feedforward,
+                                    degree = self.degree,
+                                    coef_init = self.coef_init,
+                                    coef_train = self.coef_train,
+                                    coef_reg = self.coef_reg,
+                                    zero_order = self.zero_order,
+                                    device = self.device,
+                                    dtype = self.dtype)
 
-      self.linear1.bias = None if not linear1_bias else self.linear1.bias
-      self.linear1_weight_reg, self.linear1_weight_norm = (linear1_weight_reg, linear1_weight_norm)
+      self.linear1.bias = None if not self.linear1_bias else self.linear1.bias
+      self.linear1_weight_reg, self.linear1_weight_norm = self.linear1_weight_reg, self.linear1_weight_norm
 
       if not isinstance(self.linear2, torch.nn.Identity):
-          self.linear2.bias = None if not linear2_bias else self.linear2.bias
-          self.linear2_weight_reg, self.linear2_weight_norm = (linear2_weight_reg, linear2_weight_norm)
+          self.linear2.bias = None if not self.linear2_bias else self.linear2.bias
+          self.linear2_weight_reg, self.linear2_weight_norm = self.linear2_weight_reg, self.linear2_weight_norm
 
-      self.self_attn_residual_scaler = (torch.nn.Linear(in_features=d_model, out_features=1).weight.squeeze().to(device=device, dtype=dtype)
-                                        if scale_self_attn_residual_connection
-                                        else torch.ones((d_model,)).to(device=device, dtype=dtype))
+      self.self_attn_residual_scaler = (torch.nn.Linear(in_features = self.d_model, out_features = 1).weight.squeeze().to(device = self.device, dtype = self.dtype)
+                                        if self.scale_self_attn_residual_connection
+                                        else torch.ones((self.d_model,)).to(device = self.device, dtype = self.dtype))
 
-      self.cross_attn_residual_scaler = (torch.nn.Linear(in_features=d_model, out_features=1).weight.squeeze().to(device=device, dtype=dtype)
-                                          if scale_cross_attn_residual_connection
-                                          else torch.ones((d_model,)).to(device=device, dtype=dtype))
+      self.cross_attn_residual_scaler = (torch.nn.Linear(in_features = self.d_model, out_features = 1).weight.squeeze().to(device = self.device, dtype = self.dtype)
+                                          if self.scale_cross_attn_residual_connection
+                                          else torch.ones((self.d_model,)).to(device = self.device, dtype = self.dtype))
 
-      self.feedforward_residual_scaler = (torch.nn.Linear(in_features=d_model, out_features=1).weight.squeeze().to(device=device, dtype=dtype)
-                                          if scale_feedforward_residual_connection
-                                          else torch.ones((d_model,)).to(device=device, dtype=dtype))
+      self.feedforward_residual_scaler = (torch.nn.Linear(in_features = self.d_model, out_features = 1).weight.squeeze().to(device = self.device, dtype = self.dtype)
+                                          if self.scale_feedforward_residual_connection
+                                          else torch.ones((self.d_model,)).to(device = self.device, dtype = self.dtype))
 
   def forward(self,
               tgt, memory,
