@@ -34,7 +34,7 @@ class HiddenLayer(torch.nn.Module):
     for arg in locals_:
       setattr(self, arg, locals_[arg])
       
-    self.to(device = self.device, dtype = self.dtype)
+    # self.to(device = self.device, dtype = self.dtype)
   
     if self.out_features is None or self.out_features == 0:
         self.out_features = self.in_features
