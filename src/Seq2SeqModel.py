@@ -36,7 +36,7 @@ class Seq2SeqModel(torch.nn.Module):
     self.enc2dec_init_input_block = None
     if self.learn_decoder_init_input:
       self.enc2dec_init_input_block = HiddenLayer(in_features = sum(self.encoder.input_size),
-                                                 out_features = sum(self..decoder.input_size),
+                                                 out_features = sum(self.decoder.input_size),
                                                  bias = self.enc2dec_bias,
                                                  activation = 'identity',
                                                  dropout_p = self.enc2dec_dropout_p,
