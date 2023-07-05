@@ -59,7 +59,7 @@ class SequenceDataset(torch.utils.data.Dataset):
     self.has_ar = np.isin(self.output_names, self.input_names).any()
 
     self.input_window_idx = []
-    for i in range(num_inputs):
+    for i in range(self.num_inputs):
       self.input_window_idx.append(torch.arange(self.max_input_len - self.input_len[i], self.max_input_len).to(device = self.device,
                                                                                                                dtype = torch.long))
 
