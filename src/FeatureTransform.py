@@ -22,7 +22,8 @@ class FeatureTransform():
     locals_ = locals().copy()
 
     for arg in locals_:
-      setattr(self, arg, locals_[arg])
+      if arg != 'self':
+        setattr(self, arg, locals_[arg])
         
     if self.scale_type not in ['identity', 'minmax', 'standard']:
         raise ValueError(f"scale_type ({self.scale_type}) is not set to 'identity', 'minmax', or 'standard'.")
