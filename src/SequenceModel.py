@@ -101,7 +101,9 @@ class SequenceModel(torch.nn.Module):
       elif isinstance(value, list) and any(x in arg for x in ['output_size', 'output_']):        
         if len(value) == 1:
           setattr(self, arg, value * num_outputs)
-
+      else:
+          setattr(self, arg, value)
+        
     seq_base, hidden_layer = torch.nn.ModuleList([]), torch.nn.ModuleList([])
     for i in range(num_inputs):
       # input-associated sequence layer
