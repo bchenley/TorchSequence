@@ -30,24 +30,26 @@ class Embedding(torch.nn.Module):
                  device='cpu', dtype=torch.float32):
       super(Embedding, self).__init__()
 
-      # Check the type of embedding
-      if embedding_type == 'time':
-          # Time-based embedding using HiddenLayer
-          embedding = HiddenLayer(in_features=num_embeddings,
-                                  out_features=embedding_dim,
-                                  bias=bias,
-                                  activation=activation,
-                                  weight_reg=weight_reg, weight_norm=weight_norm,
-                                  dropout_p=dropout_p,
-                                  device=device, dtype=dtype)
-      elif embedding_type == 'category':
-          # Category-based embedding using torch.nn.Embedding
-          embedding = torch.nn.Embedding(num_embeddings, embedding_dim)
-      else:
-          raise ValueError(f"Unsupported embedding type: {embedding_type}")
+      locals_ = locals().copy()
 
-      self.embedding = embedding
-      self.embedding_type = embedding_type
+      for arg in locals_:
+        setattr(self, arg, locals_[arg])
+          
+      # Check the type of embedding
+      if self.embedding_type == 'time':
+          # Time-based embedding using HiddenLayer
+          self.embedding = HiddenLayer(in_features = self.num_embeddings,
+                                  out_features = self.embedding_dim,
+                                  bias = self.bias,
+                                  activation = self.activation,
+                                  weight_reg = self.weight_reg, weight_norm = self.weight_norm,
+                                  dropout_p = self.dropout_p,
+                                  device = self.device, dtype = self.dtype)
+      elif self.embedding_type == 'category':
+          # Category-based embedding using torch.nn.Embedding
+          self.embedding = torch.nn.Embedding(self.num_embeddings, self.embedding_dim)
+      else:
+          raise ValueError(f"Unsupported embedding type: {self.embedding_type}")
 
     def forward(self, input, input_mask=None):
       '''
