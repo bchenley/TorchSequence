@@ -54,7 +54,8 @@ class Attention(torch.nn.MultiheadAttention):
       locals_ = locals().copy()
 
       for arg in locals_:
-        setattr(self, arg, locals_[arg])
+        if arg != 'self':
+          setattr(self, arg, locals_[arg])
         
       # Choose the appropriate score function based on the attention type
       if self.attn_type == "dot":
