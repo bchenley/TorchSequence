@@ -375,6 +375,7 @@ class SequenceModule(pl.LightningModule):
         
         ax.plot(self.val_history[x_label][:N], metric, label = 'Val')
       ax.set_title(param)
+      ax.set_xlabel(x_label)
       ax.set_ylabel(param)
       ax.legend()
     plt.grid()
