@@ -23,34 +23,30 @@ class LRU(torch.nn.RNN):
 
     super(LRU, self).__init__(input_size=input_size, hidden_size=hidden_size, batch_first=True)
 
-    self.to(device=device, dtype=dtype)
+    locals_ = locals().copy()
 
-    num_filterbanks = len(relax_init)
+    for arg in locals_:
+      setattr(self, arg, locals_[arg])
+      
+    self.to(device = self.device, dtype = self.dtype)
 
-    if len(relax_minmax) == 1:
-        relax_minmax = relax_minmax * num_filterbanks
+    num_filterbanks = len(self.relax_init)
 
-    relax_init = torch.tensor(relax_init).reshape(num_filterbanks,)
+    if len(self.relax_minmax) == 1:
+      self.relax_minmax = self.relax_minmax * self.num_filterbanks
 
-    relax = torch.nn.Parameter(relax_init.to(device=device, dtype=dtype), requires_grad=relax_train)
+    self.relax_init = torch.tensor(self.relax_init).reshape(self.num_filterbanks,)
 
-    if input_size > 1:
-        input_block = torch.nn.Linear(in_features=input_size, out_features=num_filterbanks, bias=bias)
+    self.relax = torch.nn.Parameter(self.relax_init.to(device = self.device, dtype = self.dtype), requires_grad = self.relax_train)
+
+    if self.input_size > 1:
+      self.input_block = torch.nn.Linear(in_features = self.input_size, out_features = self.num_filterbanks, bias = self.bias)
     else:
-        input_block = torch.nn.Identity()
+      self.input_block = torch.nn.Identity()
 
     self.bias_hh_l0.requires_grad = False
     self.bias_hh_l0.requires_grad = False
 
-    self.input_size, self.hidden_size = input_size, hidden_size
-    self.num_filterbanks = num_filterbanks
-    self.input_block = input_block
-    self.relax_minmax = relax_minmax
-    self.relax = relax
-    self.weight_reg, self.weight_norm = weight_reg, weight_norm
-    self.device, self.dtype = device, dtype
-
-    # Remove built-in weights and biases
     self.weight_ih_l0 = None
     self.weight_hh_l0 = None
     self.bias_ih_l0 = None
