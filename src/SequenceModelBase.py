@@ -322,11 +322,6 @@ class SequenceModelBase(torch.nn.Module):
                                          bias = self.decoder_bias,
                                          device = self.device, dtype = self.dtype)
 
-    self.base  = base    
-    self.positional_encoding = positional_encoding
-    self.attn_mechanism = attn_mechanism
-    self.encoder_block, self.decoder_block = encoder_block, decoder_block
-    
   def init_hiddens(self, num_samples):
     '''
     Initialize hidden states for the base model.
