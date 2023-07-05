@@ -7,10 +7,11 @@ class SequenceModel(torch.nn.Module):
   def __init__(self,
                num_inputs, num_outputs,
                #
-               input_size = [1], output_size = [1], seq_len = [None],
+               input_size = [1], output_size = [1],
                stateful = False,
                dt = 1,
                ## Sequence base parameters
+               base_seq_len = [None]
                # type
                base_hidden_size = [1],
                base_type = ['gru'], base_num_layers = [1],
@@ -95,7 +96,7 @@ class SequenceModel(torch.nn.Module):
     for arg in locals_:
       value = locals_[arg]
       
-      if isinstance(value, list) and any(x in arg for x in ['seq_type', 'input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):  
+      if isinstance(value, list) and any(x in arg for x in ['input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):  
         if len(value) == 1:
           setattr(self, arg, value * num_inputs)
       elif isinstance(value, list) and any(x in arg for x in ['output_size', 'output_']):        
@@ -113,7 +114,7 @@ class SequenceModel(torch.nn.Module):
 
       seq_base_i = SequenceModelBase(input_size = self.input_size[i],
                                       hidden_size = self.base_hidden_size[i],
-                                      seq_len = self.seq_len[i],
+                                      seq_len = self.base_seq_len[i],
                                       # type
                                       base_type = self.base_type[i], num_layers = self.base_num_layers[i],
                                       encoder_bias = self.base_encoder_bias[i], decoder_bias = self.base_decoder_bias[i],
