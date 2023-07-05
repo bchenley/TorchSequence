@@ -24,7 +24,8 @@ class SigmoidModulator(torch.nn.Module):
     locals_ = locals().copy()
   
     for arg in locals_:
-      setattr(self, arg, locals_[arg])
+      if arg != 'self':
+        setattr(self, arg, locals_[arg])
         
     if self.slope_init is None:
         self.slope_init = torch.nn.init.normal_(torch.empty((1, self.num_sigmoids)), mean = 0, std=1 / self.window_len)
