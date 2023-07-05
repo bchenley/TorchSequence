@@ -175,7 +175,7 @@ class SequenceModel(torch.nn.Module):
           input_size = self.input_size[i]
 
         hidden_layer_i = HiddenLayer(# linear transformation
-                                     in_features = self.hidden_in_features_i, out_features = self.hidden_out_features[i],
+                                     in_features = hidden_in_features_i, out_features = self.hidden_out_features[i],
                                      bias = self.hidden_bias[i],
                                      # activation
                                      activation = self.hidden_activation[i],
