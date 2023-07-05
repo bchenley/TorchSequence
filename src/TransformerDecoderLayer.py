@@ -82,7 +82,8 @@ class TransformerDecoderLayer(torch.nn.TransformerDecoderLayer):
       locals_ = locals().copy()
 
       for arg in locals_:
-        setattr(self, arg, locals_[arg])
+        if arg != 'self':
+          setattr(self, arg, locals_[arg])
         
       self.dropout.p = self.dropout_p
 
