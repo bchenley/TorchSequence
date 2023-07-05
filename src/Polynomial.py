@@ -26,7 +26,7 @@ class Polynomial(torch.nn.Module):
       for arg in locals_:
         setattr(self, arg, locals_[arg])
         
-      self.to(device = self.device, dtype = self.dtype)
+      # self.to(device = self.device, dtype = self.dtype)
       
       if self.coef_init is None:
           self.coef_init = torch.nn.init.normal_(torch.empty(self.in_features, self.degree + int(self.zero_order)))
