@@ -51,112 +51,85 @@ class Attention(torch.nn.MultiheadAttention):
 
       super(Attention, self).__init__(embed_dim=embed_dim, num_heads=num_heads)
 
+      locals_ = locals().copy()
+
+      for arg in locals_:
+        setattr(self, arg, locals_[arg])
+        
       # Choose the appropriate score function based on the attention type
-      if attn_type == "dot":
+      if self.attn_type == "dot":
           self.score_fn = self.dot_fn
-      elif attn_type == "general":
+      elif self.attn_type == "general":
           self.score_fn = self.general_fn
-      elif attn_type == "concat":
+      elif self.attn_type == "concat":
           self.score_fn = self.concat_fn
 
-      query_dim = query_dim or embed_dim
-      key_dim = key_dim or embed_dim
-      value_dim = value_dim or embed_dim
+      self.query_dim = self.query_dim or self.embed_dim
+      self.key_dim = self.key_dim or self.embed_dim
+      self.value_dim = self.value_dim or self.embed_dim
 
-      query_blocks = torch.nn.ModuleList([])
-      key_blocks = torch.nn.ModuleList([])
-      value_blocks = torch.nn.ModuleList([])
-      gen_blocks = torch.nn.ModuleList([])
-      concat_blocks = torch.nn.ModuleList([])
+      self.query_blocks = torch.nn.ModuleList([])
+      self.key_blocks = torch.nn.ModuleList([])
+      self.value_blocks = torch.nn.ModuleList([])
+      self.gen_blocks = torch.nn.ModuleList([])
+      self.concat_blocks = torch.nn.ModuleList([])
 
-      head_dims = np.round(embed_dim / num_heads).astype(int).repeat(num_heads - 1).tolist()
-      head_dims += [int(embed_dim - np.sum(head_dims))]
+      head_dims = np.round(self.embed_dim / self.num_heads).astype(int).repeat(nself.um_heads - 1).tolist()
+      head_dims += [int(self.embed_dim - np.sum(self.head_dims))]
 
       for dim in head_dims:
-        query_blocks.append(HiddenLayer(in_features=embed_dim,
-                                        out_features=dim,
-                                        bias=query_bias,
-                                        activation="identity",
-                                        weight_reg=query_weight_reg,
-                                        weight_norm=query_weight_norm,
-                                        device=device,
-                                        dtype=dtype))
-        key_blocks.append(HiddenLayer(in_features=embed_dim,
-                                      out_features=dim,
-                                      bias=key_bias,
-                                      activation="identity",
-                                      weight_reg=key_weight_reg,
-                                      weight_norm=key_weight_norm,
-                                      device=device,
-                                      dtype=dtype))
-        value_blocks.append(HiddenLayer(in_features=embed_dim,
-                                        out_features=dim,
-                                        bias=value_bias,
-                                        activation="identity",
-                                        weight_reg=value_weight_reg,
-                                        weight_norm=value_weight_norm,
-                                        device=device,
-                                        dtype=dtype))
+        self.query_blocks.append(HiddenLayer(in_features = self.embed_dim,
+                                             out_features = dim,
+                                             bias = self.query_bias,
+                                             activation = "identity",
+                                             weight_reg = self.query_weight_reg,
+                                             weight_norm = self.query_weight_norm,
+                                             device = self.device,
+                                             dtype = self.dtype))
+        self.key_blocks.append(HiddenLayer(in_features = self.embed_dim,
+                                           out_features = dim,
+                                           bias = self.key_bias,
+                                           activation = "identity",
+                                           weight_reg = self.key_weight_reg,
+                                           weight_norm = self.key_weight_norm,
+                                           device = self.device,
+                                           dtype = self.dtype))
+        self.value_blocks.append(HiddenLayer(in_features = self.embed_dim,
+                                              out_features = dim,
+                                              bias = self.value_bias,
+                                              activation = "identity",
+                                              weight_reg = self.value_weight_reg,
+                                              weight_norm = self.value_weight_norm,
+                                              device = self.device,
+                                              dtype = self.dtype))
 
-        if attn_type == "general":
-          gen_blocks.append(
-              HiddenLayer(in_features=[dim, dim],
-                          out_features=1,
-                          bias=gen_bias,
-                          activation="identity",
-                          weight_reg=gen_weight_reg,
-                          weight_norm=gen_weight_norm,
-                          device=device,
-                          dtype=dtype))
+        if self.attn_type == "general":
+          self.gen_blocks.append(HiddenLayer(in_features = [dim, dim],
+                                             out_features = 1,
+                                             bias = self.gen_bias,
+                                             activation = "identity",
+                                             weight_reg = self.gen_weight_reg,
+                                             weight_norm = self.gen_weight_norm,
+                                             device = self.device,
+                                             dtype = self.dtype))
 
-        if attn_type == "concat":
-          concat_blocks.append(torch.nn.Sequential(*[HiddenLayer(in_features=2 * dim,
-                                                                  out_features=dim,
-                                                                  bias=concat_bias,
-                                                                  activation="tanh",
-                                                                  weight_reg=concat_weight_reg,
-                                                                  weight_norm=concat_weight_norm,
-                                                                  device=device,
-                                                                  dtype=dtype),
-                                                      HiddenLayer(in_features=dim,
-                                                                  out_features=1,
-                                                                  bias=concat_bias,
-                                                                  activation="identity",
-                                                                  weight_reg=concat_weight_reg,
-                                                                  weight_norm=concat_weight_norm,
-                                                                  device=device,
-                                                                  dtype=dtype)]))
-
-      self.embed_dim = embed_dim
-      self.num_heads = num_heads
-      self.attn_type = attn_type
-      self.is_causal = is_causal
-
-      self.query_blocks = query_blocks
-      self.key_blocks = key_blocks
-      self.value_blocks = value_blocks
-
-      self.dropout = torch.nn.Dropout(dropout_p)
-
-      self.query_weight_reg = query_weight_reg
-      self.weight_norm = query_weight_norm
-      self.key_weight_reg = key_weight_reg
-      self.key_norm = key_weight_norm
-      self.value_weight_reg = value_weight_reg
-      self.value_norm = value_weight_norm
-
-      self.gen_blocks = gen_blocks
-      self.concat_blocks = concat_blocks
-
-      self.gen_weight_reg = gen_weight_reg
-      self.gen_norm = gen_weight_norm
-      self.concat_weight_reg = concat_weight_reg
-      self.concat_norm = concat_weight_norm
-
-      self.average_attn_weights = average_attn_weights
-
-      self.device = device
-      self.dtype = dtype
+        if self.attn_type == "concat":
+          self.concat_blocks.append(torch.nn.Sequential(*[HiddenLayer(in_features = 2 * dim,
+                                                                      out_features = dim,
+                                                                      bias = self.concat_bias,
+                                                                      activation = "tanh",
+                                                                      weight_reg = self.concat_weight_reg,
+                                                                      weight_norm = self.concat_weight_norm,
+                                                                      device = self.device,
+                                                                      dtype = self.dtype),
+                                                      HiddenLayer(in_features = dim,
+                                                                  out_features = 1,
+                                                                  bias = self.concat_bias,
+                                                                  activation = "identity",
+                                                                  weight_reg = self.concat_weight_reg,
+                                                                  weight_norm = self.concat_weight_norm,
+                                                                  device = self.device,
+                                                                  dtype = self.dtype)]))
 
   def dot_fn(self, query, key, block_idx):
     '''
