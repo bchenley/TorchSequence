@@ -92,7 +92,9 @@ class SequenceModel(torch.nn.Module):
     # self.to(device = device, dtype = dtype)
     
     locals_ = locals().copy()
-
+    print(locals_)
+    dfdfdf
+                 
     for arg in locals_:
       value = locals_[arg]
       
