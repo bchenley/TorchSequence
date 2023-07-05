@@ -89,7 +89,7 @@ class SequenceModel(torch.nn.Module):
     
     super().__init__() # SequenceModel, self
 
-    self.to(device = device, dtype = dtype)
+    # self.to(device = device, dtype = dtype)
     
     locals_ = locals().copy()
 
