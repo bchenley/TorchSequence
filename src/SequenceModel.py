@@ -11,7 +11,7 @@ class SequenceModel(torch.nn.Module):
                stateful = False,
                dt = 1,
                ## Sequence base parameters
-               base_seq_len = [None]
+               base_seq_len = [None],
                # type
                base_hidden_size = [1],
                base_type = ['gru'], base_num_layers = [1],
