@@ -138,8 +138,8 @@ class SequenceModelBase(torch.nn.Module):
     for arg in locals_:
       setattr(self, arg, locals_[arg])
         
-    self.to(device = self.device, 
-            dtype = self.dtype)
+    # self.to(device = self.device, 
+    #         dtype = self.dtype)
 
     self.name = f"{self.base_type}{self.num_layers}"
 
