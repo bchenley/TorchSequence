@@ -83,7 +83,7 @@ class ModulationLayer(torch.nn.Module):
         self.fourier_idx = [m, torch.arange(idx, idx + F_fourier.num_modulators)]
         idx += F_fourier.num_modulators
 
-    F_sigmoid self.sigmoid_idx = None, None
+    F_sigmoid, self.sigmoid_idx = None, None
     if self.num_sigmoids is not None:
         m += 1
         F_sigmoid = SigmoidModulator(window_len = self.window_len, num_sigmoids = self.num_sigmoids,
