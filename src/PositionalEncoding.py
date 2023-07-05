@@ -21,7 +21,8 @@ class PositionalEncoding(torch.nn.Module):
       locals_ = locals().copy()
 
       for arg in locals_:
-        setattr(self, arg, locals_[arg])
+        if arg != 'self':
+          setattr(self, arg, locals_[arg])
         
       self.positional_encoding = self.generate_positional_encoding()
 
