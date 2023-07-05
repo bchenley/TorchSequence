@@ -30,7 +30,7 @@ class LRU(torch.nn.RNN):
       
     # self.to(device = self.device, dtype = self.dtype)
 
-    num_filterbanks = len(self.relax_init)
+    self.num_filterbanks = len(self.relax_init)
 
     if len(self.relax_minmax) == 1:
       self.relax_minmax = self.relax_minmax * self.num_filterbanks
