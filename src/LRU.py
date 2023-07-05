@@ -28,7 +28,7 @@ class LRU(torch.nn.RNN):
     for arg in locals_:
       setattr(self, arg, locals_[arg])
       
-    self.to(device = self.device, dtype = self.dtype)
+    # self.to(device = self.device, dtype = self.dtype)
 
     num_filterbanks = len(self.relax_init)
 
