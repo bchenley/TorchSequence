@@ -28,48 +28,40 @@ class Seq2SeqModel(torch.nn.Module):
 
     super(Seq2SeqModel, self).__init__()
 
-    enc2dec_init_input_block = None
-    if learn_decoder_init_input:
-      enc2dec_init_input_block = HiddenLayer(in_features=sum(encoder.input_size),
-                                              out_features=sum(decoder.input_size),
-                                              bias=enc2dec_bias,
-                                              activation='identity',
-                                              dropout_p=enc2dec_dropout_p,
-                                              device=device,
-                                              dtype=dtype)
+    locals_ = locals().copy()
 
-    enc2dec_hiddens_block = None
-    if learn_decoder_hiddens:
-      if any(type_ in ['gru', 'lstm', 'lru'] for type_ in encoder.base_type):
+    for arg in locals_:
+      setattr(self, arg, locals_[arg])
+        
+    self.enc2dec_init_input_block = None
+    if self.learn_decoder_init_input:
+      self.enc2dec_init_input_block = HiddenLayer(in_features = sum(self.encoder.input_size),
+                                                 out_features = sum(self..decoder.input_size),
+                                                 bias = self.enc2dec_bias,
+                                                 activation = 'identity',
+                                                 dropout_p = self.enc2dec_dropout_p,
+                                                 device = self.device,
+                                                 dtype = self.dtype)
+
+    self.enc2dec_hiddens_block = None
+    if self.learn_decoder_hiddens:
+      if any(type_ in ['gru', 'lstm', 'lru'] for type_ in self.encoder.base_type):
         enc2dec_hiddens_input = 0
-        for i in range(encoder.num_inputs):
-          if encoder.base_type[i] in ['gru', 'lstm', 'lru']:
-              enc2dec_hiddens_input += (1 + int(encoder.base_type[i] == 'lstm')) * encoder.base_hidden_size[i] * (1 + int(encoder.base_rnn_bidirectional[i]))
+        for i in range(self.encoder.num_inputs):
+          if self.encoder.base_type[i] in ['gru', 'lstm', 'lru']:
+              enc2dec_hiddens_input += (1 + int(self.encoder.base_type[i] == 'lstm')) * self.encoder.base_hidden_size[i] * (1 + int(self.encoder.base_rnn_bidirectional[i]))
       else:
-          enc2dec_hiddens_input = sum(encoder.output_size)
+          enc2dec_hiddens_input = sum(self.encoder.output_size)
 
-      enc2dec_hiddens_output = sum(np.array([1 + int(type_ == 'lstm') for type_ in decoder.base_type]) * np.array(decoder.base_hidden_size) * np.array([1 + int(bd) for bd in decoder.base_rnn_bidirectional]))
+      enc2dec_hiddens_output = sum(np.array([1 + int(type_ == 'lstm') for type_ in self.decoder.base_type]) * np.array(self.decoder.base_hidden_size) * np.array([1 + int(bd) for bd in self.decoder.base_rnn_bidirectional]))
 
-      enc2dec_hiddens_block = HiddenLayer(in_features=enc2dec_hiddens_input,
-                                          out_features=enc2dec_hiddens_output,
-                                          bias=enc2dec_hiddens_bias,
-                                          activation='identity',
-                                          dropout_p=enc2dec_hiddens_dropout_p,
-                                          device=device,
-                                          dtype=dtype)
-
-    self.encoder = encoder
-    self.decoder = decoder
-
-    self.num_inputs = encoder.num_inputs
-    self.num_outputs = decoder.num_outputs
-    self.input_size = encoder.input_size
-    self.output_size = decoder.output_size
-    self.base_type = encoder.base_type
-    self.enc2dec_init_input_block = enc2dec_init_input_block
-    self.enc2dec_hiddens_block = enc2dec_hiddens_block
-    self.device = device
-    self.dtype = dtype
+      self.enc2dec_hiddens_block = HiddenLayer(in_features = self.enc2dec_hiddens_input,
+                                               out_features = self.enc2dec_hiddens_output,
+                                               bias = self.enc2dec_hiddens_bias,
+                                               activation = 'identity',
+                                               dropout_p = self.enc2dec_hiddens_dropout_p,
+                                               device = self.device,
+                                               dtype = self.dtype)
 
   def forward(self,
               input,
