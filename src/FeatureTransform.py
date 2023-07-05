@@ -19,13 +19,13 @@ class FeatureTransform():
         dtype (torch.dtype): The data type to be used for computations.
     '''
 
-    if scale_type not in ['identity', 'minmax', 'standard']:
-        raise ValueError(f"scale_type ({scale_type}) is not set to 'identity', 'minmax', or 'standard'.")
+    locals_ = locals().copy()
 
-    self.scale_type = scale_type
-    self.minmax = minmax
-    self.dim = dim
-    self.device, self.dtype = device, dtype
+    for arg in locals_:
+      setattr(self, arg, locals_[arg])
+        
+    if self.scale_type not in ['identity', 'minmax', 'standard']:
+        raise ValueError(f"scale_type ({self.scale_type}) is not set to 'identity', 'minmax', or 'standard'.")
 
   def identity(self, X):
     '''
