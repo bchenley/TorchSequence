@@ -92,14 +92,6 @@ class SequenceModel(torch.nn.Module):
     
     locals_ = locals().copy()
 
-    args = list(locals().keys())[1:]   
-
-    for arg in args:
-      value = eval(arg)
-      if isinstance(value, list) and any(x in arg for x in ['seq_type', 'input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):  
-        if len(value) == 1:
-          exec(f"{arg} = {arg} * num_inputs")
-          
     for arg in locals_:
       value = locals_[arg]
       
