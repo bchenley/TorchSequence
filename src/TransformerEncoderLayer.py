@@ -78,7 +78,8 @@ class TransformerEncoderLayer(torch.nn.TransformerEncoderLayer):
         locals_ = locals().copy()
 
         for arg in locals_:
-          setattr(self, arg, locals_[arg])
+          if arg != 'self':
+            setattr(self, arg, locals_[arg])
           
         self.dropout.p = dropout_p
 
