@@ -28,69 +28,61 @@ class SequenceDataset(torch.utils.data.Dataset):
                 print_summary=False,
                 device='cpu', dtype=torch.float32):
 
-    num_inputs, num_outputs = len(input_names), len(output_names)
+    locals_ = locals().copy()
 
-    if len(input_len) == 1:
-        input_len = input_len * num_inputs
+    for arg in locals_:
+      setattr(self, arg, locals_[arg])
+      
+    self.num_inputs, self.num_outputs = len(self.input_names), len(self.output_names)
 
-    if len(output_len) == 1:
-        output_len = output_len * num_outputs
-    if len(shift) == 1:
-        shift = shift * num_outputs
+    if len(self.input_len) == 1:
+        self.input_len = self.input_len * self.num_inputs
 
-    data_len = data[input_names[0]].shape[0]
+    if len(self.output_len) == 1:
+        self.output_len = self.output_len * self.num_outputs
+    if len(self.shift) == 1:
+        self.shift = self.shift * self.num_outputs
 
-    input_len = [data_len if len == -1 else len for len in input_len]
-    output_len = [np.max(input_len) if len == -1 else len for len in output_len]
+    self.data_len = self.data[self.input_names[0]].shape[0]
 
-    input_size = [data[name].shape[-1] for name in input_names]
-    output_size = [data[name].shape[-1] for name in output_names]
+    self.input_len = [self.data_len if len == -1 else len for len in self.input_len]
+    self.output_len = [np.max(self.input_len) if len == -1 else len for len in self.output_len]
 
-    max_input_len = np.max(input_len)
-    max_output_len = np.max(output_len)
-    max_shift = np.max(shift)
+    self.input_size = [self.data[name].shape[-1] for name in self.input_names]
+    self.output_size = [self.data[name].shape[-1] for name in self.output_names]
 
-    has_ar = np.isin(output_names, input_names).any()
+    self.max_input_len = np.max(self.input_len)
+    self.max_output_len = np.max(self.output_len)
+    self.max_shift = np.max(self.shift)
 
-    input_window_idx = []
+    self.has_ar = np.isin(self.output_names, self.input_names).any()
+
+    self.input_window_idx = []
     for i in range(num_inputs):
-      input_window_idx.append(torch.arange(max_input_len - input_len[i], max_input_len).to(device=device,
-                                                                                              dtype=torch.long))
+      self.input_window_idx.append(torch.arange(self.max_input_len - self.input_len[i], self.max_input_len).to(device = self.device,
+                                                                                                               dtype = torch.long))
 
-    output_window_idx = []
-    for i in range(num_outputs):
-      output_window_idx_i = torch.arange(max_input_len - output_len[i], max_input_len).to(device=device,
-                                                                                          dtype=torch.long) + shift[i]
-      output_window_idx.append(output_window_idx_i)
+    self.output_window_idx = []
+    for i in range(self.num_outputs):
+      output_window_idx_i = torch.arange(self.max_input_len - self.output_len[i], self.max_input_len).to(device = self.device,
+                                                                                                         dtype = torch.long) + self.shift[i]
+      self.output_window_idx.append(output_window_idx_i)
 
-    total_window_size = torch.cat(output_window_idx).max().item() + 1
-    total_window_idx = torch.arange(total_window_size).to(device=device, dtype=torch.long)
+    self.total_window_size = torch.cat(self.output_window_idx).max().item() + 1
+    self.total_window_idx = torch.arange(self.total_window_size).to(device = self.device, 
+                                                                    dtype = torch.long)
 
-    start_step = max_input_len - max_output_len + max_shift + int(has_ar)
+    self.start_step = self.max_input_len - self.max_output_len + self.max_shift + int(self.has_ar)
 
-    if print_summary:
-      print('\n'.join([f'Data length: {data_len}',
-                        f'Window size: {total_window_size}',
-                        f'Step indices: {total_window_idx.tolist()}',
-                        '\n'.join([f'Input indices for {input_names[i]}: {input_window_idx[i].tolist()}' for i in
-                                  range(num_inputs)]),
+    if self.print_summary:
+      print('\n'.join([f'Data length: {self.data_len}',
+                        f'Window size: {self.total_window_size}',
+                        f'Step indices: {self.total_window_idx.tolist()}',
+                        '\n'.join([f'Input indices for {self.input_names[i]}: {self.input_window_idx[i].tolist()}' for i in
+                                  range(self.num_inputs)]),
                         '\n'.join(
-                            [f'Output indices for {output_names[i]}: {output_window_idx[i].tolist()}' for i in
-                            range(num_outputs)])]))
-
-    self.data = data
-    self.input_names, self.output_names, self.step_name = input_names, output_names, step_name
-    self.has_ar = has_ar
-    self.data_len = data_len
-    self.num_inputs, self.num_outputs = num_inputs, num_outputs
-    self.input_size, self.output_size = input_size, output_size
-    self.start_step = start_step
-    self.shift, self.stride = shift, stride
-    self.total_window_size, self.total_window_idx = total_window_size, total_window_idx
-    self.input_len, self.input_window_idx = input_len, input_window_idx
-    self.output_len, self.output_window_idx = output_len, output_window_idx
-    self.init_input = init_input
-    self.device, self.dtype = device, dtype
+                            [f'Output indices for {self.output_names[i]}: {self.output_window_idx[i].tolist()}' for i in
+                            range(self.num_outputs)])]))
 
     self.input_samples, self.output_samples, self.steps_samples = self.get_samples()
 
