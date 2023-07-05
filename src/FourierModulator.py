@@ -25,7 +25,8 @@ class FourierModulator(torch.nn.Module):
     locals_ = locals().copy()
 
     for arg in locals_:
-      setattr(self, arg, locals_[arg])
+      if arg != 'self':
+        setattr(self, arg, locals_[arg])
         
     if self.freq_init is None:
         self.freq_init = ((1 / dt) / 4) * torch.ones(size=(1, self.num_freqs))
