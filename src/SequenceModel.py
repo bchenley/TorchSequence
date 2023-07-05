@@ -285,7 +285,7 @@ class SequenceModel(torch.nn.Module):
 
       if self.output_size[i] > 0:
         output_layer_i = HiddenLayer(# linear transformation
-                                     in_features = self.output_input_size_i, out_features = self.output_size[i],
+                                     in_features = output_input_size_i, out_features = self.output_size[i],
                                      bias = self.output_bias[i],
                                      # activation
                                      activation = self.output_activation[i],
