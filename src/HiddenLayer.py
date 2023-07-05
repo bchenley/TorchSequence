@@ -29,16 +29,21 @@ class HiddenLayer(torch.nn.Module):
                 device='cpu', dtype=torch.float32):
     super(HiddenLayer, self).__init__()
 
-    self.to(device=device, dtype=dtype)
+    locals_ = locals().copy()
 
-    if out_features is None or out_features == 0:
-        out_features = in_features
+    for arg in locals_:
+      setattr(self, arg, locals_[arg])
+      
+    self.to(device = self.device, dtype = self.dtype)
+  
+    if self.out_features is None or self.out_features == 0:
+        self.out_features = self.in_features
         f1 = torch.nn.Identity()
     else:
-        if isinstance(in_features, list):  # bilinear (must be len = 2)
+        if isinstance(self.in_features, list):  # bilinear (must be len = 2)
             class Bilinear(torch.nn.Module):
-                def __init__(self, in1_features=in_features[0], in2_features=in_features[1],
-                              out_features=out_features, bias=bias, device=device, dtype=dtype):
+                def __init__(self, in1_features = self.in_features[0], in2_features = self.in_features[1],
+                              out_features = self.out_features, bias = self.bias, device = self.device, dtype = self.dtype):
                     super(Bilinear, self).__init__()
 
                     self.F = torch.nn.Bilinear(in1_features, in2_features, out_features, bias)
@@ -49,37 +54,34 @@ class HiddenLayer(torch.nn.Module):
 
             f1 = Bilinear()
         else:
-            f1 = torch.nn.Linear(in_features=in_features, out_features=out_features,
-                                 bias=bias, device=device, dtype=dtype)
+            f1 = torch.nn.Linear(in_features = self.in_features, out_features = self.out_features,
+                                 bias = self.bias, device = self.device, dtype = self.dtype)
 
-            if (in_features == 1) & (out_features == 1):
+            if (self.in_features == 1) & (self.out_features == 1):
               f1.weight.data = torch.ones_like(f1.weight)
               f1.weight.requires_grad = False
 
-    if activation == 'identity':
+    if self.activation == 'identity':
         f2 = torch.nn.Identity()
     elif activation == 'polynomial':
-        f2 = Polynomial(in_features=out_features, degree=degree, coef_init=coef_init,
-                        coef_train=coef_train, coef_reg=coef_reg, zero_order=zero_order,
-                        device=device, dtype=dtype)
-    elif activation == 'tanh':
+        f2 = Polynomial(in_features = self.out_features, degree = self.degree, coef_init = self.coef_init,
+                        coef_train = self.coef_train, coef_reg = self.coef_reg, zero_order = self.zero_order,
+                        device = self.device, dtype = self.dtype)
+      
+    elif self.activation == 'tanh':
         f2 = torch.nn.Tanh()
-    elif activation == 'sigmoid':
+    elif self.activation == 'sigmoid':
         f2 = torch.nn.Sigmoid()
-    elif activation == 'softmax':
-        f2 = torch.nn.Softmax(dim=softmax_dim)
-    elif activation == 'relu':
+    elif self.activation == 'softmax':
+        f2 = torch.nn.Softmax(dim = self.softmax_dim)
+    elif aself.ctivation == 'relu':
         f2 = torch.nn.ReLU()
     else:
-        raise ValueError(f"activation ({activation}) must be 'identity', 'polynomial', 'tanh', 'sigmoid', or 'relu'.")
+        raise ValueError(f"activation ({self.activation}) must be 'identity', 'polynomial', 'tanh', 'sigmoid', or 'relu'.")
 
-    F = torch.nn.Sequential(f1, f2)
+    self.F = torch.nn.Sequential(f1, f2)
 
-    self.dropout = torch.nn.Dropout(dropout_p)
-
-    self.F = F
-    self.device, self.dtype = device, dtype
-    self.weight_reg, self.weight_norm = weight_reg, weight_norm
+    self.dropout = torch.nn.Dropout(self.dropout_p)
 
   def forward(self, input):
     '''
