@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 
+from src import HiddenLayer, Polynomial
+
 class Attention(torch.nn.MultiheadAttention):
   '''
   Custom attention layer based on the torch.nn.MultiheadAttention module.
