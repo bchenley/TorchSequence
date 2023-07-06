@@ -50,7 +50,8 @@ class Attention(torch.nn.MultiheadAttention):
                device="cpu",
                dtype=torch.float32):
 
-      super(Attention, self).__init__(embed_dim=embed_dim, num_heads=num_heads)
+      super(Attention, self).__init__(embed_dim = embed_dim, 
+                                      nheads = num_heads)
 
       locals_ = locals().copy()
 
