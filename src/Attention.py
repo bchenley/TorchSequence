@@ -76,7 +76,7 @@ class Attention(torch.nn.MultiheadAttention):
       self.gen_blocks = torch.nn.ModuleList([])
       self.concat_blocks = torch.nn.ModuleList([])
 
-      head_dims = np.round(self.embed_dim / self.num_heads).astype(int).repeat(nself.um_heads - 1).tolist()
+      head_dims = np.round(self.embed_dim / self.num_heads).astype(int).repeat(self.um_heads - 1).tolist()
       head_dims += [int(self.embed_dim - np.sum(self.head_dims))]
 
       for dim in head_dims:
