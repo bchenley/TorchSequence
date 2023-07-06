@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 class Attention(torch.nn.MultiheadAttention):
   '''
