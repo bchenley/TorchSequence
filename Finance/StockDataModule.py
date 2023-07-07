@@ -14,10 +14,10 @@ class StockDataModule(pl.LightningDataModule):
   def __init__(self,
                source,
                input_names, output_names,
-               start_date,
-               end_date = None,
+               start_time,
+               end_time = None,
                apiKey = None,
-               datetime_unit = 'D', date_format = "%Y-%m-%d", parsing = 'day', interval = '1d',
+               datetime_unit = 'D', time_format = "%Y-%m-%d", parsing = 'day', interval = '1d',
                combine_stock_features = True,
                log_prices = False,
                transforms = None,
@@ -39,17 +39,17 @@ class StockDataModule(pl.LightningDataModule):
       if arg != 'self':
         setattr(self, arg, locals_[arg])
           
-    self.end_date = self.end_date or datetime.now().strftime(self.date_format)
+    self.end_time = self.end_time or datetime.now().strftime(self.date_format)
 
-    if isinstance(self.start_date, pd._libs.tslibs.timestamps.Timestamp):
-      self.start_date = self.start_date.strftime(self.date_format)
-    elif isinstance(start_date, datetime):
-      self.start_date = self.start_date.strftime(self.date_format)
+    if isinstance(self.start_time, pd._libs.tslibs.timestamps.Timestamp):
+      self.start_time = self.start_time.strftime(self.time_format)
+    elif isinstance(start_time, datetime):
+      self.start_time = self.start_time.strftime(self.time_format)
 
-    if isinstance(self.end_date, pd._libs.tslibs.timestamps.Timestamp):
-      self.end_date = self.end_date.strftime(self.date_format)
-    elif isinstance(end_date, datetime):
-      self.end_date = self.end_date.strftime(self.date_format)
+    if isinstance(self.end_time, pd._libs.tslibs.timestamps.Timestamp):
+      self.end_time = self.end_time.strftime(self.time_format)
+    elif isinstance(end_time, datetime):
+      self.end_time = self.end_time.strftime(self.time_format)
 
     if self.source == 'yfinance':
       import yfinance
@@ -73,19 +73,19 @@ class StockDataModule(pl.LightningDataModule):
       if self.source == 'polygon':
         df = load_polygon(apiKey = self.apiKey,
                           symbols = self.symbols,
-                          start_date = self.start_date,
-                          end_date = self.end_date,
+                          start_time = self.start_time,
+                          end_time = self.end_time,
                           parsing = self.parsing,
                           # datetime_unit = self.datetime_unit,
-                          date_format = self.date_format)
+                          time_format = self.time_format)
 
       elif self.source == 'yfinance':       
         df = load_yfinance(symbols = self.symbols,
-                          start_date = self.start_date,
-                          end_date = self.end_date,
+                          start_time = self.start_time,
+                          end_time = self.end_time,
                           interval = self.interval,
                           # datetime_unit = self.datetime_unit,
-                          date_format = self.date_format)
+                          time_format = self.time_format)
 
       else: # if the source is a csv file
         df = pd.read_csv(self.source, usecols = self.input_output_names)
@@ -111,7 +111,7 @@ class StockDataModule(pl.LightningDataModule):
           df['_'.join([attr,hvD])] = daily_volatility(df[attr], days = days, interval = self.interval)
       ##
 
-      df = df.filter(items=['date'] + self.input_output_names)
+      df = df.filter(items=['time'] + self.input_output_names)
 
       if np.any(df.isna()):
         df = df[(np.where(df.isna().any(axis = 1))[0].max()+1):]
@@ -121,10 +121,10 @@ class StockDataModule(pl.LightningDataModule):
       #
 
       # Convert dataframe to dictionary of tensors. Concatenate stock features, if desired.
-      data = {'time': pd.to_datetime(df['date']).dt.to_period(self.datetime_unit).dt.to_timestamp().values}
+      data = {'time': pd.to_datetime(df['time']).dt.to_period(self.datetime_unit).dt.to_timestamp().values}
 
       for col in df.columns:
-        if col != 'date':
+        if col != 'time':
           try: data[col] = torch.tensor(df[col].values.reshape(df[col].shape[0], -1)).to(device = self.device,
                                                                                         dtype = self.dtype)
           except: data[col] = df[col].values.reshape(df[col].shape[0], -1).to(device = self.device,
