@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+import yfinance as yf
+
 def load_yfinance(symbols,
                   start_date,
                   end_date = None,
