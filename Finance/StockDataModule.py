@@ -33,46 +33,28 @@ class StockDataModule(pl.LightningDataModule):
 
     super(StockDataModule, self).__init__()
 
-    end_date = end_date or datetime.now().strftime(date_format)
+    locals_ = locals().copy()
 
-    if isinstance(start_date, pd._libs.tslibs.timestamps.Timestamp):
-      start_date = start_date.strftime(date_format)
+    for arg in locals_:
+      if arg != 'self':
+        setattr(self, arg, locals_[arg])
+          
+    self.end_date = self.end_date or datetime.now().strftime(self.date_format)
+
+    if isinstance(self.start_date, pd._libs.tslibs.timestamps.Timestamp):
+      self.start_date = self.start_date.strftime(self.date_format)
     elif isinstance(start_date, datetime):
-      start_date = start_date.strftime(date_format)
+      self.start_date = self.start_date.strftime(self.date_format)
 
-    if isinstance(end_date, pd._libs.tslibs.timestamps.Timestamp):
-      end_date = end_date.strftime(date_format)
+    if isinstance(self.end_date, pd._libs.tslibs.timestamps.Timestamp):
+      self.end_date = self.end_date.strftime(self.date_format)
     elif isinstance(end_date, datetime):
-      end_date = end_date.strftime(date_format)
+      self.end_date = self.end_date.strftime(self.date_format)
 
-    if source == 'yfinance':
+    if self.source == 'yfinance':
       import yfinance
     else:
       import requests
-
-    self.input_names, self.output_names = input_names, output_names,
-    self.apiKey = apiKey
-    self.datetime_unit, self.date_format = datetime_unit, date_format
-    self.parsing, self.interval = parsing, interval
-    self.combine_stock_features = combine_stock_features
-    self.start_date, self.end_date = start_date, end_date
-    self.log_prices, self.transforms = log_prices, transforms
-
-    self.train_val_test_periods, self.pct_train_val_test = train_val_test_periods, pct_train_val_test
-    self.batch_size = batch_size
-    self.input_len, self.output_len = input_len, output_len
-    self.max_input_len, self.max_output_len = np.max(input_len).item(), np.max(output_len).item()
-    self.shift, self.stride = shift, stride
-    self.max_shift = np.max(self.shift).item()
-    self.dt = dt
-    self.pad_data = pad_data
-    self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift)]).item()
-    self.print_summary = print_summary
-
-    self.source = source
-    self.device, self.dtype = device, dtype
-
-    self.predicting = False
 
   def prepare_data(self):
 
@@ -299,7 +281,7 @@ class StockDataModule(pl.LightningDataModule):
 
         # extend train steps and pad train data
         train_data['steps'] = torch.cat((train_data['steps'],
-                                         torch.arange(1,1+pad_size).to(device = device,
+                                         torch.arange(1,1+pad_size).to(device = self.device,
                                                                        dtype = torch.long) + train_data['steps'][-1]), 0)
 
         for name in self.input_output_names:
