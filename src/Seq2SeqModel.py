@@ -36,6 +36,7 @@ class Seq2SeqModel(torch.nn.Module):
 
     self.num_inputs, self.num_outputs = self.encoder.num_inputs, self.decoder.num_outputs
     self.input_size, self.output_size = self.encoder.input_size, self.decoder.output_size
+    self.base_type = self.encoder.base_type
                 
     self.enc2dec_init_input_block = None
     if self.learn_decoder_init_input:
