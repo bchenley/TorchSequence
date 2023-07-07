@@ -46,7 +46,7 @@ class StockDataModule(pl.LightningDataModule):
       end_date = end_date.strftime(date_format)
 
     if source == 'yfinance':
-      import yfinance
+      import yfinance as yf
     else:
       import requests
 
