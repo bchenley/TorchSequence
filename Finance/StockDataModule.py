@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime
 
 from TorchTimeSeries.src import SequenceDataloader
-from Finance import historical_volatility, daily_volatility
+from Finance import load_polygon, load_yfinance, historical_volatility, daily_volatility
 
 class StockDataModule(pl.LightningDataModule):
   def __init__(self,
