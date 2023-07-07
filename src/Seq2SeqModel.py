@@ -1,5 +1,5 @@
 import torch
-
+import numpy as np
 from src import HiddenLayer
 
 class Seq2SeqModel(torch.nn.Module):
