@@ -90,6 +90,7 @@ class StockDataModule(pl.LightningDataModule):
                           date_format = self.date_format)
 
       elif self.source == 'yfinance':
+        print(load_yfinance)
         df = load_yfinance(symbols = self.symbols,
                           start_date = self.start_date,
                           end_date = self.end_date,
