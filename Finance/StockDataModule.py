@@ -56,6 +56,9 @@ class StockDataModule(pl.LightningDataModule):
     else:
       import requests
 
+    self.max_input_len, self.max_output_len = np.max(input_len).item(), np.max(output_len).item()
+    self.max_shift = np.max(self.shift).item()
+    self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift)]).item()
     self.predicting = False
                  
   def prepare_data(self):
