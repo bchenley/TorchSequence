@@ -34,6 +34,8 @@ class Seq2SeqModel(torch.nn.Module):
       if arg != 'self':
         setattr(self, arg, locals_[arg])
         
+    self.input_size, self.output_size = self.encoder.input_size, self.decoder.output_size
+                
     self.enc2dec_init_input_block = None
     if self.learn_decoder_init_input:
       self.enc2dec_init_input_block = HiddenLayer(in_features = sum(self.encoder.input_size),
