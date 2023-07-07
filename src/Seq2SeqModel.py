@@ -33,7 +33,8 @@ class Seq2SeqModel(torch.nn.Module):
     for arg in locals_:
       if arg != 'self':
         setattr(self, arg, locals_[arg])
-        
+
+    self.num_inputs, self.num_outputs = self.encoder.num_inputs, self.decoder.num_outputs
     self.input_size, self.output_size = self.encoder.input_size, self.decoder.output_size
                 
     self.enc2dec_init_input_block = None
