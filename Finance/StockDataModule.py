@@ -13,10 +13,10 @@ from Finance.daily_volatility import daily_volatility
 class StockDataModule(pl.LightningDataModule):
   def __init__(self,
                source,
-               input_names, output_names,
-               time_name = 'date',
+               input_names, output_names,               
                start_time,
                end_time = None,
+               time_name = 'date',
                apiKey = None,
                datetime_unit = 'D', time_format = "%Y-%m-%d", parsing = 'day', interval = '1d',
                combine_stock_features = True,
