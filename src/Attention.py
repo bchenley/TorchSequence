@@ -80,9 +80,9 @@ class Attention(torch.nn.MultiheadAttention):
       self.concat_blocks = torch.nn.ModuleList([])
 
       self.head_dims = np.round(self.embed_dim / self.num_heads).astype(int).repeat(self.num_heads - 1).tolist()
-      head_dims += [int(self.embed_dim - np.sum(self.head_dims))]
+      self.head_dims += [int(self.embed_dim - np.sum(self.head_dims))]
 
-      for dim in head_dims:
+      for dim in self.head_dims:
         self.query_blocks.append(HiddenLayer(in_features = self.embed_dim,
                                              out_features = dim,
                                              bias = self.query_bias,
