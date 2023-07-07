@@ -3,7 +3,8 @@ import pytorch_lightning as pl
 import pandas as pd
 import numpy as np
 
-from Finance import SequenceDataloader, historical_volatility, daily_volatility
+from TorchTimeSeries.src import SequenceDataloader
+from Finance import historical_volatility, daily_volatility
 
 class StockDataModule(pl.LightningDataModule):
   def __init__(self,
