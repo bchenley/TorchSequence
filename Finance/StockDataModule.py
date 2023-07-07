@@ -14,6 +14,7 @@ class StockDataModule(pl.LightningDataModule):
   def __init__(self,
                source,
                input_names, output_names,
+               time_name = 'date',
                start_time,
                end_time = None,
                apiKey = None,
@@ -111,7 +112,7 @@ class StockDataModule(pl.LightningDataModule):
           df['_'.join([attr,hvD])] = daily_volatility(df[attr], days = days, interval = self.interval)
       ##
 
-      df = df.filter(items=['time'] + self.input_output_names)
+      df = df.filter(items=[self.time_name] + self.input_output_names)
 
       if np.any(df.isna()):
         df = df[(np.where(df.isna().any(axis = 1))[0].max()+1):]
@@ -121,10 +122,10 @@ class StockDataModule(pl.LightningDataModule):
       #
 
       # Convert dataframe to dictionary of tensors. Concatenate stock features, if desired.
-      data = {'time': pd.to_datetime(df['time']).dt.to_period(self.datetime_unit).dt.to_timestamp().values}
+      data = {self.time_name: pd.to_datetime(df[self.time_name]).dt.to_period(self.datetime_unit).dt.to_timestamp().values}
 
       for col in df.columns:
-        if col != 'time':
+        if col != self.time_name:
           try: data[col] = torch.tensor(df[col].values.reshape(df[col].shape[0], -1)).to(device = self.device,
                                                                                         dtype = self.dtype)
           except: data[col] = df[col].values.reshape(df[col].shape[0], -1).to(device = self.device,
@@ -236,21 +237,21 @@ class StockDataModule(pl.LightningDataModule):
 
       if self.train_val_test_periods is not None:
         train_period = [pd.Period(time_str, freq = self.datetime_unit).to_timestamp() for time_str in self.train_val_test_periods[0]]
-        train_data = {name: self.data[name][(self.data['time']>=train_period[0]) & (self.data['time']<=train_period[1])] for name in list(self.data)}
+        train_data = {name: self.data[name][(self.data[self.time_name]>=train_period[0]) & (self.data[self.time_name]<=train_period[1])] for name in list(self.data)}
 
-        train_len = train_data['time'].shape[0]
+        train_len = train_data[self.time_name].shape[0]
 
         if len(self.train_val_test_periods[1]) > 0:
           val_period = [pd.Period(time_str, freq = self.datetime_unit).to_timestamp() for time_str in self.train_val_test_periods[1]]
-          val_data = {name: self.data[name][(self.data['time']>=val_period[0]) & (self.data['time']<=val_period[1])] for name in list(self.data)}
-          val_len = val_data['time'].shape[0]
+          val_data = {name: self.data[name][(self.data[self.time_name]>=val_period[0]) & (self.data[self.time_name]<=val_period[1])] for name in list(self.data)}
+          val_len = val_data[self.time_name].shape[0]
         else:
           val_data = {}
 
         if len(self.train_val_test_periods[2]) > 0:
           test_period = [pd.Period(time_str, freq = self.datetime_unit).to_timestamp() for time_str in self.train_val_test_periods[2]]
-          test_data = {name: self.data[name][(self.data['time']>=test_period[0]) & (self.data['time']<=test_period[1])] for name in list(self.data)}
-          test_len = test_data['time'].shape[0]
+          test_data = {name: self.data[name][(self.data[self.time_name]>=test_period[0]) & (self.data[self.time_name]<=test_period[1])] for name in list(self.data)}
+          test_len = test_data[self.time_name].shape[0]
         else:
           test_data = {}
 
