@@ -136,6 +136,8 @@ class Attention(torch.nn.MultiheadAttention):
                                                                   device = self.device,
                                                                   dtype = self.dtype)]))
 
+  self.dropout = torch.nn.Dropout(self.dropout_p)
+  
   def dot_fn(self, query, key, block_idx):
     '''
     Compute the dot-product attention score between query and key.
