@@ -5,7 +5,10 @@ import numpy as np
 from datetime import datetime
 
 from TorchTimeSeries.src import SequenceDataloader
-from Finance import load_polygon, load_yfinance, historical_volatility, daily_volatility
+from Finance.load_polygon import load_polygon
+from Finance.load_yfinance import load_yfinance
+from Finance.historical_volatility import historical_volatility
+from Finance.daily_volatility import daily_volatility
 
 class StockDataModule(pl.LightningDataModule):
   def __init__(self,
@@ -89,8 +92,7 @@ class StockDataModule(pl.LightningDataModule):
                           # datetime_unit = self.datetime_unit,
                           date_format = self.date_format)
 
-      elif self.source == 'yfinance':
-        print(load_yfinance)
+      elif self.source == 'yfinance':       
         df = load_yfinance(symbols = self.symbols,
                           start_date = self.start_date,
                           end_date = self.end_date,
