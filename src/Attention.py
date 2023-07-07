@@ -60,7 +60,9 @@ class Attention(torch.nn.MultiheadAttention):
       for arg in locals_:
         if arg != 'self':
           setattr(self, arg, locals_[arg])
-        
+          
+      self.dropout = torch.nn.Dropout(self.dropout_p)
+                 
       # Choose the appropriate score function based on the attention type
       if self.attn_type == "dot":
           self.score_fn = self.dot_fn
@@ -136,8 +138,6 @@ class Attention(torch.nn.MultiheadAttention):
                                                                   device = self.device,
                                                                   dtype = self.dtype)]))
 
-  self.dropout = torch.nn.Dropout(self.dropout_p)
-  
   def dot_fn(self, query, key, block_idx):
     '''
     Compute the dot-product attention score between query and key.
