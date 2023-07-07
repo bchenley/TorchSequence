@@ -56,6 +56,8 @@ class StockDataModule(pl.LightningDataModule):
     else:
       import requests
 
+    self.predicting = predicting
+                 
   def prepare_data(self):
 
     if not self.predicting:
