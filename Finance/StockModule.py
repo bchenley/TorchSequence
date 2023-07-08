@@ -657,9 +657,9 @@ class StockModule(pl.LightningModule):
     rows, cols = np.max([len(x) for x in self.trainer.datamodule.output_feature_names.values()]), len(symbols)
     fig, ax = plt.subplots(rows, cols, figsize = (10*len(symbols), 5*self.trainer.datamodule.max_output_size))
 
-    train_time = self.train_prediction_data['time']
-    val_time = self.val_prediction_data['time'] if self.val_prediction_data is not None else None
-    test_time = self.test_prediction_data['time'] if self.test_prediction_data is not None else None
+    train_time = self.train_prediction_data['date']
+    val_time = self.val_prediction_data['date'] if self.val_prediction_data is not None else None
+    test_time = self.test_prediction_data['date'] if self.test_prediction_data is not None else None
 
     for s,symbol in enumerate(symbols):
       try:
@@ -908,7 +908,7 @@ class StockModule(pl.LightningModule):
       forecast_reduced, forecast_steps_reduced = self.generate_reduced_output(forecast, forecast_steps,
                                                                           transforms=self.trainer.datamodule.transforms)
 
-      forecast_data = {} # {'time': forecast_time}
+      forecast_data = {} # {'date': forecast_time}
 
       forecast_data['steps'] = forecast_steps_reduced
 
@@ -996,7 +996,7 @@ class StockModule(pl.LightningModule):
 
     df = pd.DataFrame(columns=columns)
 
-    test_time = self.test_prediction_data['time']
+    test_time = self.test_prediction_data['date']
 
     j = 0
     for symbol in self.trainer.datamodule.symbols:
