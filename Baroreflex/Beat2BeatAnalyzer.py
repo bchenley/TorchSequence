@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 import importlib
 
-from Beat2BeatAnalysis import butter, periodogram, moving_average, Interpolator
+from TorchTimeSeries.src import butter, periodogram, moving_average, Interpolator
 
 class Beat2BeatAnalyzer():
   def __init__(self, dt, ecg, abp):
