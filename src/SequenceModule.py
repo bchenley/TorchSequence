@@ -714,7 +714,7 @@ class SequenceModule(pl.LightningModule):
       for f in range(output_size[i]):
 
         if (output_feature_names is not None) & (output_size[i] > 1):
-          output_feature_name_if = output_feature_names[output_name][f]
+          output_feature_name_if = output_feature_names[f]
         else:
           output_feature_name_if = None
 
