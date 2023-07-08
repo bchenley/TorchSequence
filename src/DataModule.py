@@ -106,7 +106,7 @@ class DataModule(pl.LightningDataModule):
               data[key] = data[key].unsqueeze(1) if data[key].ndim == 1 else data[key]
       self.data = data
 
-      self.feature_names = None
+      self.input_feature_names, self.output_feature_names = None, None
       if self.combine_features:
         self.input_names_original = self.input_names
         self.data['X'] = torch.cat([self.data[name] for name in self.input_names_original],-1)        
