@@ -689,7 +689,7 @@ class SequenceModule(pl.LightningModule):
 
     time_name = self.trainer.datamodule.time_name
     output_names = self.trainer.datamodule.output_names
-    feature_names = self.trainer.datamodule.feature_names
+    output_feature_names = self.trainer.datamodule.output_feature_names
     num_outputs = len(output_names)
     output_size = self.trainer.datamodule.output_size
     max_output_size = np.max(output_size)
@@ -713,9 +713,9 @@ class SequenceModule(pl.LightningModule):
 
       for f in range(output_size[i]):
 
-        if (feature_names is not None):
-          if any(output_name in name for name in feature_names) & (output_size[i] > 1):
-            output_feature_name_if = feature_names[output_name][f]
+        if (output_feature_names is not None):
+          if any(output_name in name for name in output_feature_names) & (output_size[i] > 1):
+            output_feature_name_if = output_feature_names[output_name][f]
         else:
           output_feature_name_if = None
 
@@ -798,12 +798,12 @@ class SequenceModule(pl.LightningModule):
 
           ax_if.axvspan(test_time.min(), test_time.max(), facecolor='red', alpha=0.2, label = test_label)
 
-        if (f == 0) & (feature_names is not None):
+        if (f == 0) & (output_feature_names is not None):
           ax_if.set_title(output_name)
         if f == output_size[i] - 1:
           ax_if.set_xlabel(f"Time [{self.trainer.datamodule.time_unit}]")
 
-        if feature_names is None:
+        if output_feature_names is None:
           ylabel = f"{output_name} [{output_feature_units_if}]" if output_feature_units_if is not None else f"{output_name}"
         elif output_feature_name_if is not None:
           ylabel = f"{output_feature_name_if} [{output_feature_units_if}]" if output_feature_units_if is not None else f"{output_feature_name_if}"
