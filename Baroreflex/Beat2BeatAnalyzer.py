@@ -470,7 +470,7 @@ class Beat2BeatAnalyzer():
     ax[1,0].plot(self.t[self.i_dbp], self.abp[self.i_dbp], '.r', label = 'DBP')
     ax[1,0].plot(self.t[self.i_sbp], self.abp[self.i_sbp], '.g', label = 'SBP')
     ax[1,0].legend()
-    ax[1,1].set_xlabel('Time [s]')
+    ax[1,0].set_xlabel('Time [s]')
     
     ax[0,1].plot(self.t, self.ecg, label = 'ECG')
     ax[0,1].plot(self.t[self.i_ecg_r], self.ecg[self.i_ecg_r], '.g', label = 'R-peak')
