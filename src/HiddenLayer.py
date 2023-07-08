@@ -1,5 +1,7 @@
 import torch
 
+from src import Polynomial.Polynomial as Polynomial
+
 class HiddenLayer(torch.nn.Module):
   '''
   Hidden layer module with various activation functions and regularization options.
