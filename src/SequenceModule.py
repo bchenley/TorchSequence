@@ -127,7 +127,11 @@ class SequenceModule(pl.LightningModule):
     #
 
     self.opt.zero_grad()
-    loss.sum().backward()
+    if len(loss) > 1:
+      for i in range(len(loss)):
+        loss[i].backward(retrain_graph = True)
+    else:
+      loss.backward()
     self.opt.step()
 
     # store loss to be used later in `on_train_epoch_end`
