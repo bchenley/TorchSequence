@@ -114,11 +114,9 @@ class SequenceModule(pl.LightningModule):
     #
 
     # get loss for each output
-    print(self.trainer.datamodule.train_output_mask)
     loss = self.loss_fn(output_pred_batch*self.trainer.datamodule.train_output_mask,
                         output_batch*self.trainer.datamodule.train_output_mask)
-    print(loss)
-    dfdf
+    
     loss = torch.stack([l.sum() for l in loss.split(self.model.output_size, -1)], 0)
     #
 
@@ -129,7 +127,7 @@ class SequenceModule(pl.LightningModule):
     self.opt.zero_grad()
     if len(loss) > 1:
       for i in range(len(loss)):
-        loss[i].backward(retrain_graph = True)
+        loss[i].backward(retain_graph = True)
     else:
       loss.backward()
     self.opt.step()
