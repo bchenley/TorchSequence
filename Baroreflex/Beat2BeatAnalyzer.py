@@ -470,18 +470,20 @@ class Beat2BeatAnalyzer():
     ax[1,0].plot(self.t[self.i_dbp], self.abp[self.i_dbp], '.r', label = 'DBP')
     ax[1,0].plot(self.t[self.i_sbp], self.abp[self.i_sbp], '.g', label = 'SBP')
     ax[1,0].legend()
-
+    ax[1,1].set_xlabel('Time [s]')
+    
     ax[0,1].plot(self.t, self.ecg, label = 'ECG')
     ax[0,1].plot(self.t[self.i_ecg_r], self.ecg[self.i_ecg_r], '.g', label = 'R-peak')
     ax[0,1].legend()
     ax[0,1].set_xlim(zoom_window)
-
+    
     ax[1,1].plot(self.t, self.abp, label = 'ABP')
     ax[1,1].plot(self.t[self.i_dbp], self.abp[self.i_dbp], '.r', label = 'DBP')
     ax[1,1].plot(self.t[self.i_sbp], self.abp[self.i_sbp], '.g', label = 'SBP')
     ax[1,1].legend()
     ax[1,1].set_xlim(zoom_window)
-
+    ax[1,1].set_xlabel('Time [s]')
+    
     fig.tight_layout()
 
   def plot_beat2beat(self, fig_num = 1, flim = [0, None]):
@@ -501,10 +503,13 @@ class Beat2BeatAnalyzer():
 
     ax[1,0].plot(self.beat_t, self.interval, 'b', alpha = 0.5) ; ax[1,0].set_ylabel('I')
     ax[1,0].plot(self.beat_t, self.interval_ma, 'b')
-
+    ax[1,0].set_xlabel('Time [s]')
+    
     ax[1,1].plot(self.beat_t, self.intervalv, 'b')
-
+    ax[1,1].set_xlabel('Time [s]')
+    
     ax[1,2].plot(self.f_psd, self.interval_psd, 'b')
     ax[1,2].set_xlim(flim)
+    ax[1,2].set_xlabel('Frequence [Hz]')
 
     fig.tight_layout()
