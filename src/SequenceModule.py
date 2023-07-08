@@ -713,9 +713,8 @@ class SequenceModule(pl.LightningModule):
 
       for f in range(output_size[i]):
 
-        if (output_feature_names is not None):
-          if any(output_name in name for name in output_feature_names) & (output_size[i] > 1):
-            output_feature_name_if = output_feature_names[output_name][f]
+        if (output_feature_names is not None) & (output_size[i] > 1):
+          output_feature_name_if = output_feature_names[output_name][f]
         else:
           output_feature_name_if = None
 
@@ -735,7 +734,7 @@ class SequenceModule(pl.LightningModule):
             ax_if = ax[j]
           except:
             ax_if = ax
-
+        
         train_target_if = self.train_prediction_data[f"{output_name}_actual"][:, f]
         train_prediction_if = self.train_prediction_data[f"{output_name}_prediction"][:, f]
         train_loss_if = np.round(self.train_prediction_data[f"{output_name}_{self.loss_fn.name}"][f].item(),2)
