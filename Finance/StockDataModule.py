@@ -351,14 +351,14 @@ class StockDataModule(pl.LightningDataModule):
       self.train_batch_size = len(self.train_data['steps']) if self.batch_size == -1 else self.batch_size
 
       self.train_dl = SequenceDataloader(input_names = self.input_names,
-                                        output_names = self.output_names,
-                                        step_name = 'steps',
-                                        data = self.train_data,
-                                        batch_size = self.train_batch_size,
-                                        input_len = self.input_len, output_len = self.output_len, shift = self.shift, stride = self.stride,
-                                        init_input = self.train_init_input,
-                                        print_summary = self.print_summary,
-                                        device = self.device, dtype = self.dtype)
+                                         output_names = self.output_names,
+                                         step_name = 'steps',
+                                         data = self.train_data,
+                                         batch_size = self.train_batch_size,
+                                         input_len = self.input_len, output_len = self.output_len, shift = self.shift, stride = self.stride,
+                                         init_input = self.train_init_input,
+                                         print_summary = self.print_summary,
+                                         device = self.device, dtype = self.dtype)
 
       self.num_train_batches = self.train_dl.num_batches
 
