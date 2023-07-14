@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-from TorchTimeSeries.src import SequenceDataloader
+from TorchTimeSeries.ts_src import SequenceDataloader
 from Finance.load_polygon import load_polygon
 from Finance.load_yfinance import load_yfinance
 from Finance.historical_volatility import historical_volatility
