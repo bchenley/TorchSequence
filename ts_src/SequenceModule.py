@@ -6,7 +6,7 @@ import time
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 
-from src import Loss
+from ts_src import Loss
 
 class SequenceModule(pl.LightningModule):
   def __init__(self,
