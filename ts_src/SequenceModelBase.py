@@ -1,6 +1,6 @@
 import torch 
 
-from src import LRU, HiddenLayer, Embedding, Attention, PositionalEncoding
+from ts_src import LRU, HiddenLayer, Embedding, Attention, PositionalEncoding
 
 class SequenceModelBase(torch.nn.Module):
   '''
