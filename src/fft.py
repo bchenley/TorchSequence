@@ -1,5 +1,6 @@
 import torch
 import pandas as pd
+import numpy as np
 
 def fft(x, fs = 1, dim = 0, nfft = None, norm = 'backward',
         device = None, dtype = torch.complex64):
