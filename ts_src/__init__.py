@@ -2,7 +2,8 @@ print("Initializing TorchTimeSeries package...")
 
 import importlib
 
-__all__ = ['FeatureTransform',
+__all__ = ['ExploratoryTimeSeriesAnalysis',
+           'FeatureTransform',
            'Loss', 
            'fft', 
            'periodogram', 
