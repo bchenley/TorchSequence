@@ -96,14 +96,13 @@ class DataModule(pl.LightningDataModule):
 
       # Convert dataframe to dictionary of tensors. Concatenate features, if desired.
       data = {self.time_name: self.data[self.time_name]}
-      for key in self.data:
-          if key != self.time_name:
-              if not isinstance(self.data[key], torch.Tensor):
-                  data[key] = torch.tensor(np.array(self.data[key])).to(device=self.device, dtype=self.dtype)
-              else:
-                  data[key] = self.data[key].to(device=self.device, dtype=self.dtype)
+      for name in self.input_output_names:
+        if not isinstance(self.data[name], torch.Tensor):
+            data[name] = torch.tensor(np.array(self.data[name])).to(device=self.device, dtype=self.dtype)
+        else:
+            data[name] = self.data[name].to(device=self.device, dtype=self.dtype)
 
-              data[key] = data[key].unsqueeze(1) if data[key].ndim == 1 else data[key]
+        data[name] = data[name].unsqueeze(1) if data[name].ndim == 1 else data[name]
       self.data = data
 
       self.input_feature_names, self.output_feature_names = None, None
