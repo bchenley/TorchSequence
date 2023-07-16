@@ -50,30 +50,17 @@ class DataModule(pl.LightningDataModule):
 
       super().__init__()
 
-      self.time_name = time_name
-      self.input_names = input_names
-      self.output_names = output_names            
-      self.combine_features = combine_features
-      self.transforms = transforms
-      self.pct_train_val_test = pct_train_val_test
-      self.batch_size = batch_size
-      self.input_len = input_len
-      self.output_len = output_len
+      locals_ = locals().copy()                   
+      for arg in locals_:
+        if arg != 'self':
+            setattr(self, arg, locals_[arg])
+          
       self.max_input_len = np.max(input_len).item()
       self.max_output_len = np.max(output_len).item()
-      self.shift = shift
-      self.stride = stride
       self.max_shift = np.max(shift).item()
-      self.dt = dt
-      self.time_unit = time_unit
-      self.pad_data = pad_data
       self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift)]).item()
-      self.print_summary = print_summary
-      self.data = data
-      self.device = device
-      self.dtype = dtype
-      self.predicting = False
-      self.data_prepared = False
+
+      self.dt = self.dt or data[time_name].diff().mean()
 
   def prepare_data(self):
     '''
