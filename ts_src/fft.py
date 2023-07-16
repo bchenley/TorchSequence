@@ -26,9 +26,9 @@ def fft(x, fs = 1, dim = 0, nfft = None, norm = 'backward',
           x = x.values
       x = torch.tensor(x).to(device = device, dtype = dtype)
 
-  if nfft is None:
-      nfft = x.shape[dim]
-      print(f'nfft set to {nfft}')
+  # if nfft is None:
+  #     nfft = x.shape[dim]
+  #     print(f'nfft set to {nfft}')
 
   s, dim = [nfft, dim if isinstance(dim, int) else (-2, -1)]
 
