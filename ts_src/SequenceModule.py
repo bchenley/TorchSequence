@@ -882,9 +882,9 @@ class SequenceModule(pl.LightningModule):
         output, hiddens = self.forward(input = input,
                                        steps = steps,
                                        hiddens = hiddens,
-                                       target = None,
-                                       output_len = max_output_len,
-                                       output_mask = output_mask)
+                                       output_window_idx = output_window_idx,
+                                       output_mask = output_mask,
+                                       output_input_idx = output_input_idx, input_output_idx = input_output_idx)
 
         forecast = torch.cat((forecast, output[:, -max_output_len:]), 1)
         forecast_steps = torch.cat((forecast_steps, steps[:, -max_output_len:]), 1)
