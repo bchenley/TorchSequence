@@ -837,12 +837,15 @@ class SequenceModule(pl.LightningModule):
       if self.trainer.datamodule.test_dl is not None:
         for batch in self.trainer.datamodule.test_dl.dl: last_sample = batch
         data = self.trainer.datamodule.test_data
+        output_window_idx = self.trainer.datamodule.test_output_window_idx
       elif self.trainer.datamodule.val_dl is not None:
         for batch in self.trainer.datamodule.val_dl.dl: last_sample = batch
         data = self.trainer.datamodule.val_data
+        output_window_idx = self.trainer.datamodule.val_output_window_idx
       else:
         for batch in self.trainer.datamodule.train_dl.dl: last_sample = batch
         data = self.trainer.datamodule.train_data
+        output_window_idx = self.trainer.datamodule.train_output_window_idx
 
       input, _, steps, batch_size = last_sample
 
@@ -854,11 +857,11 @@ class SequenceModule(pl.LightningModule):
       output_input_idx, input_output_idx = self.trainer.datamodule.output_input_idx, self.trainer.datamodule.input_output_idx
 
       output, hiddens = self.forward(input = last_input_sample,
-                                    steps = last_steps_sample,
-                                    hiddens = hiddens,
-                                    target = None,
-                                    output_len = max_output_len,
-                                    output_mask = output_mask)
+                                     steps = last_steps_sample,
+                                     hiddens = hiddens,
+                                     output_window_idx = output_window_idx,
+                                     output_mask = output_mask,
+                                     output_input_idx = output_input_idx, input_output_idx = input_output_idx)
 
       forecast = torch.empty((1, 0, max_output_size)).to(output)
       forecast_steps = torch.empty((1, 0)).to(last_steps_sample)
