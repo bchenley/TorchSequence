@@ -62,7 +62,7 @@ class DataModule(pl.LightningDataModule):
 
       self.dt = self.dt or data[time_name].diff().mean()
 
-      self.predicting = False
+      self.predicting, self.data_prepared = False, False
 
   def prepare_data(self):
     '''
