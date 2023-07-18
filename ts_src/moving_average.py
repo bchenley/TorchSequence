@@ -1,5 +1,5 @@
 import torch
-import numpy as np
+# import numpy as np
 
 def moving_average(X, window):
     '''
