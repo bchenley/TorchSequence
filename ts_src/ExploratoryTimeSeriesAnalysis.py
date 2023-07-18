@@ -44,10 +44,9 @@ class ExploratoryTimeSeriesAnalysis():
 
         # data = data - data.mean(0, keepdims = True)
 
-        window = torch.hann_window(hann_window_len).to(device = self.device, 
-                                                       dtype = self.dtype)
-        
-        data = data - moving_average(data, torch.hann_window(hann_window_len)) if hann_window_len is not None else data
+        window = torch.hann_window(hann_window_len).to(data) if hann_window_len is not None else None
+
+        data = data - moving_average(data, window) if window is not None else data
 
         data = data.t().unsqueeze(1)
 
@@ -99,10 +98,9 @@ class ExploratoryTimeSeriesAnalysis():
             xlabel = f"Time [{self.time_unit}]"
         elif domain == 'frequency':
 
-            window = torch.hann_window(hann_window_len).to(device = self.device, 
-                                                           dtype = self.dtype)
+            window = torch.hann_window(hann_window_len).to(data) if hann_window_len is not None else None
             
-            data = data - moving_average(data, window) if hann_window_len is not None else data
+            data = data - moving_average(data, window) if window is not None else data
             self.freq, data, _ = fft(data, fs=1 / self.dt)
             xaxis = self.freq
             xlabel = f"Frequency [1/{self.time_unit}]"
@@ -127,14 +125,13 @@ class ExploratoryTimeSeriesAnalysis():
 
         fig.tight_layout()
 
-    def plot_xcorr(self, domain='time', hann_window_len=None, data_units=None, xlim=None, figsize=None,
+    def plot_xcorr(self, domain='time', data_units=None, xlim=None, figsize=None,
                    title_size=20, xlabel_size=20, ylabel_size=20, fig_num=1):
         """
         Plot the cross-correlation between time series data.
 
         Args:
             domain (str): Domain of the plot. Can be 'time' or 'frequency'. Default is 'time'.
-            hann_window_len (int): Length of the Hanning window for data smoothing. Default is None (no smoothing).
             data_units (list): Units of the data columns. Default is None.
             xlim (tuple): Limits of the x-axis. Default is None.
             figsize (tuple): Size of the figure. Default is None.
