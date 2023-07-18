@@ -1,6 +1,6 @@
 import torch
 
-from ts_src import Polynomial.Polynomial as Polynomial
+from ts_src.Polynomial import Polynomial
 
 class HiddenLayer(torch.nn.Module):
   '''
