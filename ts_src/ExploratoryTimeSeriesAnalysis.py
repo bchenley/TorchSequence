@@ -94,6 +94,8 @@ class ExploratoryTimeSeriesAnalysis():
             xaxis = self.time
             xlabel = f"Time [{self.time_unit}]"
         elif domain == 'frequency':
+            print(moving_average)
+            print(moving_average.moving_average)
             data = data - moving_average(data, torch.hann_window(hann_window_len)) if hann_window_len is not None else data
             self.freq, data, _ = fft(data, fs=1 / self.dt)
             xaxis = self.freq
