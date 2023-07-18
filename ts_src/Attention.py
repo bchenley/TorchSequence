@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from ts_src import HiddenLayer, Polynomial
+from ts_src import HiddenLayer as HiddenLayer, Polynomial as Polynomial
 
 class Attention(torch.nn.MultiheadAttention):
   '''
