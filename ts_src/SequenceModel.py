@@ -1,7 +1,9 @@
 import torch
 import numpy as np
 
-from ts_src import SequenceModelBase as SequenceModelBase, LRU as LRU, HiddenLayer as HiddenLayer, ModulationLayer as ModulationLayer
+from ts_src import SequenceModelBase.SequenceModelBase as SequenceModelBase, \
+                   LRU.LRU as LRU, HiddenLayer.HiddenLayer as HiddenLayer, \
+                   ModulationLayer.ModulationLayer as ModulationLayer
 
 class SequenceModel(torch.nn.Module):
   def __init__(self,
