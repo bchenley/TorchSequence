@@ -44,6 +44,9 @@ class ExploratoryTimeSeriesAnalysis():
 
         # data = data - data.mean(0, keepdims = True)
 
+        window = torch.hann_window(hann_window_len).to(device = self.device, 
+                                                       dtype = self.dtype)
+        
         data = data - moving_average(data, torch.hann_window(hann_window_len)) if hann_window_len is not None else data
 
         data = data.t().unsqueeze(1)
@@ -96,7 +99,10 @@ class ExploratoryTimeSeriesAnalysis():
             xlabel = f"Time [{self.time_unit}]"
         elif domain == 'frequency':
 
-            data = data - moving_average(data, torch.hann_window(hann_window_len)) if hann_window_len is not None else data
+            window = torch.hann_window(hann_window_len).to(device = self.device, 
+                                                           dtype = self.dtype)
+            
+            data = data - moving_average(data, window) if hann_window_len is not None else data
             self.freq, data, _ = fft(data, fs=1 / self.dt)
             xaxis = self.freq
             xlabel = f"Frequency [1/{self.time_unit}]"
