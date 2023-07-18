@@ -148,6 +148,7 @@ class ExploratoryTimeSeriesAnalysis():
                 xcorr_ = self.xcorr[xcorr_names[i]].clone()
 
                 if domain == 'frequency':
+                    print(fft)
                     xaxis, xcorr_, _ = fft(xcorr_, fs=1 / self.dt)
                     xlabel = f"Frequency [1/{self.time_unit}]"
                 else:
