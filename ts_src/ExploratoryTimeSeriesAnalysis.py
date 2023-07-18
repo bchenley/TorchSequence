@@ -35,7 +35,8 @@ class ExploratoryTimeSeriesAnalysis():
 
         self.record_len = data[data_names[0]].shape[0]
 
-        data = torch.cat([torch.tensor(self.data[name]).to(device=device, dtype=dtype) if \
+        data = torch.cat([torch.tensor(self.data[name]).to(device = self.device, 
+                                                           dtype = self.dtype) if \
                           ~isinstance(self.data[name],torch.Tensor) \
                           else self.data[name] \
                           for name in data_names], -1)
