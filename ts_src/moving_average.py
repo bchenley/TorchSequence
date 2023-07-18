@@ -12,22 +12,22 @@ def moving_average(X, window):
     Returns:
         y: The output signal after applying the moving average filter.
     '''
-    if isinstance(X, torch.Tensor):
-        X = X.cpu().numpy()
-    if isinstance(window, torch.Tensor):
-        window = window.cpu().numpy()
+    # if isinstance(X, torch.Tensor):
+    #     X = X.cpu().numpy()
+    # if isinstance(window, torch.Tensor):
+    #     window = window.cpu().numpy()
 
     len_window = window.shape[0]
 
-    y = np.empty_like(X)
+    y = torch.empty_like(X)
 
     ww = []
 
     for i in range(X.shape[0]):
-        is_odd = int(np.mod(len_window, 2) == 1)
+        is_odd = int(torch.mod(len_window, 2) == 1)
 
-        m = np.arange((i - (len_window - is_odd) / 2), (i + (len_window - is_odd) / 2 - (is_odd == 0) + 1),
-                      dtype=np.compat.long)
+        m = torch.arange((i - (len_window - is_odd) / 2), (i + (len_window - is_odd) / 2 - (is_odd == 0) + 1),
+                         dtype=torch.long)
 
         k = m[(m >= 0) & (m < X.shape[0])]
 
