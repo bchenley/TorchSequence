@@ -44,9 +44,6 @@ class ExploratoryTimeSeriesAnalysis():
 
         # data = data - data.mean(0, keepdims = True)
 
-        print(moving_average)
-        print(moving_average.moving_average)
-        
         data = data - moving_average(data, torch.hann_window(hann_window_len)) if hann_window_len is not None else data
 
         data = data.t().unsqueeze(1)
