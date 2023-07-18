@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 from ts_src import fft, moving_average
 
 class ExploratoryTimeSeriesAnalysis():
-    def __init__(self, data, time_name, dt, time_unit):
+    def __init__(self, 
+                 data, time_name, dt, time_unit,
+                 device = None, dtype = None):
         """
         Class for exploratory time series analysis.
 
