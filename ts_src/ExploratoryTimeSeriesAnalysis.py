@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ts_src import moving_average # , fft
+from ts_src import moving_average, fft
 
 class ExploratoryTimeSeriesAnalysis():
     def __init__(self, 
@@ -43,6 +43,9 @@ class ExploratoryTimeSeriesAnalysis():
 
         # data = data - data.mean(0, keepdims = True)
 
+        print(moving_average)
+        print(moving_average.moving_average)
+        
         data = data - moving_average(data, torch.hann_window(hann_window_len)) if hann_window_len is not None else data
 
         data = data.t().unsqueeze(1)
@@ -94,8 +97,7 @@ class ExploratoryTimeSeriesAnalysis():
             xaxis = self.time
             xlabel = f"Time [{self.time_unit}]"
         elif domain == 'frequency':
-            print(moving_average)
-            print(moving_average.moving_average)
+
             data = data - moving_average(data, torch.hann_window(hann_window_len)) if hann_window_len is not None else data
             self.freq, data, _ = fft(data, fs=1 / self.dt)
             xaxis = self.freq
