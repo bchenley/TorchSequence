@@ -35,7 +35,10 @@ class ExploratoryTimeSeriesAnalysis():
 
         self.record_len = data[data_names[0]].shape[0]
 
-        data = torch.cat([self.data[name] for name in data_names], -1)
+        data = torch.cat([torch.tensor(self.data[name]).to(device=device, dtype=dtype) if \
+                          ~isinstance(self.data[name],torch.Tensor) \
+                          else self.data[name] \
+                          for name in data_names], -1)
 
         # data = data - data.mean(0, keepdims = True)
         data = data - moving_average(data, torch.hann_window(hann_window_len)) if hann_window_len is not None else data
