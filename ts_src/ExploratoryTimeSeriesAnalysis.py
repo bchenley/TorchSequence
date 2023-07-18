@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ts_src import moving_average, fft
+from ts_src import moving_average as moving_average, fft as fft
 
 class ExploratoryTimeSeriesAnalysis():
     def __init__(self, 
