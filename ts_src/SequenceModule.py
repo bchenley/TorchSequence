@@ -834,7 +834,7 @@ class SequenceModule(pl.LightningModule):
     last_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name].max()
     time_step = self.trainer.datamodule.dt # self.trainer.datamodule.test_data[self.trainer.datamodule.time_name].diff().mean()
 
-    forecast_time = np.arange(last_time + time_step, last_time + num_forecast_steps * time_step, time_step).astype(self.trainer.datamodule.test_data[self.trainer.datamodule.time_name].dtype)
+    forecast_time = np.arange(num_forecast_steps) * time_step + last_time 
 
     with torch.no_grad():
       steps = None
