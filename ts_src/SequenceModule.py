@@ -833,7 +833,7 @@ class SequenceModule(pl.LightningModule):
 
     if len(self.trainer.datamodule.test_data) > 0:
       last_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name].max()
-    elif len(self.trainer.datamodule.val;_data) > 0:
+    elif len(self.trainer.datamodule.val_data) > 0:
       last_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name].max()
     else:
       last_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name].max()
