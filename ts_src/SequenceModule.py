@@ -831,8 +831,14 @@ class SequenceModule(pl.LightningModule):
   ## forecast
   def forecast(self, num_forecast_steps = 1, hiddens = None):
 
-    last_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name].max()
-    time_step = self.trainer.datamodule.dt # self.trainer.datamodule.test_data[self.trainer.datamodule.time_name].diff().mean()
+    if len(self.trainer.datamodule.test_data) > 0:
+      last_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name].max()
+    elif len(self.trainer.datamodule.val;_data) > 0:
+      last_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name].max()
+    else:
+      last_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name].max()
+      
+    time_step = self.trainer.datamodule.dt
 
     forecast_time = np.arange(num_forecast_steps) * time_step + last_time 
 
