@@ -834,12 +834,12 @@ class SequenceModule(pl.LightningModule):
     with torch.no_grad():
       steps = None
 
-      if self.trainer.datamodule.test_dl is not None:
+      if len(self.trainer.datamodule.test_dl.dl) == 0:
         for batch in self.trainer.datamodule.test_dl.dl: last_sample = batch
         last_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name].max()
         data = self.trainer.datamodule.test_data
         output_window_idx = self.trainer.datamodule.test_output_window_idx
-      elif self.trainer.datamodule.val_dl is not None:
+      elif len(self.trainer.datamodule.val_dl.dl) == 0:
         for batch in self.trainer.datamodule.val_dl.dl: last_sample = batch
         last_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name].max()  
         data = self.trainer.datamodule.val_data
