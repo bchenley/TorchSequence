@@ -831,32 +831,27 @@ class SequenceModule(pl.LightningModule):
   ## forecast
   def forecast(self, num_forecast_steps = 1, hiddens = None):
 
-    if len(self.trainer.datamodule.test_data) > 0:
-      last_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name].max()
-    elif len(self.trainer.datamodule.val_data) > 0:
-      last_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name].max()
-    else:
-      last_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name].max()
-      
-    time_step = self.trainer.datamodule.dt
-
-    forecast_time = np.arange(num_forecast_steps) * time_step + last_time 
-
     with torch.no_grad():
       steps = None
 
       if self.trainer.datamodule.test_dl is not None:
         for batch in self.trainer.datamodule.test_dl.dl: last_sample = batch
+        last_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name].max()
         data = self.trainer.datamodule.test_data
         output_window_idx = self.trainer.datamodule.test_output_window_idx
       elif self.trainer.datamodule.val_dl is not None:
         for batch in self.trainer.datamodule.val_dl.dl: last_sample = batch
+        last_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name].max()  
         data = self.trainer.datamodule.val_data
         output_window_idx = self.trainer.datamodule.val_output_window_idx
       else:
         for batch in self.trainer.datamodule.train_dl.dl: last_sample = batch
+        last_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name].max()  
         data = self.trainer.datamodule.train_data
         output_window_idx = self.trainer.datamodule.train_output_window_idx
+
+      time_step = self.trainer.datamodule.dt
+      forecast_time = np.arange(num_forecast_steps) * time_step + last_time 
 
       input, _, steps, batch_size = last_sample
 
