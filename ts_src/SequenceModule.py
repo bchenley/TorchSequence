@@ -902,8 +902,7 @@ class SequenceModule(pl.LightningModule):
 
       # self.forecast_data = {"warmup_time": }
     
-    return forecast_reduced, forecast_steps_reduced
-
+    return forecast_reduced, forecast_time
 
   ##
   def generate_reduced_output(self, output, output_steps, reduction='mean', transforms=None):
