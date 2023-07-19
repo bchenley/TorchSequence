@@ -92,7 +92,8 @@ class DataModule(pl.LightningDataModule):
             data[name] = self.data[name].to(device=self.device, dtype=self.dtype)
 
         data[name] = data[name].unsqueeze(1) if data[name].ndim == 1 else data[name]
-      self.data = data
+      
+      self.data = data.copy()
 
       self.input_feature_names, self.output_feature_names = None, None
       if self.combine_features:
