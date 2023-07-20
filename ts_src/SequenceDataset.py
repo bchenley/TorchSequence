@@ -2,9 +2,10 @@ import torch
 import numpy as np
 
 class SequenceDataset(torch.utils.data.Dataset):
+  
   '''
   Dataset class for sequence data.
-
+  
   Args:
     data (dict): Dictionary containing input and output data.
     input_names (list): Names of the input data.
@@ -20,7 +21,7 @@ class SequenceDataset(torch.utils.data.Dataset):
     dtype (torch.dtype): Data type of the dataset. Defaults to torch.float32.
     forecast (bool): Whether the dataset is for forecasting. Defaults to False.
   '''
-
+   
   def __init__(self,
                data: dict,
                input_names, output_names, step_name='steps',
@@ -34,7 +35,10 @@ class SequenceDataset(torch.utils.data.Dataset):
     
     for arg in locals_:
       if arg != 'self':
-        setattr(self, arg, locals_[arg])
+        if arg == 'data':
+          setattr(self, arg, locals_[arg].copy())  
+        else:
+          setattr(self, arg, locals_[arg])
       
     self.num_inputs, self.num_outputs = len(self.input_names), len(self.output_names)
 
@@ -85,13 +89,15 @@ class SequenceDataset(torch.utils.data.Dataset):
                        '\n'.join([f'Output indices for {self.output_names[i]}: {self.output_window_idx[i].tolist()}' for i in range(self.num_outputs)])]))
       
     if self.forecast:
+      pad_size = self.total_window_size - self.max_input_len
+
       self.data[self.step_name] = torch.cat((self.data[self.step_name][-self.max_input_len:], 
-                                             torch.arange(self.max_output_len) + self.data[self.step_name].max() + 1)).to(self.data[self.step_name])
+                                             torch.arange(pad_size) + self.data[self.step_name].max() + 1)).to(self.data[self.step_name])
       for name in np.unique(self.input_names + self.output_names):
         data_size = self.data[name].shape[-1]
         self.data[name] = self.data[name][-self.max_input_len:]
         self.data[name] = torch.nn.functional.pad(self.data[name], 
-                                                  pad = (0, 0, 0, self.total_window_size - self.max_output_len),
+                                                  pad = (0, 0, 0, pad_size),
                                                   mode = 'constant', value = 0.)
         
       self.data_len = len(self.data[self.step_name])
@@ -152,14 +158,14 @@ class SequenceDataset(torch.utils.data.Dataset):
 
         j = 0
         for i in range(self.num_outputs):
-            output_window_idx_i = self.output_window_idx[i]
-            output_samples_window_idx_i = window_idx_n[output_window_idx_i]
+          output_window_idx_i = self.output_window_idx[i]
+          output_samples_window_idx_i = window_idx_n[output_window_idx_i]
+          
+          output_window_idx_j = output_window_idx_i - min_output_idx
+          
+          output_n[output_window_idx_j, j:(j + self.output_size[i])] = self.data[self.output_names[i]].clone()[output_samples_window_idx_i]
 
-            output_window_idx_j = output_window_idx_i - min_output_idx
-
-            output_n[output_window_idx_j, j:(j + self.output_size[i])] = self.data[self.output_names[i]].clone()[output_samples_window_idx_i]
-
-            j += self.output_size[i]
+          j += self.output_size[i]
 
         output_samples.append(output_n)
 
