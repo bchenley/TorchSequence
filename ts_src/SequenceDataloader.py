@@ -38,8 +38,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
     locals_ = locals().copy()                   
     for arg in locals_:
       if arg != 'self':
-        if arg == 'data':
-          setattr(self, arg, locals_[arg].copy() if arg == 'data' else locals_[arg])
+        setattr(self, arg, locals_[arg].copy() if arg == 'data' else locals_[arg])
 
     self.dl = self.get_dataloader
 
