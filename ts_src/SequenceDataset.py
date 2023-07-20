@@ -136,10 +136,7 @@ class SequenceDataset(torch.utils.data.Dataset):
           
           if (input_samples_window_idx_i[0] == -1) & (self.init_input is not None):
             input_n[0, j:(j + self.input_size[i])] = self.init_input[j:(j + self.input_size[i])]
-            
-          print(input_window_idx_i)
-          print(input_samples_window_idx_i)
-          
+
           input_window_idx_i = input_window_idx_i[input_samples_window_idx_i >= 0]
           input_samples_window_idx_i = input_samples_window_idx_i[input_samples_window_idx_i >= 0]
           
