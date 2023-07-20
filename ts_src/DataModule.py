@@ -55,10 +55,10 @@ class DataModule(pl.LightningDataModule):
         if arg != 'self':
           setattr(self, arg, locals_[arg].copy() if arg == 'data' else locals_[arg])  
           
-      self.max_input_len = np.max(input_len).item()
-      self.max_output_len = np.max(output_len).item()
+      self.total_input_len = np.max(input_len).item()
+      self.total_output_len = np.max(output_len).item()
       self.max_shift = np.max(shift).item()
-      self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift)]).item()
+      self.start_step = np.max([0, (self.total_input_len - self.total_output_len + self.max_shift)]).item()
 
       self.dt = self.dt or data[time_name].diff().mean()
 
@@ -265,21 +265,21 @@ class DataModule(pl.LightningDataModule):
     if len(self.test_data) > 0:
       data = self.test_data.copy()
       init_input = self.test_init_input
-      input_len = self.test_max_input_len
-      output_len = self.test_max_output_len
+      input_len = self.test_total_input_len
+      output_len = self.test_total_output_len
       self.last_time = self.test_data[self.time_name].max()
       
     elif len(self.val_data) > 0:
       data = self.val_data.copy()
       init_input = self.val_init_input
-      input_len = self.val_max_input_len
-      output_len = self.val_max_output_len
+      input_len = self.val_total_input_len
+      output_len = self.val_total_output_len
       self.last_time = self.val_data[self.time_name].max()
     else:
       data = self.train_data.copy()
       init_input = self.train_init_input
-      input_len = self.train_max_input_len
-      output_len = self.train_max_output_len
+      input_len = self.train_total_input_len
+      output_len = self.train_total_output_len
       self.last_time = self.train_data[self.time_name].max()
     
     self.forecast_dl = SequenceDataloader(input_names = self.input_names, 
@@ -298,7 +298,7 @@ class DataModule(pl.LightningDataModule):
     
     self.forecast_output_mask = self.forecast_dl.output_mask
     self.forecast_input_window_idx, self.forecast_output_window_idx = self.forecast_dl.input_window_idx, self.forecast_dl.output_window_idx
-    self.forecast_max_input_len, self.forecast_max_output_len = self.forecast_dl.max_input_len, self.forecast_dl.max_output_len
+    self.forecast_total_input_len, self.forecast_total_output_len = self.forecast_dl.total_input_len, self.forecast_dl.total_output_len
 
     self.forecast_unique_output_window_idx = self.forecast_dl.unique_output_window_idx
 
@@ -331,7 +331,7 @@ class DataModule(pl.LightningDataModule):
 
       self.train_output_mask = self.train_dl.output_mask
       self.train_input_window_idx, self.train_output_window_idx = self.train_dl.input_window_idx, self.train_dl.output_window_idx
-      self.train_max_input_len, self.train_max_output_len = self.train_dl.max_input_len, self.train_dl.max_output_len
+      self.train_total_input_len, self.train_total_output_len = self.train_dl.total_input_len, self.train_dl.total_output_len
 
       self.train_unique_output_window_idx = self.train_dl.unique_output_window_idx
 
@@ -372,7 +372,7 @@ class DataModule(pl.LightningDataModule):
 
       self.val_output_mask = self.val_dl.output_mask
       self.val_input_window_idx, self.val_output_window_idx = self.val_dl.input_window_idx, self.val_dl.output_window_idx
-      self.val_max_input_len, self.val_max_output_len = self.val_dl.max_input_len, self.val_dl.max_output_len
+      self.val_total_input_len, self.val_total_output_len = self.val_dl.total_input_len, self.val_dl.total_output_len
 
       self.val_unique_output_window_idx = self.val_dl.unique_output_window_idx
 
@@ -411,7 +411,7 @@ class DataModule(pl.LightningDataModule):
 
       self.test_output_mask = self.test_dl.output_mask
       self.test_input_window_idx, self.test_output_window_idx = self.test_dl.input_window_idx, self.test_dl.output_window_idx
-      self.test_max_input_len, self.test_max_output_len = self.test_dl.max_input_len, self.test_dl.max_output_len
+      self.test_total_input_len, self.test_total_output_len = self.test_dl.total_input_len, self.test_dl.total_output_len
 
       self.test_unique_output_window_idx = self.test_dl.unique_output_window_idx
 
