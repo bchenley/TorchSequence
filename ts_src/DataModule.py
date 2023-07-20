@@ -54,7 +54,7 @@ class DataModule(pl.LightningDataModule):
       for arg in locals_:
         if arg != 'self':
           if arg == 'data':
-            setattr(self, arg, locals_[arg].copy() if arg == 'data' else lcoals_[arg])  
+            setattr(self, arg, locals_[arg].copy() if arg == 'data' else locals_[arg])  
           
       self.total_input_len = np.max(input_len).item()
       self.total_output_len = np.max(output_len).item()
