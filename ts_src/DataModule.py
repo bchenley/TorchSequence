@@ -291,13 +291,13 @@ class DataModule(pl.LightningDataModule):
                                               print_summary = False,
                                               device = self.device, dtype = self.dtype)
         
-         self.forecast_output_mask = self.forecast_dl.output_mask
-         self.forecast_input_window_idx, self.forecast_output_window_idx = self.forecast_dl.input_window_idx, self.forecast_dl.output_window_idx
-         self.forecast_total_input_len, self.forecast_total_output_len = self.forecast_dl.total_input_len, self.forecast_dl.total_output_len
+        self.forecast_output_mask = self.forecast_dl.output_mask
+        self.forecast_input_window_idx, self.forecast_output_window_idx = self.forecast_dl.input_window_idx, self.forecast_dl.output_window_idx
+        self.forecast_total_input_len, self.forecast_total_output_len = self.forecast_dl.total_input_len, self.forecast_dl.total_output_len
   
-         self.forecast_unique_output_window_idx = self.forecast_dl.unique_output_window_idx
+        self.forecast_unique_output_window_idx = self.forecast_dl.unique_output_window_idx
   
-         return self.forecast_dl.dl
+        return self.forecast_dl.dl
       
   def train_dataloader(self):
     '''
