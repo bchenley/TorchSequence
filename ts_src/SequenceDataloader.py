@@ -94,7 +94,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
                             forecast = self.forecast,
                             print_summary=self.print_summary,
                             device=self.device, dtype=self.dtype)
-
+      
       self.batch_size = len(ds) if self.batch_size == -1 else self.batch_size
 
       self.input_size, self.output_size = ds.input_size, ds.output_size
