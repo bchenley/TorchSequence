@@ -9,14 +9,14 @@ class DataModule(pl.LightningDataModule):
   def __init__(self,
                 data,
                 time_name, input_names, output_names,
-                combine_features=None, transforms=None,
-                pct_train_val_test=[1., 0., 0.],
-                batch_size=-1,
-                input_len=[1], output_len=[1], shift=[0], stride=1,
-                dt=1,
-                time_unit='s',
-                pad_data=False,
-                print_summary=True,
+                combine_features = None, transforms = None,
+                pct_train_val_test = [1., 0., 0.],
+                batch_size = -1,
+                input_len = [1], output_len = [1], shift = [0], stride = 1,
+                dt = 1,
+                time_unit = 's',
+                pad_data = False,
+                print_summary = True,
                 device = 'cpu', dtype = torch.float32):
 
       '''
@@ -53,8 +53,7 @@ class DataModule(pl.LightningDataModule):
       locals_ = locals().copy()                   
       for arg in locals_:
         if arg != 'self':
-          if arg == 'data':
-            setattr(self, arg, locals_[arg].copy() if arg == 'data' else locals_[arg])  
+          setattr(self, arg, locals_[arg].copy() if arg == 'data' else locals_[arg])  
           
       self.total_input_len = np.max(input_len).item()
       self.total_output_len = np.max(output_len).item()
