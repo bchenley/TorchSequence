@@ -31,11 +31,14 @@ class SequenceDataset(torch.utils.data.Dataset):
                print_summary=False,
                device='cpu', dtype=torch.float32):
     
-    locals_ = locals().copy()                   
+    locals_ = locals().copy()
+    
     for arg in locals_:
       if arg != 'self':
-        setattr(self, arg, locals_[arg].copy() if arg == 'data' else locals_[arg])   
-
+        if arg == 'data':
+          setattr(self, arg, locals_[arg].copy())  
+        else:
+          setattr(self, arg, locals_[arg])
       
     self.num_inputs, self.num_outputs = len(self.input_names), len(self.output_names)
 
@@ -84,9 +87,9 @@ class SequenceDataset(torch.utils.data.Dataset):
                        f'Step indices: {self.total_window_idx.tolist()}',
                        '\n'.join([f'Input indices for {self.input_names[i]}: {self.input_window_idx[i].tolist()}' for i in range(self.num_inputs)]),
                        '\n'.join([f'Output indices for {self.output_names[i]}: {self.output_window_idx[i].tolist()}' for i in range(self.num_outputs)])]))
-      
+        
     if self.forecast:
-      pad_size = self.total_window_size - self.max_input_len
+      pad_size = self.total_window_size - self.max_input_len + int(self.has_ar)
 
       self.data[self.step_name] = torch.cat((self.data[self.step_name][-self.max_input_len:], 
                                              torch.arange(pad_size) + self.data[self.step_name].max() + 1)).to(self.data[self.step_name])
@@ -124,9 +127,9 @@ class SequenceDataset(torch.utils.data.Dataset):
     num_samples = 0
     while window_idx_n.max() < self.data_len:
         num_samples += 1
-
+        
         steps_samples.append(self.data[self.step_name][window_idx_n])
-
+        
         # input
         input_n = torch.zeros((max_input_len, np.sum(self.input_size))).to(device=self.device,
                                                                            dtype=self.dtype)
@@ -139,20 +142,20 @@ class SequenceDataset(torch.utils.data.Dataset):
           
           if (input_samples_window_idx_i[0] == -1) & (self.init_input is not None):
             input_n[0, j:(j + self.input_size[i])] = self.init_input[j:(j + self.input_size[i])]
-
+          
           input_window_idx_i = input_window_idx_i[input_samples_window_idx_i >= 0]
           input_samples_window_idx_i = input_samples_window_idx_i[input_samples_window_idx_i >= 0]
           
           input_n[input_window_idx_i, j:(j + self.input_size[i])] = self.data[self.input_names[i]].clone()[input_samples_window_idx_i]
-
+          
           j += self.input_size[i]
 
         input_samples.append(input_n)
         
         # output
-        output_n = torch.zeros((len(unique_output_window_idx), np.sum(self.output_size))).to(device=self.device,
-                                                                                              dtype=self.dtype)
-
+        output_n = torch.zeros((len(unique_output_window_idx), np.sum(self.output_size))).to(device = self.device,
+                                                                                             dtype = self.dtype)
+        
         j = 0
         for i in range(self.num_outputs):
           output_window_idx_i = self.output_window_idx[i]
@@ -163,7 +166,7 @@ class SequenceDataset(torch.utils.data.Dataset):
           output_n[output_window_idx_j, j:(j + self.output_size[i])] = self.data[self.output_names[i]].clone()[output_samples_window_idx_i]
 
           j += self.output_size[i]
-
+                  
         output_samples.append(output_n)
 
         window_idx_n = num_samples * self.stride + self.total_window_idx
@@ -177,17 +180,17 @@ class SequenceDataset(torch.utils.data.Dataset):
       output_samples = output_samples[-1:]
       steps_samples = steps_samples[-1:]
       num_samples = 1
-      
+
     self.num_samples = num_samples
 
     return input_samples, output_samples, steps_samples
-
+    
   def __len__(self):
     '''
     Returns the number of samples in the dataset.
 
     Returns:
-        int: Number of samples in the dataset.
+      int: Number of samples in the dataset.
     '''
     return self.num_samples
 
