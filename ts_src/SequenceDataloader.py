@@ -35,13 +35,11 @@ class SequenceDataloader(torch.utils.data.Dataset):
     
     super(SequenceDataloader, self).__init__()
 
-    self.data = data
-    self.batch_size = batch_size
-    self.input_names, self.output_names, self.step_name = input_names, output_names, step_name
-    self.input_len, self.output_len, self.shift, self.stride = input_len, output_len, shift, stride
-    self.init_input = init_input
-    self.print_summary = print_summary
-    self.device, self.dtype = device, dtype
+    locals_ = locals().copy()
+
+    for arg in locals_:
+      if arg != 'self':
+        setattr(self, arg, locals_[arg])
 
     self.dl = self.get_dataloader
 
@@ -94,6 +92,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
                             input_len=self.input_len, output_len=self.output_len,
                             shift=self.shift, stride=self.stride,
                             init_input=self.init_input,
+                            forecast = self.forecast,
                             print_summary=self.print_summary,
                             device=self.device, dtype=self.dtype)
 
