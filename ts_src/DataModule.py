@@ -255,49 +255,54 @@ class DataModule(pl.LightningDataModule):
       self.train_data, self.val_data, self.test_data = train_data, val_data, test_data
       self.train_init_input, self.val_init_input, self.test_init_input = train_init_input, val_init_input, test_init_input
 
-      def forecast_dataloader(self):
-        
-        if len(self.test_data) > 0:
-          data = self.test_data
-          init_input = self.test_init_input
-          input_len = self.test_total_input_len
-          output_len = self.test_total_output_len
-          self.last_time = self.test_data[self.time_name].max()
-          
-        elif len(self.val_data) > 0:
-          data = self.val_data
-          init_input = self.val_init_input
-          input_len = self.val_total_input_len
-          output_len = self.val_total_output_len
-          self.last_time = self.val_data[self.time_name].max()
-        else:
-          data = self.train_data
-          init_input = self.train_init_input
-          input_len = self.train_total_input_len
-          output_len = self.train_total_output_len
-          self.last_time = self.train_data[self.time_name].max()
-        
-        self.forecast_dl = SequenceDataloader(input_names = self.input_names, 
-                                              output_names = self.output_names,
-                                              step_name = self.step_name,
-                                              data = data,
-                                              batch_size = self.batch_size,
-                                              input_len = input_len, 
-                                              output_len = output_len,
-                                              shift = self.shift,
-                                              stride = self.stride,
-                                              init_input = init_input,
-                                              forecast = True,
-                                              print_summary = False,
-                                              device = self.device, dtype = self.dtype)
-        
-        self.forecast_output_mask = self.forecast_dl.output_mask
-        self.forecast_input_window_idx, self.forecast_output_window_idx = self.forecast_dl.input_window_idx, self.forecast_dl.output_window_idx
-        self.forecast_total_input_len, self.forecast_total_output_len = self.forecast_dl.total_input_len, self.forecast_dl.total_output_len
+    def forecast_dataloader(self):
+      '''
+      Returns the forecast dataloader.
   
-        self.forecast_unique_output_window_idx = self.forecast_dl.unique_output_window_idx
-  
-        return self.forecast_dl.dl
+      Returns:
+          torch.utils.data.DataLoader: The forecast dataloader.
+      '''
+      if len(self.test_data) > 0:
+        data = self.test_data
+        init_input = self.test_init_input
+        input_len = self.test_total_input_len
+        output_len = self.test_total_output_len
+        self.last_time = self.test_data[self.time_name].max()
+        
+      elif len(self.val_data) > 0:
+        data = self.val_data
+        init_input = self.val_init_input
+        input_len = self.val_total_input_len
+        output_len = self.val_total_output_len
+        self.last_time = self.val_data[self.time_name].max()
+      else:
+        data = self.train_data
+        init_input = self.train_init_input
+        input_len = self.train_total_input_len
+        output_len = self.train_total_output_len
+        self.last_time = self.train_data[self.time_name].max()
+      
+      self.forecast_dl = SequenceDataloader(input_names = self.input_names, 
+                                            output_names = self.output_names,
+                                            step_name = self.step_name,
+                                            data = data,
+                                            batch_size = self.batch_size,
+                                            input_len = input_len, 
+                                            output_len = output_len,
+                                            shift = self.shift,
+                                            stride = self.stride,
+                                            init_input = init_input,
+                                            forecast = True,
+                                            print_summary = False,
+                                            device = self.device, dtype = self.dtype)
+      
+      self.forecast_output_mask = self.forecast_dl.output_mask
+      self.forecast_input_window_idx, self.forecast_output_window_idx = self.forecast_dl.input_window_idx, self.forecast_dl.output_window_idx
+      self.forecast_total_input_len, self.forecast_total_output_len = self.forecast_dl.total_input_len, self.forecast_dl.total_output_len
+
+      self.forecast_unique_output_window_idx = self.forecast_dl.unique_output_window_idx
+
+      return self.forecast_dl.dl
       
   def train_dataloader(self):
     '''
