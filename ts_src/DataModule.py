@@ -263,6 +263,7 @@ class DataModule(pl.LightningDataModule):
           input_len = self.test_total_input_len
           output_len = self.test_total_output_len
           self.last_time = self.test_data[self.time_name].max()
+          
         elif len(self.val_data) > 0:
           data = self.val_data
           init_input = self.val_init_input
