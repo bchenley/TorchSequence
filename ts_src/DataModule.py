@@ -262,17 +262,20 @@ class DataModule(pl.LightningDataModule):
           init_input = self.test_init_input
           input_len = self.test_total_input_len
           output_len = self.test_total_output_len
+          self.last_time = self.test_data[self.time_name].max()
         elif len(self.val_data) > 0:
           data = self.val_data
           init_input = self.val_init_input
           input_len = self.val_total_input_len
           output_len = self.val_total_output_len
+          self.last_time = self.val_data[self.time_name].max()
         else:
           data = self.train_data
           init_input = self.train_init_input
           input_len = self.train_total_input_len
           output_len = self.train_total_output_len
-  
+          self.last_time = self.train_data[self.time_name].max()
+        
         self.forecast_dl = SequenceDataloader(input_names = self.input_names, 
                                               output_names = self.output_names,
                                               step_name = self.step_name,
