@@ -284,7 +284,7 @@ class DataModule(pl.LightningDataModule):
     
     self.forecast_dl = SequenceDataloader(input_names = self.input_names, 
                                           output_names = self.output_names,
-                                          step_name = self.step_name,
+                                          step_name = 'steps',
                                           data = data,
                                           batch_size = self.batch_size,
                                           input_len = input_len, 
