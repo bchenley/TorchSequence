@@ -31,14 +31,12 @@ class SequenceDataset(torch.utils.data.Dataset):
                print_summary=False,
                device='cpu', dtype=torch.float32):
     
-    locals_ = locals().copy()
-    
+    locals_ = locals().copy()                   
     for arg in locals_:
       if arg != 'self':
         if arg == 'data':
-          setattr(self, arg, locals_[arg].copy())  
-        else:
-          setattr(self, arg, locals_[arg])
+          setattr(self, arg, locals_[arg].copy() if arg == 'data' else lcoals_[arg])   
+
       
     self.num_inputs, self.num_outputs = len(self.input_names), len(self.output_names)
 
