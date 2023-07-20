@@ -263,20 +263,20 @@ class DataModule(pl.LightningDataModule):
         torch.utils.data.DataLoader: The forecast dataloader.
     '''
     if len(self.test_data) > 0:
-      data = self.test_data
+      data = self.test_data.copy()
       init_input = self.test_init_input
       input_len = self.test_total_input_len
       output_len = self.test_total_output_len
       self.last_time = self.test_data[self.time_name].max()
       
     elif len(self.val_data) > 0:
-      data = self.val_data
+      data = self.val_data.copy()
       init_input = self.val_init_input
       input_len = self.val_total_input_len
       output_len = self.val_total_output_len
       self.last_time = self.val_data[self.time_name].max()
     else:
-      data = self.train_data
+      data = self.train_data.copy()
       init_input = self.train_init_input
       input_len = self.train_total_input_len
       output_len = self.train_total_output_len
@@ -287,8 +287,8 @@ class DataModule(pl.LightningDataModule):
                                           step_name = 'steps',
                                           data = data,
                                           batch_size = self.batch_size,
-                                          input_len = input_len, 
-                                          output_len = output_len,
+                                          input_len = self.input_len, 
+                                          output_len = self.output_len,
                                           shift = self.shift,
                                           stride = self.stride,
                                           init_input = init_input,
