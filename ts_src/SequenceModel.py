@@ -11,7 +11,7 @@ class SequenceModel(torch.nn.Module):
                num_inputs, num_outputs,
                #
                input_size = [1], output_size = [1],
-               stateful = False,
+               stateful = False, process_by_step = False,
                dt = 1,
                ## Sequence base parameters
                base_seq_len = [None],
@@ -432,21 +432,28 @@ class SequenceModel(torch.nn.Module):
                                      encoder_output = encoder_output)
     else: # model is a decoder
 
-      # Prepare input for the next step
-      input_, output = input, []
-      for n in range(max_output_len):
-        output_, hiddens = self.process(input = input_.clone()[:, :(n+1)],
-                                        steps = steps[:, :(n+1)] if steps is not None else None,
-                                        hiddens = hiddens,
-                                        encoder_output = encoder_output)
+      if self.process_by_step:
+        # Prepare input for the next step
+        input_, output = input, []
+        for n in range(max_output_len):
+          output_, hiddens = self.process(input = input_.clone()[:, :(n+1)],
+                                          steps = steps[:, :(n+1)] if steps is not None else None,
+                                          hiddens = hiddens,
+                                          encoder_output = encoder_output)
+  
+          output.append(output_[:, -1:])
+  
+          if (len(output_input_idx) > 0) & (n < (max_output_len-1)):
+            input_[:, (n+1):(n+2), output_input_idx] = target[:, n:(n+1), input_output_idx] if target is not None else output[-1][..., input_output_idx]
 
-        output.append(output_[:, -1:])
+        output = torch.cat(output, 1)
+      else:
 
-        if (len(output_input_idx) > 0) & (n < (max_output_len-1)):
-          input_[:, (n+1):(n+2), output_input_idx] = target[:, n:(n+1), input_output_idx] if target is not None else output[-1][..., input_output_idx]
-
-      output = torch.cat(output, 1)
-
+        output, hiddens = self.process(input = input,
+                                       steps = steps,
+                                       hiddens = hiddens,
+                                       encoder_output = encoder_output)
+        
     # Only keep the outputs for the maximum output sequence length
     output = output[:, -max_output_len:]
 
