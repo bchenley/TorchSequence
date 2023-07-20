@@ -35,7 +35,7 @@ class SequenceDataset(torch.utils.data.Dataset):
     for arg in locals_:
       if arg != 'self':
         if arg == 'data':
-          setattr(self, arg, locals_[arg].copy() if arg == 'data' else lcoals_[arg])   
+          setattr(self, arg, locals_[arg].copy() if arg == 'data' else locals_[arg])   
 
       
     self.num_inputs, self.num_outputs = len(self.input_names), len(self.output_names)
