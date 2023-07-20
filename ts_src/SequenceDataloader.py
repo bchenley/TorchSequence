@@ -29,6 +29,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
                 batch_size=1,
                 input_len=[1], output_len=[1], shift=[0], stride=1,
                 init_input=None,
+                forecast = False,
                 print_summary=False,
                 device='cpu', dtype=torch.float32):
     
