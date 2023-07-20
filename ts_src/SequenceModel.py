@@ -449,7 +449,11 @@ class SequenceModel(torch.nn.Module):
         output = torch.cat(output, 1)
       else:
 
-        output, hiddens = self.process(input = input,
+        input_ = torch.nn.functional.pad(input.clone(),
+                                         (0, 0, np.max([max_output_len - input_len, 0]), 0),
+                                          "constant", 0).to(input)
+        
+        output, hiddens = self.process(input = input_,
                                        steps = steps,
                                        hiddens = hiddens,
                                        encoder_output = encoder_output)
