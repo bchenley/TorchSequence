@@ -338,11 +338,11 @@ class SequenceModelBase(torch.nn.Module):
                                                                                                     dtype=self.dtype)
     else:
         if self.base_type == 'lstm':
-            hiddens = [torch.zeros((self.base.num_layers, num_samples, self.base.hidden_size)).to(device=self.device,
-                                                                                                  dtype=self.dtype)] * 2
+            hiddens = [torch.zeros((self.base.num_layers*(1+int(self.base.bidirectional)), num_samples, self.base.hidden_size)).to(device=self.device,
+                                                                                                                                   dtype=self.dtype)] * 2
         else:
-            hiddens = torch.zeros((self.base.num_layers, num_samples, self.base.hidden_size)).to(device=self.device,
-                                                                                                  dtype=self.dtype)
+            hiddens = torch.zeros((self.base.num_layers*(1+int(self.base.bidirectional)), num_samples, self.base.hidden_size)).to(device=self.device,
+                                                                                                                                  dtype=self.dtype)
 
     return hiddens
 
@@ -370,7 +370,7 @@ class SequenceModelBase(torch.nn.Module):
 
     if self.base_type == 'identity':
         output, hiddens = input, hiddens
-    elif self.base_type in ['lru', 'lstm', 'gru']:
+    elif self.base_type in ['lru', 'lstm', 'gru']:        
         output, hiddens = self.base(input, hiddens)
 
         output = output.reshape(num_samples, input_len, -1)
