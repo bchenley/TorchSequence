@@ -33,7 +33,7 @@ class CNN1D(torch.nn.Module):
       cnn_model = CNN1D(in_channels=32, out_channels=[16, 8])
 
       # Apply the model to an input tensor X with shape [batch_size, input_channels, length].
-      output = cnn_model(X)
+      output = model(X)
   """
   def __init__(self, 
                in_channels, out_channels, 
