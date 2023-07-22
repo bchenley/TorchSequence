@@ -121,7 +121,7 @@ class CNN1D(torch.nn.Module):
             self.cnn[-1].append(pool_i)
 
         if self.flatten:
-            self.flatten_layer = torch.nn.Flatten(1, -1)
+            self.flatten_layer = torch.nn.Flatten(1, 2)
         else:
             self.flatten_layer = torch.nn.Identity()
 
