@@ -332,7 +332,7 @@ class SequenceModelBase(torch.nn.Module):
                                          bias = self.decoder_bias,
                                          device = self.device, dtype = self.dtype)
 
-    self.out_features = self.base.out_features if self.bas_type == 'cnn' else self.hidden_size
+    self.out_features = self.base.out_features if self.base_type == 'cnn' else self.hidden_size
                    
   def init_hiddens(self, num_samples):
     '''
