@@ -397,8 +397,7 @@ class SequenceModelBase(torch.nn.Module):
             output = self.decoder_block(torch.cat((attn_output, output), -1))
 
     elif self.base_type == 'cnn':
-        input_t_pad = torch.nn.functional.pad(input.transpose(1, 2), (self.base.kernel_size[0] - 1, 0))
-        output = self.base(input_t_pad).transpose(1, 2)
+        output = self.base(input)
     elif self.base_type == 'transformer':
         input_embedding_pe = self.base[0](input)
 
