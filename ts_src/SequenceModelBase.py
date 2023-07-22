@@ -160,7 +160,7 @@ class SequenceModelBase(torch.nn.Module):
                                  dropout = self.rnn_dropout_p,
                                  bidirectional = self.rnn_bidirectional,
                                  device = self.device, dtype = self.dtype,
-                                 batch_first = True)
+                                 batch_first = True)        
     elif self.base_type == 'lstm':
         self.base = torch.nn.LSTM(input_size = self.input_size,
                                   hidden_size = self.hidden_size,
@@ -332,6 +332,8 @@ class SequenceModelBase(torch.nn.Module):
                                          bias = self.decoder_bias,
                                          device = self.device, dtype = self.dtype)
 
+     self.out_features = self.base.out_features if self.bas_type == 'cnn' else self.hidden_size
+                   
   def init_hiddens(self, num_samples):
     '''
     Initialize hidden states for the base model.
