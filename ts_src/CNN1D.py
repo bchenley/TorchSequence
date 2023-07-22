@@ -37,7 +37,7 @@ class CNN1D(torch.nn.Module):
         output = model(X)
     """
     def __init__(self, 
-                 in_channels, out_channels, 
+                 in_channels, out_channels, seq_len = 1,
                  kernel_size=[(1,)], stride=[(1,)], padding=[(0,)], 
                  dilation=[(1,)], groups=[1], bias=[False], 
                  pool_type=[None], pool_size=[(2,)],
@@ -118,9 +118,9 @@ class CNN1D(torch.nn.Module):
         else:
             self.flatten_layer = torch.nn.Identity()
 
-        X = torch.zeros((1,1,in_channels)).to(device = self.device, dtype = self.dtype)
+        X = torch.zeros((1,self.seq_len, in_channels)).to(device = self.device, dtype = self.dtype)
                      
-        self.out_features = self(X).shape[-1]
+        self.out_features = self.forward(X).shape[-1]
 
     def forward(self, input):
         """ 
