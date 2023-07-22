@@ -109,11 +109,14 @@ class CNN1D(torch.nn.Module):
             if self.pool_type[i] == 'max':
                 pool_i = torch.nn.MaxPool1d(self.pool_size[i], 
                                             stride=self.stride[i],
-                                            # padding = self.padding[i],
-                                            dilation=self.dilation[i])
+                                            padding = self.pool_size[i]-1, # self.padding[i],
+                                            dilation=self.dilation[i],
+                                            count_include_pad = False)
             elif self.pool_type[i] == 'avg':        
                 pool_i = torch.nn.AvgPool1d(self.pool_size[i], 
-                                            stride=self.stride[i]) # ,                                    
+                                            stride=self.stride[i],
+                                            padding = self.pool_size[i] - 1,
+                                            count_include_pad = False) # ,                                    
                                             # padding = (int(np.floor(self.pool_size[i][0]/2)),))      
 
             self.cnn[-1].append(pool_i)
@@ -137,7 +140,7 @@ class CNN1D(torch.nn.Module):
         for i in range(self.num_layers):   
             input_i = torch.nn.functional.pad(output.transpose(1, 2), (self.kernel_size[i][0] - 1, 0))
             output = self.cnn[i][0](input_i)
-            output = torch.nn.functional.pad(output, (self.pool_size[i][0] - 1, self.pool_size[i][0] - 1))
+            # output = torch.nn.functional.pad(output, (self.pool_size[i][0] - 1, self.pool_size[i][0] - 1))
 
             output = self.cnn[i][1](output).transpose(1, 2)
 
