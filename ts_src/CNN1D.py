@@ -118,6 +118,10 @@ class CNN1D(torch.nn.Module):
         else:
             self.flatten_layer = torch.nn.Identity()
 
+        X = torch.zeros((1,1,in_channels)).to(device = self.device, dtype = self.dtype)
+                     
+        self.out_features = self(X).shape[-1]
+
     def forward(self, input):
         """ 
         Forward pass method that applies the 1D convolutional layers and pooling layers to the input tensor.
