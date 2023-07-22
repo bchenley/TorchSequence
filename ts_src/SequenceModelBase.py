@@ -1,6 +1,10 @@
 import torch 
 
-from ts_src import LRU as LRU, HiddenLayer as HiddenLayer, Embedding as Embedding, Attention as Attention, PositionalEncoding as PositionalEncoding
+from ts_src import LRU as LRU, HiddenLayer as HiddenLayer, Embedding as Embedding, \
+     Attention as Attention, PositionalEncoding as PositionalEncoding, \
+     TransformerEncoderLayer as TransformerEncoderLayer, \
+     TransformerDecoderLayer as TransformerDecoderLayer, \
+     CNN1D as CNN1D
 
 class SequenceModelBase(torch.nn.Module):
   '''
@@ -93,15 +97,15 @@ class SequenceModelBase(torch.nn.Module):
               input_size, hidden_size, seq_len=None,
               base_type='gru', num_layers=1,
               encoder_bias=False, decoder_bias=False,
-              rnn_bias=True,
-              rnn_dropout_p=0,
-              rnn_bidirectional=False,
+              rnn_bias = True,
+              rnn_dropout_p = 0,
+              rnn_bidirectional = False,
               rnn_attn=False,
               rnn_weight_reg=[0.001, 1], rnn_weight_norm=None,
               relax_init=[0.5], relax_train=True, relax_minmax=[0.1, 0.9], num_filterbanks=1,
-              cnn_kernel_size=(1,), cnn_stride=(1,), cnn_padding=(0,), cnn_dilation=(1,), cnn_groups=1,
-              cnn_bias=False,
-              encoder_output_size=None, seq_type='encoder',
+              cnn_kernel_size = [(1,)], cnn_stride = [(1,)], cnn_padding = [(0,)], cnn_dilation = [(1,)], cnn_groups = [1],
+              cnn_bias = [False], cnn_pool_type = [None], cnn_pool_size = [(2,)], cnn_flatten = False,
+              encoder_output_size = None, seq_type = 'encoder',
               transformer_embedding_type='time', transformer_embedding_bias=False,
               transformer_embedding_activation='identity',
               transformer_embedding_weight_reg=[0.001, 1], transformer_embedding_weight_norm=2,
@@ -172,15 +176,19 @@ class SequenceModelBase(torch.nn.Module):
                         relax_init = self.relax_init, relax_train = self.relax_train, relax_minmax = self.relax_minmax,
                         device = self.device, dtype = self.dtype)
     elif self.base_type == 'cnn':
-       self.base = torch.nn.Conv1d(in_channels = self.input_size,
-                                   out_channels = self.hidden_size,
-                                   kernel_size = self.cnn_kernel_size,
-                                   stride = self.cnn_stride,
-                                   padding = self.cnn_padding,
-                                   dilation = self.cnn_dilation,
-                                   groups = self.cnn_groups,
-                                   bias = self.cnn_bias,
-                                   device = self.device, dtype = self.dtype)
+       self.base = CNN1D(in_channels = self.input_size, 
+                         out_channels = self.hidden_size, 
+                         kernel_size = self.cnn_kernel_size, 
+                         stride = self.cnn_stride, 
+                         padding = self.cnn_padding, 
+                         dilation = self.cnn_dilation, 
+                         groups = self.cnn_groups,
+                         bias = self.cnn_bias, 
+                         pool_type = self.cnn_pool_type, 
+                         pool_size = self.cnn_pool_size,
+                         cnn_flatten = self.cnn_flatten,
+                         device = self.device, dtype = self.dtype)
+
     elif self.base_type == 'transformer':
         embedding = Embedding(num_embeddings = self.input_size,
                               embedding_dim = self.hidden_size,
@@ -339,7 +347,7 @@ class SequenceModelBase(torch.nn.Module):
     else:
         if self.base_type == 'lstm':
             hiddens = [torch.zeros((self.base.num_layers*(1+int(self.base.bidirectional)), num_samples, self.base.hidden_size)).to(device=self.device,
-                                                                                                                                   dtype=self.dtype)] * 2
+                                                                                                                                   dtype=self.dtype)] * 2                                                                                                                                   
         else:
             hiddens = torch.zeros((self.base.num_layers*(1+int(self.base.bidirectional)), num_samples, self.base.hidden_size)).to(device=self.device,
                                                                                                                                   dtype=self.dtype)
@@ -364,7 +372,7 @@ class SequenceModelBase(torch.nn.Module):
 
     if (hiddens is None) & (self.base_type in ['lru', 'lstm', 'gru']):
         hiddens = self.init_hiddens(num_samples)
-
+    
     if self.encoder_block is not None:
         encoder_output = self.encoder_block(encoder_output)
 
