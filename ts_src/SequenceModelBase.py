@@ -103,6 +103,7 @@ class SequenceModelBase(torch.nn.Module):
               rnn_attn=False,
               rnn_weight_reg=[0.001, 1], rnn_weight_norm=None,
               relax_init=[0.5], relax_train=True, relax_minmax=[0.1, 0.9], num_filterbanks=1,
+              cnn_out_channels = None,
               cnn_kernel_size = [(1,)], cnn_stride = [(1,)], cnn_padding = [(0,)], cnn_dilation = [(1,)], cnn_groups = [1],
               cnn_bias = [False], cnn_pool_type = [None], cnn_pool_size = [(2,)], cnn_flatten = False,
               encoder_output_size = None, seq_type = 'encoder',
@@ -177,7 +178,7 @@ class SequenceModelBase(torch.nn.Module):
                       device = self.device, dtype = self.dtype)
     elif self.base_type == 'cnn':
       self.base = CNN1D(in_channels = self.input_size, 
-                        out_channels = self.hidden_size, 
+                        out_channels = self.cnn_out_channels, 
                         seq_len = seq_len,
                         kernel_size = self.cnn_kernel_size, 
                         stride = self.cnn_stride, 
@@ -331,9 +332,7 @@ class SequenceModelBase(torch.nn.Module):
                                          activation = 'identity',
                                          bias = self.decoder_bias,
                                          device = self.device, dtype = self.dtype)
-
-    self.out_features = self.base.out_features if self.base_type == 'cnn' else self.hidden_size
-                   
+       
   def init_hiddens(self, num_samples):
     '''
     Initialize hidden states for the base model.
