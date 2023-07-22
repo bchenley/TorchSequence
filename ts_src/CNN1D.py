@@ -109,12 +109,12 @@ class CNN1D(torch.nn.Module):
             if self.pool_type[i] == 'max':
                 pool_i = torch.nn.MaxPool1d(self.pool_size[i], 
                                             stride=self.stride[i],
-                                            padding = self.pool_size[i][0]-1, # self.padding[i],
+                                            padding = int(np.floor(self.pool_size[i][0]//2)), # self.padding[i],
                                             dilation=self.dilation[i])
             elif self.pool_type[i] == 'avg':        
                 pool_i = torch.nn.AvgPool1d(self.pool_size[i], 
                                             stride=self.stride[i],
-                                            padding = self.pool_size[i][0] - 1,
+                                            padding = int(np.floor(self.pool_size[i][0]//2)),
                                             count_include_pad = False) # ,                                    
                                             # padding = (int(np.floor(self.pool_size[i][0]/2)),))      
 
