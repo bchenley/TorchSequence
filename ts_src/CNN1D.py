@@ -145,4 +145,6 @@ class CNN1D(torch.nn.Module):
 
         output = self.flatten_layer(output)
 
+        output = output.unsqueeze(1) if output.ndim == 2 else output
+        
         return output
