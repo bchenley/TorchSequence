@@ -17,7 +17,6 @@ class CNN1D(torch.nn.Module):
         pool_type (list, optional): List of strings specifying the pooling type for each layer. 
                                     Options: [None, 'max', 'avg']. Default is [None].
         pool_size (list, optional): List of tuples specifying the pooling size for each layer. Default is [2].
-        flatten (bool, optional): If True, the output tensor will be flattened. Default is False.
         device (str, optional): Device on which the model parameters should be stored. Default is None.
         dtype (torch.dtype, optional): Data type for the model parameters. Default is None.
 
@@ -41,7 +40,6 @@ class CNN1D(torch.nn.Module):
                  kernel_size=[(1,)], stride=[(1,)], padding=[(0,)], 
                  dilation=[(1,)], groups=[1], bias=[False], 
                  pool_type=[None], pool_size=[(2,)],
-                 flatten=False,
                  device=None, dtype=None):
         """
         Constructor method for initializing the CNN1D module and its attributes.
@@ -113,11 +111,6 @@ class CNN1D(torch.nn.Module):
 
             self.cnn[-1].append(pool_i)
 
-        if self.flatten:
-            self.flatten_layer = torch.nn.Flatten(1, 2)
-        else:
-            self.flatten_layer = torch.nn.Identity()
-
         X = torch.zeros((1,self.seq_len, in_channels)).to(device = self.device, dtype = self.dtype)
                      
         self.out_features = self.forward(X).shape[-1]
@@ -138,8 +131,4 @@ class CNN1D(torch.nn.Module):
             output = self.cnn[i][0](input_i)
             output = self.cnn[i][1](output).transpose(1, 2)
 
-        output = self.flatten_layer(output)
-
-        output = output.unsqueeze(1) if output.ndim == 2 else output
-        
         return output
