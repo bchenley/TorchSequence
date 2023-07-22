@@ -40,7 +40,7 @@ class CNN1D(torch.nn.Module):
                  in_channels, out_channels, 
                  kernel_size=[(1,)], stride=[(1,)], padding=[(0,)], 
                  dilation=[(1,)], groups=[1], bias=[False], 
-                 pool_type=[None], pool_size=[2],
+                 pool_type=[None], pool_size=[(2,)],
                  flatten=False,
                  device=None, dtype=None):
         """
