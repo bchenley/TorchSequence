@@ -178,6 +178,7 @@ class SequenceModelBase(torch.nn.Module):
     elif self.base_type == 'cnn':
        self.base = CNN1D(in_channels = self.input_size, 
                          out_channels = self.hidden_size, 
+                         seq_len = seq_len,
                          kernel_size = self.cnn_kernel_size, 
                          stride = self.cnn_stride, 
                          padding = self.cnn_padding, 
