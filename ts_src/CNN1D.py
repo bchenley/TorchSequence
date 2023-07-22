@@ -107,7 +107,7 @@ class CNN1D(torch.nn.Module):
             if self.pool_type[i] is None:
                 pool_i = torch.nn.Identity()
             if self.pool_type[i] == 'max':
-                pool_i = torch.nn.MaxPool1d(self.kernel_size[i], 
+                pool_i = torch.nn.MaxPool1d(self.pool_size[i], 
                                             stride=self.stride[i],
                                             # padding = self.padding[i],
                                             dilation=self.dilation[i])
