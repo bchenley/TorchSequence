@@ -186,7 +186,7 @@ class SequenceModelBase(torch.nn.Module):
                          bias = self.cnn_bias, 
                          pool_type = self.cnn_pool_type, 
                          pool_size = self.cnn_pool_size,
-                         cnn_flatten = self.cnn_flatten,
+                         flatten = self.cnn_flatten,
                          device = self.device, dtype = self.dtype)
 
     elif self.base_type == 'transformer':
