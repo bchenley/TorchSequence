@@ -338,7 +338,7 @@ class SequenceModule(pl.LightningModule):
   ## End of Testing
 
   ## plot history
-  def plot_history(self, history = None, plot_train_history_by = 'epochs'):
+  def plot_history(self, history = None, plot_train_history_by = 'epochs', figsize = None):
 
     history = [self.loss_fn.name] if history is None else history
 
@@ -363,7 +363,7 @@ class SequenceModule(pl.LightningModule):
       train_history = self.train_history
 
     num_params = len(history)
-    fig = plt.figure(figsize = (5, 5*num_params))
+    fig = plt.figure(figsize = figsize if figsize is not None else (5, 5*num_params))
     ax_i = 0
     for param in history:
       ax_i += 1
@@ -690,7 +690,8 @@ class SequenceModule(pl.LightningModule):
   ##
   def plot_predictions(self,
                        output_feature_units = None,
-                       include_baseline = False):
+                       include_baseline = False,
+                       figsize = None):
 
     time_name = self.trainer.datamodule.time_name
     output_names = self.trainer.datamodule.output_names
@@ -702,7 +703,7 @@ class SequenceModule(pl.LightningModule):
     start_step = self.trainer.datamodule.start_step
 
     rows, cols = max_output_size, num_outputs
-    fig, ax = plt.subplots(rows, cols, figsize = (10*num_outputs, 5*max_output_size))
+    fig, ax = plt.subplots(rows, cols, figsize = figsize if figsize is not None else (10*num_outputs, 5*max_output_size))
 
     train_time = self.train_prediction_data[time_name]
     val_time = self.val_prediction_data[time_name] if self.val_prediction_data is not None else None
