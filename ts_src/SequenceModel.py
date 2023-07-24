@@ -1,20 +1,20 @@
 import torch
 import numpy as np
 
-from ts_src.SequenceModelBase import SequenceModelBase
-from ts_src.LRU import LRU
-from ts_src.HiddenLayer import HiddenLayer
-from ts_src.ModulationLayer import ModulationLayer
+from ts_src import SequenceModelBase as SequenceModelBase, LRU as LRU, \
+     HiddenLayer as HiddenLayer, ModulationLayer as ModulationLayer
 
 class SequenceModel(torch.nn.Module):
   def __init__(self,
                num_inputs, num_outputs,
                #
-               input_size = [1], output_size = [1],
-               stateful = False, process_by_step = False,
+               input_size = [1], input_len = [1],
+               output_size = [1], output_len = [1],
+               stateful = False, process_by_step = False, joint_prediction = False,
                dt = 1,
+               flatten = False,
+               store_layer_outputs = False,
                ## Sequence base parameters
-               base_seq_len = [None],
                # type
                base_hidden_size = [1],
                base_type = ['gru'], base_num_layers = [1],
@@ -30,7 +30,9 @@ class SequenceModel(torch.nn.Module):
                # LRU parameters
                base_relax_init = [[0.5]], base_relax_train = [True], base_relax_minmax = [[[0.1, 0.9]]], base_num_filterbanks = [1],
                # CNN parameters
-               base_cnn_kernel_size = [(1,)], base_cnn_stride = [(1,)], base_cnn_padding = [(0,)], base_cnn_dilation = [(1,)], base_cnn_groups = [1], base_cnn_bias = [False],
+               base_cnn_out_channels = [None],
+               base_cnn_kernel_size = [[(1,)]], base_cnn_stride = [[(1,)]], base_cnn_padding = [[(0,)]], base_cnn_dilation = [[(1,)]], base_cnn_groups = [[1]], base_cnn_bias = [[False]],
+               base_cnn_pool_type = [[None]], base_cnn_pool_size = [[(2,)]],
                # Transformer parameters
                base_seq_type = ['encoder'],
                base_transformer_embedding_type = ['time'], base_transformer_embedding_bias = [False], base_transformer_embedding_activation = ['identity'],
@@ -82,7 +84,7 @@ class SequenceModel(torch.nn.Module):
                modulation_zero_order = True,
                modulation_bias = True, modulation_pure = False,
                # output layer
-               output_associated = [True],
+               output_associated = [False],
                output_bias = [True], output_activation = ['identity'], output_degree = [1],
                output_coef_init = [None], output_coef_train = [True], output_coef_reg = [[0.001, 1]], output_zero_order = [False], output_softmax_dim = [-1],
                output_constrain = [False], output_penalize = [False],
@@ -100,69 +102,77 @@ class SequenceModel(torch.nn.Module):
       if arg != 'self':
         value = locals_[arg]
         
-        if isinstance(value, list) and any(x in arg for x in ['input_size', 'base_', 'decoder_', 'hidden_', 'attn_']):  
+        if isinstance(value, list) and any(x in arg for x in ['input_size', 'input_len','base_', 'decoder_', 'hidden_', 'attn_']):  
           if len(value) == 1:
             setattr(self, arg, value * num_inputs)
-        elif isinstance(value, list) and any(x in arg for x in ['output_size', 'output_']):        
+          else:
+            setattr(self, arg, value)
+        elif isinstance(value, list) and any(x in arg for x in ['output_size', 'output_len', 'output_']):        
           if len(value) == 1:
             setattr(self, arg, value * num_outputs)
+          else:
+            setattr(self, arg, value)
         else:
             setattr(self, arg, value)
-        
+
+    self.max_input_len, self.max_output_len = np.max(self.input_len), np.max(self.output_len)
+
     self.seq_base, self.hidden_layer = torch.nn.ModuleList([]), torch.nn.ModuleList([])
     for i in range(self.num_inputs):
       # input-associated sequence layer
       
       if self.base_transformer_feedforward_activation[i] == 'identity':
         self.base_transformer_dim_feedforward[i] = self.base_hidden_size[i]
-
+      
       seq_base_i = SequenceModelBase(input_size = self.input_size[i],
-                                      hidden_size = self.base_hidden_size[i],
-                                      seq_len = self.base_seq_len[i],
-                                      # type
-                                      base_type = self.base_type[i], num_layers = self.base_num_layers[i],
-                                      encoder_bias = self.base_encoder_bias[i], decoder_bias = self.base_decoder_bias[i],
-                                      # GRU/LSTM parameters
-                                      rnn_bias = self.base_rnn_bias[i],
-                                      rnn_dropout_p = self.base_rnn_dropout_p[i],
-                                      rnn_bidirectional = self.base_rnn_bidirectional[i],
-                                      rnn_attn = self.base_rnn_attn[i],
-                                      rnn_weight_reg = self.base_rnn_weight_reg[i], rnn_weight_norm = self.base_rnn_weight_norm[i],
-                                      # LRU parameters
-                                      relax_init = self.base_relax_init[i], relax_train = self.base_relax_train[i], relax_minmax = self.base_relax_minmax[i], num_filterbanks = self.base_num_filterbanks[i],
-                                      # CNN parameters
-                                      cnn_kernel_size = self.base_cnn_kernel_size[i], cnn_stride = self.base_cnn_stride[i], cnn_padding = self.base_cnn_padding[i], cnn_dilation = self.base_cnn_dilation[i], cnn_groups = self.base_cnn_groups[i], cnn_bias = self.base_cnn_bias[i],
-                                      # Transformer parameters
-                                      encoder_output_size = self.encoder_output_size, seq_type = self.base_seq_type[i],
-                                      transformer_embedding_type = self.base_transformer_embedding_type[i], transformer_embedding_bias = self.base_transformer_embedding_bias[i], transformer_embedding_activation = self.base_transformer_embedding_activation[i],
-                                      transformer_embedding_weight_reg = self.base_transformer_embedding_weight_reg[i], transformer_embedding_weight_norm = self.base_transformer_embedding_weight_norm[i], transformer_embedding_dropout_p = self.base_transformer_embedding_dropout_p[i],
-                                      transformer_positional_encoding_type = self.base_transformer_positional_encoding_type[i],
-                                      transformer_dropout1_p = self.base_transformer_dropout1_p[i], transformer_dropout2_p = self.base_transformer_dropout2_p[i], transformer_dropout3_p = self.base_transformer_dropout3_p[i],
-                                      transformer_linear1_bias = self.base_transformer_linear1_bias[i], transformer_linear2_bias = self.base_transformer_linear2_bias[i],
-                                      transformer_linear1_weight_reg = self.base_transformer_linear1_weight_reg[i], transformer_linear1_weight_norm = self.base_transformer_linear1_weight_norm[i],
-                                      transformer_linear2_weight_reg = self.base_transformer_linear2_weight_reg[i], transformer_linear2_weight_norm = self.base_transformer_linear2_weight_norm[i],
-                                      transformer_feedforward_activation = self.base_transformer_feedforward_activation[i],
-                                      transformer_feedforward_degree = self.base_transformer_feedforward_degree[i], transformer_coef_init = self.base_transformer_coef_init[i], transformer_coef_train = self.base_transformer_coef_train[i], transformer_coef_reg = self.base_transformer_coef_reg[i], transformer_zero_order = self.base_transformer_zero_order[i],
-                                      transformer_scale_self_attn_residual_connection = self.base_transformer_scale_self_attn_residual_connection[i],
-                                      transformer_scale_cross_attn_residual_connection = self.base_transformer_scale_cross_attn_residual_connection[i],
-                                      transformer_scale_feedforward_residual_connection = self.base_transformer_scale_feedforward_residual_connection[i],
-                                      transformer_layer_norm = self.base_transformer_layer_norm[i],
-                                      # attention parameters
-                                      num_heads = self.base_num_heads[i], transformer_dim_feedforward = self.base_transformer_dim_feedforward[i],
-                                      self_attn_type = self.base_self_attn_type[i], multihead_attn_type = self.base_multihead_attn_type[i],
-                                      memory_is_causal = self.base_memory_is_causal[i], tgt_is_causal = self.base_tgt_is_causal[i],
-                                      query_dim = self.base_query_dim[i], key_dim = self.base_key_dim[i], value_dim = self.base_value_dim[i],
-                                      query_weight_reg = self.base_query_weight_reg[i], query_weight_norm = self.base_query_weight_norm[i], query_bias = self.base_query_bias[i],
-                                      key_weight_reg = self.base_key_weight_reg[i], key_weight_norm = self.base_key_weight_norm[i], key_bias = self.base_key_bias[i],
-                                      value_weight_reg = self.base_value_weight_reg[i], value_weight_norm = self.base_value_weight_norm[i], value_bias = self.base_value_bias[i],
-                                      gen_weight_reg = self.base_gen_weight_reg[i], gen_weight_norm = self.base_gen_weight_norm[i], gen_bias = self.base_gen_bias[i],
-                                      concat_weight_reg = self.base_concat_weight_reg[i], concat_weight_norm = self.base_concat_weight_norm[i], concat_bias = self.base_concat_bias[i],
-                                      attn_dropout_p = self.base_attn_dropout_p[i],
-                                      average_attn_weights = self.base_average_attn_weights[i],
-                                      # always batch first
-                                      batch_first = True,
-                                      #
-                                      device = self.device, dtype = self.dtype)
+                                    hidden_size = self.base_hidden_size[i],
+                                    seq_len = self.input_len[i],
+                                    # type
+                                    base_type = self.base_type[i], num_layers = self.base_num_layers[i],
+                                    encoder_bias = self.base_encoder_bias[i], decoder_bias = self.base_decoder_bias[i],
+                                    # GRU/LSTM parameters
+                                    rnn_bias = self.base_rnn_bias[i],
+                                    rnn_dropout_p = self.base_rnn_dropout_p[i],
+                                    rnn_bidirectional = self.base_rnn_bidirectional[i],
+                                    rnn_attn = self.base_rnn_attn[i],
+                                    rnn_weight_reg = self.base_rnn_weight_reg[i], rnn_weight_norm = self.base_rnn_weight_norm[i],
+                                    # LRU parameters
+                                    relax_init = self.base_relax_init[i], relax_train = self.base_relax_train[i], relax_minmax = self.base_relax_minmax[i], num_filterbanks = self.base_num_filterbanks[i],
+                                    # CNN parameters
+                                    cnn_out_channels = self.base_cnn_out_channels[i],
+                                    cnn_kernel_size = self.base_cnn_kernel_size[i], cnn_stride = self.base_cnn_stride[i], cnn_padding = self.base_cnn_padding[i], cnn_dilation = self.base_cnn_dilation[i], cnn_groups = self.base_cnn_groups[i], cnn_bias = self.base_cnn_bias[i],
+                                    cnn_pool_type = self.base_cnn_pool_type[i], cnn_pool_size = self.base_cnn_pool_size[i],
+                                    # Transformer parameters
+                                    encoder_output_size = self.encoder_output_size, seq_type = self.base_seq_type[i],
+                                    transformer_embedding_type = self.base_transformer_embedding_type[i], transformer_embedding_bias = self.base_transformer_embedding_bias[i], transformer_embedding_activation = self.base_transformer_embedding_activation[i],
+                                    transformer_embedding_weight_reg = self.base_transformer_embedding_weight_reg[i], transformer_embedding_weight_norm = self.base_transformer_embedding_weight_norm[i], transformer_embedding_dropout_p = self.base_transformer_embedding_dropout_p[i],
+                                    transformer_positional_encoding_type = self.base_transformer_positional_encoding_type[i],
+                                    transformer_dropout1_p = self.base_transformer_dropout1_p[i], transformer_dropout2_p = self.base_transformer_dropout2_p[i], transformer_dropout3_p = self.base_transformer_dropout3_p[i],
+                                    transformer_linear1_bias = self.base_transformer_linear1_bias[i], transformer_linear2_bias = self.base_transformer_linear2_bias[i],
+                                    transformer_linear1_weight_reg = self.base_transformer_linear1_weight_reg[i], transformer_linear1_weight_norm = self.base_transformer_linear1_weight_norm[i],
+                                    transformer_linear2_weight_reg = self.base_transformer_linear2_weight_reg[i], transformer_linear2_weight_norm = self.base_transformer_linear2_weight_norm[i],
+                                    transformer_feedforward_activation = self.base_transformer_feedforward_activation[i],
+                                    transformer_feedforward_degree = self.base_transformer_feedforward_degree[i], transformer_coef_init = self.base_transformer_coef_init[i], transformer_coef_train = self.base_transformer_coef_train[i], transformer_coef_reg = self.base_transformer_coef_reg[i], transformer_zero_order = self.base_transformer_zero_order[i],
+                                    transformer_scale_self_attn_residual_connection = self.base_transformer_scale_self_attn_residual_connection[i],
+                                    transformer_scale_cross_attn_residual_connection = self.base_transformer_scale_cross_attn_residual_connection[i],
+                                    transformer_scale_feedforward_residual_connection = self.base_transformer_scale_feedforward_residual_connection[i],
+                                    transformer_layer_norm = self.base_transformer_layer_norm[i],
+                                    # attention parameters
+                                    num_heads = self.base_num_heads[i], transformer_dim_feedforward = self.base_transformer_dim_feedforward[i],
+                                    self_attn_type = self.base_self_attn_type[i], multihead_attn_type = self.base_multihead_attn_type[i],
+                                    memory_is_causal = self.base_memory_is_causal[i], tgt_is_causal = self.base_tgt_is_causal[i],
+                                    query_dim = self.base_query_dim[i], key_dim = self.base_key_dim[i], value_dim = self.base_value_dim[i],
+                                    query_weight_reg = self.base_query_weight_reg[i], query_weight_norm = self.base_query_weight_norm[i], query_bias = self.base_query_bias[i],
+                                    key_weight_reg = self.base_key_weight_reg[i], key_weight_norm = self.base_key_weight_norm[i], key_bias = self.base_key_bias[i],
+                                    value_weight_reg = self.base_value_weight_reg[i], value_weight_norm = self.base_value_weight_norm[i], value_bias = self.base_value_bias[i],
+                                    gen_weight_reg = self.base_gen_weight_reg[i], gen_weight_norm = self.base_gen_weight_norm[i], gen_bias = self.base_gen_bias[i],
+                                    concat_weight_reg = self.base_concat_weight_reg[i], concat_weight_norm = self.base_concat_weight_norm[i], concat_bias = self.base_concat_bias[i],
+                                    attn_dropout_p = self.base_attn_dropout_p[i],
+                                    average_attn_weights = self.base_average_attn_weights[i],
+                                    # always batch first
+                                    batch_first = True,
+                                    #
+                                    device = self.device, dtype = self.dtype)
 
       self.seq_base.append(seq_base_i)
       #
@@ -172,13 +182,11 @@ class SequenceModel(torch.nn.Module):
         if self.base_hidden_size[i] > 0:
           if self.base_type[i] == 'lru':
             hidden_in_features_i = self.base_hidden_size[i]*len(self.base_relax_init[i])
-          elif self.base_type[i] in ['gru', 'lstm']:
-            hidden_in_features_i = self.base_hidden_size[i]*(1+self.base_rnn_bidirectional[i])
           else:
-            hidden_in_features_i = self.base_hidden_size[i]
-        else:
+            hidden_in_features_i = (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
+        else:          
           input_size = self.input_size[i]
-
+        
         hidden_layer_i = HiddenLayer(# linear transformation
                                      in_features = hidden_in_features_i, out_features = self.hidden_out_features[i],
                                      bias = self.hidden_bias[i],
@@ -197,7 +205,7 @@ class SequenceModel(torch.nn.Module):
 
       self.hidden_layer.append(hidden_layer_i)
       #
-
+    
     # interaction layer
     if self.interaction_out_features > 0:
       if np.sum(self.hidden_out_features) > 0:
@@ -205,23 +213,23 @@ class SequenceModel(torch.nn.Module):
       else:
         interaction_in_features = 0
         for i in range(self.num_inputs):
-          interaction_in_features += self.base_hidden_size[i]*(1+self.base_rnn_bidirectional[i])
+          interaction_in_features += (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
         else:
           interaction_in_features += self.base_transformer_dim_feedforward[i]
 
       self.interaction_layer = HiddenLayer(# linear transformation
-                                      in_features = self.interaction_in_features, out_features = self.interaction_out_features,
-                                      bias = self.interaction_bias,
-                                      # activation
-                                      activation = self.interaction_activation,
-                                      # polynomial parameters
-                                      degree = self.interaction_degree,
-                                      coef_init = self.interaction_coef_init, coef_train = self.interaction_coef_train, coef_reg = self.interaction_coef_reg,
-                                      zero_order = self.interaction_zero_order,
-                                      # softmax parameter
-                                      softmax_dim = self.interaction_softmax_dim,
-                                      dropout_p = self.interaction_dropout_p,
-                                      device = self.device, dtype = self.dtype)
+                                          in_features = self.interaction_in_features, out_features = self.interaction_out_features,
+                                          bias = self.interaction_bias,
+                                          # activation
+                                          activation = self.interaction_activation,
+                                          # polynomial parameters
+                                          degree = self.interaction_degree,
+                                          coef_init = self.interaction_coef_init, coef_train = self.interaction_coef_train, coef_reg = self.interaction_coef_reg,
+                                          zero_order = self.interaction_zero_order,
+                                          # softmax parameter
+                                          softmax_dim = self.interaction_softmax_dim,
+                                          dropout_p = self.interaction_dropout_p,
+                                          device = self.device, dtype = self.dtype)
     else:
       self.interaction_layer = torch.nn.Identity()
 
@@ -235,7 +243,7 @@ class SequenceModel(torch.nn.Module):
       else:
         modulation_in_features = 0
         for i in range(self.num_inputs):
-          modulation_in_features += self.base_hidden_size[i]*(1+self.base_rnn_bidirectional[i])
+          modulation_in_features += (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
         else:
           modulation_in_features += self.base_transformer_dim_feedforward[i]
       #
@@ -257,39 +265,42 @@ class SequenceModel(torch.nn.Module):
                                               device = self.device, dtype = self.dtype)
     #
 
+    if self.flatten:
+      self.flatten_layer = torch.nn.Flatten(1, 2)        
+    else:
+      self.flatten_layer = torch.nn.Identity()
+
     # output layer
     self.output_layer = torch.nn.ModuleList([])
     for i in range(self.num_outputs):
       if self.modulation_layer is not None:
-        output_input_size_i = self.modulation_layer.num_modulators
+        output_in_features_i = self.modulation_layer.num_modulators
       elif self.interaction_out_features > 0:
-        output_input_size_i = self.interaction_out_features
+        output_in_features_i = self.interaction_out_features
       elif np.sum(self.hidden_out_features) > 0:
         if self.output_associated[i]:
-          output_input_size_i = self.hidden_out_features[i]
+          output_in_features_i = self.hidden_out_features[i]
         else:
-          output_input_size_i = int(np.sum(self.hidden_out_features))
+          output_in_features_i = int(np.sum(self.hidden_out_features))
       else:
         if self.output_associated[i]:
-          if self.base_type[i] in ['gru', 'lstm', 'lru']:
-            output_input_size_i = self.base_hidden_size[i]*(1+self.base_rnn_bidirectional[i])
-          elif self.base_type[i] == 'transformer':
-            output_input_size_i = self.base_hidden_size[i]
+          if self.base_type[i] != 'identity':
+            output_in_features_i = (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
           else:
-            output_input_size_i = self.input_size[i]
+            output_in_features_i = self.input_size[i]
         else:
-          output_input_size_i = 0
-          for i in range(self.num_inputs):
-            if self.base_type[i] in ['gru', 'lstm', 'lru']:
-              output_input_size_i += int(self.base_hidden_size[i]*(1+self.base_rnn_bidirectional[i]))
-            elif self.base_type[i] == 'transformer':
-              output_input_size_i += self.base_hidden_size[i]
-            else:
-              output_input_size_i += self.input_size[i]
+          output_in_features_i = 0
+          for j in range(self.num_inputs):
+            if self.base_type[j] != 'identity':
+              output_in_features_i += (1 + int(self.base_rnn_bidirectional[j]))*self.base_hidden_size[j]
+
+      output_in_features_i = output_in_features_i * self.max_input_len if self.flatten else output_in_features_i
+      output_out_features_i = self.output_size[i] * self.max_output_len if self.flatten else self.output_size[i]
 
       if self.output_size[i] > 0:
         output_layer_i = HiddenLayer(# linear transformation
-                                     in_features = output_input_size_i, out_features = self.output_size[i],
+                                     in_features = output_in_features_i, 
+                                     out_features = output_out_features_i,
                                      bias = self.output_bias[i],
                                      # activation
                                      activation = self.output_activation[i],
@@ -301,16 +312,19 @@ class SequenceModel(torch.nn.Module):
                                      softmax_dim = self.output_softmax_dim[i],
                                      dropout_p = self.output_dropout_p[i],
                                      device = self.device, dtype = self.dtype)
-      else:
+      else: 
         output_layer_i = torch.nn.Identity()
         if np.sum(self.hidden_out_features) > 0:
           self.output_size[i] = self.hidden_out_features[i]
         elif self.interaction_out_features > 0:
           self.output_size[i] = self.interaction_out_features
-        elif self.output_associated[i]:
-          self.output_size[i] = self.base_hidden_size[i]*(1 + self.base_rnn_bidirectional[i])
+        elif self.output_associated[i]:          
+          self.output_size[i] = (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
         else:
-          self.output_size[i] = int(np.sum(np.array(self.base_hidden_size)*(1+np.array(self.base_rnn_bidirectional))))
+          self.output_size[i] = 0
+          for j in range(self.num_inputs):
+            self.output_size[i] += (1 + int(self.base_rnn_bidirectional[j]))*self.base_hidden_size[j]
+        self.output_size = (np.array(self.output_size) * self.max_output_len).tolist() if self.flatten else self.output_size
 
       self.output_layer.append(output_layer_i)
 
@@ -337,7 +351,7 @@ class SequenceModel(torch.nn.Module):
               input, hiddens,
               steps = None,
               encoder_output = None):
-
+    
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
 
@@ -347,9 +361,11 @@ class SequenceModel(torch.nn.Module):
     # Process each input in the batch individually
     for i,input_i in enumerate(input.split(self.input_size, -1)):
 
-      # Generate output and hiddens of sequence base for the ith input
+      # Generate output and hiddens of sequence base for the ith input 
       base_output_i, hiddens[i] = self.seq_base[i](input = input_i[:, -1:] \
-                                                   if (self.seq_base[i].base_type in ['gru','lstm','lru']) & (self.seq_base[i].seq_type == 'decoder') \
+                                                   if (self.seq_base[i].base_type in ['gru','lstm','lru']) \
+                                                    & (self.seq_base[i].seq_type == 'decoder') \
+                                                    & (not self.joint_prediction) \
                                                    else input_i,
                                                    hiddens = hiddens[i],
                                                    encoder_output = encoder_output)
@@ -357,18 +373,26 @@ class SequenceModel(torch.nn.Module):
       base_output_i = torch.nn.functional.pad(base_output_i,
                                               (0, 0, np.max([0, base_output_i.shape[1]-input_len]), 0),
                                               "constant", 0)
+      
+      if self.store_layer_outputs: self.base_layer_output[i].append(base_output_i)
 
       # Generate hidden layer outputs for ith input, append result to previous hidden layer output of previous inputs
       hidden_output_i = self.hidden_layer[i](base_output_i)
       hidden_output.append(hidden_output_i)
+      
+      if self.store_layer_outputs: self.hidden_layer_output[i].append(hidden_output_i)
 
     output_ = torch.cat(hidden_output,-1)
 
     output_ = self.interaction_layer(output_)
 
+    if self.store_layer_outputs: self.interaction_layer_output.append(output_)
+
     if self.modulation_layer is not None:
       output_ = self.modulation_layer(output_, steps)
 
+      if self.store_layer_outputs: self.modulation_layer_output.append(output_)
+    
     # For each output
     output = []
     for i in range(self.num_outputs):
@@ -379,20 +403,25 @@ class SequenceModel(torch.nn.Module):
       # Otherwise, pass the entire output of previous layer as the input to the ith output layer
       else:
         output_input_i = output_
+      
+      # flatten input to output layer if desired
+      output_input_i = self.flatten_layer(output_input_i)
 
-      # Generate output of ith output layer, append result to previous outputs
+      # Generate output of ith output layer, append result to previous outputs      
       output_i = self.output_layer[i](output_input_i)
+      
+      if output_i.ndim <= 2:
+        output_i = output_i.reshape(num_samples, self.max_output_len, self.output_size[i])
+
       output.append(output_i)
+
+      if self.store_layer_outputs: self.output_layer_output[i].append(output_i)
 
     # Concatenate outputs into single tensor
     output = torch.cat(output, -1)
 
-    # Apply modulation layer
-    if self.modulation_layer is not None:
-      output = self.modulation_layer(output, steps)
-
     return output, hiddens
-
+  
   def forward(self,
               input, steps = None,
               hiddens = None,
@@ -401,12 +430,18 @@ class SequenceModel(torch.nn.Module):
               input_mask = None, output_mask = None,
               output_input_idx = None, input_output_idx = None,
               encoder_output= None):
+    
+    self.base_layer_output = [[] for _ in range(self.num_inputs)]
+    self.hidden_layer_output = [[] for _ in range(self.num_inputs)]
+    self.interaction_layer_output = []
+    self.modulation_layer_output = []
+    self.output_layer_output = [[] for _ in range(self.num_outputs)]
 
     # Convert inputs to the correct device
-    input = input.to(device = self.device)
-    steps = steps.to(device = self.device) if steps is not None else None
-    output_mask = output_mask.to(device =  self.device) if output_mask is not None else None
-
+    input = input.to(device = self.device, dtype = self.dtype)
+    steps = steps.to(device = self.device, dtype = torch.long) if steps is not None else None
+    output_mask = output_mask.to(device =  self.device, dtype = torch.long) if output_mask is not None else None
+    
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
 
@@ -415,8 +450,8 @@ class SequenceModel(torch.nn.Module):
       _, num_steps = steps.shape
 
     # Get the maximum output sequence length
-    max_output_len = np.max([len(idx) for idx in output_window_idx]) if output_window_idx is not None else input_len
-
+    # max_output_len = np.max([len(idx) for idx in output_window_idx]) if output_window_idx is not None else input_len
+    
     # Get the total output size
     total_output_size = np.sum(self.output_size)
 
@@ -425,32 +460,34 @@ class SequenceModel(torch.nn.Module):
       hiddens = hiddens or self.init_hiddens()
 
     # Process output and updated hiddens
+
     if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder
       output, hiddens = self.process(input = input,
                                      steps = steps,
                                      hiddens = hiddens,
                                      encoder_output = encoder_output)
+      
     else: # model is a decoder
-
+      
       if self.process_by_step:
         # Prepare input for the next step
         input_, output = input, []
-        for n in range(max_output_len):
+        for n in range(self.max_output_len):
           output_, hiddens = self.process(input = input_.clone()[:, :(n+1)],
                                           steps = steps[:, :(n+1)] if steps is not None else None,
                                           hiddens = hiddens,
                                           encoder_output = encoder_output)
-  
+          
           output.append(output_[:, -1:])
-  
-          if (len(output_input_idx) > 0) & (n < (max_output_len-1)):
+          
+          if (len(output_input_idx) > 0) & (n < (self.max_output_len-1)):
             input_[:, (n+1):(n+2), output_input_idx] = target[:, n:(n+1), input_output_idx] if target is not None else output[-1][..., input_output_idx]
 
         output = torch.cat(output, 1)
       else:
-
+         
         input_ = torch.nn.functional.pad(input.clone(),
-                                         (0, 0, np.max([max_output_len - input_len, 0]), 0),
+                                         (0, 0, np.max([self.max_output_len - input_len, 0]), 0),
                                           "constant", 0).to(input)
         
         output, hiddens = self.process(input = input_,
@@ -459,15 +496,29 @@ class SequenceModel(torch.nn.Module):
                                        encoder_output = encoder_output)
         
     # Only keep the outputs for the maximum output sequence length
-    output = output[:, -max_output_len:]
+    output = output[:, -self.max_output_len:]
 
     # Apply the output mask if specified
     if output_mask is not None: output = output*output_mask
-
+    
+    if self.store_layer_outputs:
+      for i in range(self.num_inputs):
+        if len(self.base_layer_output[i]) > 0:
+          self.base_layer_output[i] = torch.cat(self.base_layer_output[i], 1)
+        if len(self.hidden_layer_output[i]) > 0:
+          self.hidden_layer_output[i] = torch.cat(self.hidden_layer_output[i], 1)      
+      if len(self.interaction_layer_output) > 0:
+        self.interaction_layer_output = torch.cat(self.interaction_layer_output, 1)
+      if len(self.modulation_layer_output) > 0:
+        self.modulation_layer_output = torch.cat(self.modulation_layer_output, 1)
+      for i in range(self.num_outputs):
+        if len(self.output_layer_output[i]) > 0:
+          self.output_layer_output[i] = torch.cat(self.output_layer_output[i], 1)
+      
     return output, hiddens
-
+  
   def constrain(self):
-
+    
     for i in range(self.num_inputs):
       if self.base_constrain[i]:
         self.seq_base[i].constrain()
@@ -477,7 +528,7 @@ class SequenceModel(torch.nn.Module):
 
     if self.interaction_constrain:
        self.interaction_layer.constrain()
-
+    
     for i in range(self.num_outputs):
       if self.output_constrain[i]:
          self.output_layer[i].constrain()
@@ -513,7 +564,7 @@ class SequenceModel(torch.nn.Module):
           impulse_i[0, 0, f] = 1.
 
           base_output_if, _ = self.seq_base[i](input = impulse_i)
-
+          
           impulse_response[i][f] = self.hidden_layer[i].F[0](base_output_if)[0]
 
     return impulse_response
