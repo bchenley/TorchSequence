@@ -40,7 +40,7 @@ class SequenceModule(pl.LightningModule):
     self.track = track
 
     self.model_dir = model_dir
-
+  
   def forward(self,
               input,
               hiddens = None,
@@ -53,13 +53,13 @@ class SequenceModule(pl.LightningModule):
 
     output, hiddens = self.model.forward(input = input,
                                          steps = steps,
-                                        hiddens = hiddens,
-                                        target = target,
-                                        output_window_idx = output_window_idx,
-                                        output_mask = output_mask,
-                                        output_input_idx = output_input_idx,
-                                        input_output_idx = input_output_idx,
-                                        encoder_output= encoder_output)
+                                         hiddens = hiddens,
+                                         target = target,
+                                         output_window_idx = output_window_idx,
+                                         output_mask = output_mask,
+                                         output_input_idx = output_input_idx,
+                                         input_output_idx = input_output_idx,
+                                         encoder_output= encoder_output)
 
     return output, hiddens
 
@@ -228,7 +228,7 @@ class SequenceModule(pl.LightningModule):
     output_batch = output_batch[:batch_size]
     steps_batch = steps_batch[:batch_size]
     #
-
+    
     # perform forward pass to compute gradients
     output_pred_batch, self.hiddens = self.forward(input = input_batch,
                                                   steps = steps_batch,
@@ -861,13 +861,14 @@ class SequenceModule(pl.LightningModule):
       input, _, steps, batch_size = last_sample
       
       last_input_sample, last_steps_sample = input[:batch_size][-1:], steps[:batch_size][-1:]
-
+      
+      input_window_idx = self.trainer.datamodule.forecast_input_window_idx
       output_window_idx = self.trainer.datamodule.forecast_output_window_idx
       max_output_len = self.trainer.datamodule.forecast_max_output_len
       max_input_size, max_output_size = self.trainer.datamodule.max_input_size, self.trainer.datamodule.max_output_size
       output_mask = self.trainer.datamodule.forecast_output_mask
       output_input_idx, input_output_idx = self.trainer.datamodule.output_input_idx, self.trainer.datamodule.input_output_idx
-
+      
       input, steps = last_input_sample, last_steps_sample
 
       forecast = torch.empty((1, 0, max_output_size)).to(input)
@@ -882,7 +883,7 @@ class SequenceModule(pl.LightningModule):
 
       forecast = torch.cat((forecast, output[:, -max_output_len:]), 1)
       forecast_steps = torch.cat((forecast_steps, steps[:, -max_output_len:]), 1)
-
+      
       steps += max_output_len
 
       while forecast.shape[1] < num_forecast_steps:
@@ -893,7 +894,7 @@ class SequenceModule(pl.LightningModule):
           input_[:, :, output_input_idx] = output[:, -max_output_len:, input_output_idx]
 
         input = torch.cat((input[:, max_output_len:], input_), 1)
-
+        
         output, hiddens = self.forward(input = input,
                                        steps = steps,
                                        hiddens = hiddens,
