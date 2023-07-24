@@ -826,6 +826,7 @@ class SequenceModule(pl.LightningModule):
 
     fig.tight_layout()
 
+    self.actual_prediction_ax = ax
     self.actual_prediction_plot = plt.gcf()
   ##
 
