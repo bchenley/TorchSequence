@@ -430,7 +430,7 @@ class SequenceModule(pl.LightningModule):
     # get loss for each output
     step_loss = self.loss_fn(output_pred_batch*self.predict_output_mask,
                              output_batch*self.predict_output_mask)
-    step_loss = torch.stack([l.sum() for l in step_loss.split(self.model.input_size, -1)], 0)
+    step_loss = torch.stack([l.sum() for l in step_loss.split(self.model.output_size, -1)], 0)
     #
 
     output_steps_batch = steps_batch[:, -output_len:]
@@ -492,7 +492,7 @@ class SequenceModule(pl.LightningModule):
       # train_loss = self.loss_fn(train_prediction.unsqueeze(0),
       #                           train_target.unsqueeze(0))
 
-      # train_loss = torch.stack([l.sum() for l in train_loss.split(self.model.input_size, -1)], 0)
+      # train_loss = torch.stack([l.sum() for l in train_loss.split(self.model.output_size, -1)], 0)
 
       train_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name][start_step:]
 
@@ -519,7 +519,7 @@ class SequenceModule(pl.LightningModule):
 
         # val_loss = self.loss_fn(val_prediction.unsqueeze(0),
         #                         val_target.unsqueeze(0))
-        # val_loss = torch.stack([l.sum() for l in val_loss.split(self.model.input_size, -1)], 0)
+        # val_loss = torch.stack([l.sum() for l in val_loss.split(self.model.output_size, -1)], 0)
 
         val_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name]
 
@@ -551,7 +551,7 @@ class SequenceModule(pl.LightningModule):
 
         # test_loss = self.loss_fn(test_prediction.unsqueeze(0),
         #                         test_target.unsqueeze(0))
-        # test_loss = torch.stack([l.sum() for l in test_loss.split(self.model.input_size, -1)], 0)
+        # test_loss = torch.stack([l.sum() for l in test_loss.split(self.model.output_size, -1)], 0)
 
         test_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name]
 
