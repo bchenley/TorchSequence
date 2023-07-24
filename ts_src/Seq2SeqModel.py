@@ -4,13 +4,14 @@ import numpy as np
 from ts_src.HiddenLayer import HiddenLayer
 
 class Seq2SeqModel(torch.nn.Module):
+  
   '''
   Sequence-to-Sequence Model that consists of an encoder and a decoder.
 
   Args:
       encoder (torch.nn.Module): The encoder module.
       decoder (torch.nn.Module): The decoder module.
-      learn_decoder_init_input (bool, optional): Whether to learn the decoder's initial input. Defaults to False.
+      learn_decoder_input (bool, optional): Whether to learn the decoder's initial input. Defaults to False.
       learn_decoder_hiddens (bool, optional): Whether to learn the decoder's hidden states. Defaults to False.
       enc2dec_bias (bool, optional): Whether to use bias in the encoder-to-decoder mappings. Defaults to True.
       enc2dec_hiddens_bias (bool, optional): Whether to use bias in the encoder-to-decoder hidden state mappings. Defaults to True.
@@ -19,12 +20,13 @@ class Seq2SeqModel(torch.nn.Module):
       device (str, optional): Device to run the model on (e.g., 'cpu', 'cuda'). Defaults to 'cpu'.
       dtype (torch.dtype, optional): Data type of the model parameters. Defaults to torch.float32.
   '''
-
+    
   def __init__(self,
               encoder, decoder,
-              learn_decoder_init_input=False, learn_decoder_hiddens=False,
+              learn_decoder_input=False, learn_decoder_hiddens=False,
               enc2dec_bias=True, enc2dec_hiddens_bias=True,
               enc2dec_dropout_p=0., enc2dec_hiddens_dropout_p=0.,
+              enc_out_as_dec_in = False,
               device='cpu', dtype=torch.float32):
 
     super(Seq2SeqModel, self).__init__()
@@ -39,36 +41,41 @@ class Seq2SeqModel(torch.nn.Module):
     self.input_size, self.output_size = self.encoder.input_size, self.decoder.output_size
     self.base_type = self.encoder.base_type
                 
-    self.enc2dec_init_input_block = None
-    if self.learn_decoder_init_input:
-      self.enc2dec_init_input_block = HiddenLayer(in_features = sum(self.encoder.input_size),
-                                                 out_features = sum(self.decoder.input_size),
-                                                 bias = self.enc2dec_bias,
-                                                 activation = 'identity',
-                                                 dropout_p = self.enc2dec_dropout_p,
-                                                 device = self.device,
-                                                 dtype = self.dtype)
-
+    self.enc2dec_input_block = None
+    if self.learn_decoder_input:
+      
+      self.enc2dec_input_block = HiddenLayer(in_features = sum(self.encoder.input_size),
+                                             out_features = sum(self.decoder.input_size),
+                                             bias = self.enc2dec_bias,
+                                             activation = 'identity',
+                                             dropout_p = self.enc2dec_dropout_p,
+                                             device = self.device,
+                                             dtype = self.dtype)
+      
     self.enc2dec_hiddens_block = None
+    
     if self.learn_decoder_hiddens:
       if any(type_ in ['gru', 'lstm', 'lru'] for type_ in self.encoder.base_type):
-        enc2dec_hiddens_input = 0
+        total_encoder_hidden_size = 0
         for i in range(self.encoder.num_inputs):
           if self.encoder.base_type[i] in ['gru', 'lstm', 'lru']:
-              enc2dec_hiddens_input += (1 + int(self.encoder.base_type[i] == 'lstm')) * self.encoder.base_hidden_size[i] * (1 + int(self.encoder.base_rnn_bidirectional[i]))
+            total_encoder_hidden_size += (1 + int(self.encoder.base_type[i] == 'lstm')) * self.encoder.base_hidden_size[i]      
       else:
-          enc2dec_hiddens_input = sum(self.encoder.output_size)
+        total_encoder_hidden_size = sum(self.encoder.output_size)
+      
+      self.decoder_hidden_size = []
+      for i in range(self.num_inputs):
+        self.decoder_hidden_size.append(0)        
+        self.decoder_hidden_size[i] = (1+int(self.decoder.base_type[i] == 'lstm')) * (1 + int(self.decoder.base_rnn_bidirectional[i])) * self.decoder.base_hidden_size[i]
 
-      enc2dec_hiddens_output = sum(np.array([1 + int(type_ == 'lstm') for type_ in self.decoder.base_type]) * np.array(self.decoder.base_hidden_size) * np.array([1 + int(bd) for bd in self.decoder.base_rnn_bidirectional]))
-
-      self.enc2dec_hiddens_block = HiddenLayer(in_features = self.enc2dec_hiddens_input,
-                                               out_features = self.enc2dec_hiddens_output,
+      self.enc2dec_hiddens_block = HiddenLayer(in_features = total_encoder_hidden_size,
+                                               out_features = sum(self.decoder_hidden_size),
                                                bias = self.enc2dec_hiddens_bias,
                                                activation = 'identity',
                                                dropout_p = self.enc2dec_hiddens_dropout_p,
                                                device = self.device,
                                                dtype = self.dtype)
-
+  
   def forward(self,
               input,
               steps=None,
@@ -110,42 +117,55 @@ class Seq2SeqModel(torch.nn.Module):
                                                    input_mask=input_mask)
 
     hiddens = encoder_hiddens
-
+    
     decoder_hiddens = [None for _ in range(self.decoder.num_inputs)]
+
     if self.enc2dec_hiddens_block is not None:
       # If the enc2dec_hiddens_block exists (decoder must contain rnn's)
       if encoder_hiddens is not None:
-        # If there are rnn hidens
-        enc2dec_hiddens_input = torch.cat([eh.reshape(num_samples, 1, -1) for eh in encoder_hiddens if eh is not None],-1)
+        # If there are rnn hiddens
+        enc2dec_hiddens_input = []
+        for i in range(self.encoder.num_inputs):
+          enc2dec_hiddens_input.append(torch.cat(encoder_hiddens[i], -1).reshape(num_samples, -1) if self.encoder.base_type[i] == 'lstm' else encoder_hiddens[i].reshape(num_samples, -1))
+        enc2dec_hiddens_input = torch.cat(enc2dec_hiddens_input, -1)
       else:
-          enc2dec_hiddens_input = encoder_output
+        enc2dec_hiddens_input = encoder_output
 
       enc2dec_hiddens_output = self.enc2dec_hiddens_block(enc2dec_hiddens_input)
 
       j = 0
       for i in range(self.decoder.num_inputs):
-          if self.decoder.base_type in ['gru', 'lstm', 'lru']:
-              total_base_hidden_size_i = ((1 + self.decoder.base_type[i]) * self.decoder.base_hidden_size[i] *  (1 + self.decoder.rnn_bidirectional[i]))
-              decoder_hiddens_i = enc2dec_hiddens_output[..., j:(j + total_base_hidden_size_i)].split( total_base_hidden_size_i, 2)
-              decoder_hiddens[i] = decoder_hiddens_i[0] if self.base_type[i] != 'lstm' else decoder_hiddens_i
-              j += total_base_hidden_size_i
+        if self.decoder.base_type[i] in ['gru', 'lstm', 'lru']:
+          
+          split_size = (1 + int(self.decoder.base_rnn_bidirectional[i]))*self.decoder.base_hidden_size[i]
+          
+          decoder_hiddens_i = enc2dec_hiddens_output[:, j:(j + self.decoder_hidden_size[i])].split(split_size, 1)
+
+          if self.decoder.base_type[i] == 'lstm':
+            decoder_hiddens[i] = [h.reshape(-1, num_samples, self.decoder.base_hidden_size[i]) for h in decoder_hiddens_i]
+          else:
+            decoder_hiddens[i] = decoder_hiddens_i[0].reshape(-1, num_samples, self.decoder.base_hidden_size[i])          
+          j += self.decoder_hidden_size[i]
     else:
-      decoder_hiddens = encoder_hiddens
+      decoder_hiddens = None
+    
+    # max_output_len = np.max([base.seq_len for base in self.decoder.seq_base])
 
-    max_output_len = np.max([base.seq_len for base in self.decoder.seq_base])
+    if self.enc_out_as_dec_in:
+      decoder_input = encoder_output
+      encoder_output = None
+    else:
+      decoder_input = self.enc2dec_input_block(input[:, -1:]) if self.enc2dec_input_block is not None else input[:, -1:]      
+      decoder_input = torch.nn.functional.pad(decoder_input, (0, 0, 0, self.decoder.max_output_len - 1), "constant", 0)
 
-    decoder_init_input = self.enc2dec_init_input_block(input[:, -1:]) if self.enc2dec_init_input_block is not None else input[:, -1:]
-
-    decoder_init_input = torch.nn.functional.pad(decoder_init_input, (0, 0, 0, max_output_len - 1), "constant", 0)
-
-    decoder_output, _ = self.decoder(input=decoder_init_input,
-                                      steps=decoder_steps,
-                                      hiddens=decoder_hiddens,
-                                      target=target,
-                                      output_window_idx=output_window_idx,
-                                      output_mask=output_mask,
-                                      output_input_idx=output_input_idx,
-                                      input_output_idx=input_output_idx,
-                                      encoder_output=encoder_output)
-
+    decoder_output, _ = self.decoder(input = decoder_input.clone(),
+                                     steps = decoder_steps,
+                                     hiddens = decoder_hiddens,
+                                     target = target,
+                                     output_window_idx = output_window_idx,
+                                     output_mask = output_mask,
+                                     output_input_idx = output_input_idx,
+                                     input_output_idx = input_output_idx,
+                                     encoder_output = encoder_output)
+    
     return decoder_output, hiddens
