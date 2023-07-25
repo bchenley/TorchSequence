@@ -39,7 +39,7 @@ class CNN1D(torch.nn.Module):
                  in_channels, out_channels, seq_len = 1,
                  kernel_size=[(1,)], stride=[(1,)], padding=[(0,)], 
                  dilation=[(1,)], groups=[1], bias=[False], 
-                 pool_type=[None], pool_size=[(2,)],
+                 pool_type=[None], pool_size=[(2,)], pool_stride = [None],
                  device=None, dtype=None):
         """
         Constructor method for initializing the CNN1D module and its attributes.
@@ -69,22 +69,15 @@ class CNN1D(torch.nn.Module):
 
         self.num_layers = len(out_channels)
 
-        if len(self.kernel_size) == 1:
-            self.kernel_size = self.kernel_size * self.num_layers
-        if len(self.stride) == 1:
-            self.stride = self.stride * self.num_layers
-        if len(self.padding) == 1:
-            self.padding = self.padding * self.num_layers
-        if len(self.dilation) == 1:
-            self.dilation = self.dilation * self.num_layers
-        if len(self.groups) == 1:
-            self.groups = self.groups * self.num_layers
-        if len(self.bias) == 1:
-            self.bias = self.bias * self.num_layers
-        if len(self.pool_type) == 1:
-            self.pool_type = self.pool_type * self.num_layers
-        if len(self.pool_size) == 1:
-            self.pool_size = self.pool_size * self.num_layers
+        if len(self.kernel_size) == 1: self.kernel_size = self.kernel_size * self.num_layers
+        if len(self.stride) == 1: self.stride = self.stride * self.num_layers
+        if len(self.padding) == 1: self.padding = self.padding * self.num_layers
+        if len(self.dilation) == 1: self.dilation = self.dilation * self.num_layers
+        if len(self.groups) == 1: self.groups = self.groups * self.num_layers
+        if len(self.bias) == 1: self.bias = self.bias * self.num_layers
+        if len(self.pool_type) == 1: self.pool_type = self.pool_type * self.num_layers
+        if len(self.pool_size) == 1: self.pool_size = self.pool_size * self.num_layers
+        if len(self.pool_stride) == 1: self.pool_stride = self.pool_stride * self.num_layers
 
         self.cnn = torch.nn.ModuleList()  
         for i in range(self.num_layers):
@@ -105,9 +98,11 @@ class CNN1D(torch.nn.Module):
             if self.pool_type[i] is None:
                 pool_i = torch.nn.Identity()
             if self.pool_type[i] == 'max':
-                pool_i = torch.nn.MaxPool1d(self.pool_size[i])
-            elif self.pool_type[i] == 'avg':        
-                pool_i = torch.nn.AvgPool1d(self.pool_size[i])     
+                pool_i = torch.nn.MaxPool1d(kernel_size = self.pool_size[i],
+                                            stride = self.pool_stride[i])
+            elif self.pool_type[i] == 'avg':
+                pool_i = torch.nn.AvgPool1d(kernel_size = self.pool_size[i],
+                                            stride = self.pool_stride[i])     
 
             self.cnn[-1].append(pool_i)
 
