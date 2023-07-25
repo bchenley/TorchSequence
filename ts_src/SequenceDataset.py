@@ -92,7 +92,8 @@ class SequenceDataset(torch.utils.data.Dataset):
       pad_size = self.total_window_size - self.max_input_len + int(self.has_ar)
 
       self.data[self.step_name] = torch.cat((self.data[self.step_name][-self.max_input_len:], 
-                                             torch.arange(pad_size) + self.data[self.step_name].max() + 1)).to(self.data[self.step_name])
+                                             torch.arange(pad_size) + self.data[self.step_name].max() + 1)).to(device = self.device,
+                                                                                                               dtype = torch.long)
       for name in np.unique(self.input_names + self.output_names):
         data_size = self.data[name].shape[-1]
         self.data[name] = self.data[name][-self.max_input_len:]
