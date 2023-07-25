@@ -302,9 +302,7 @@ class SequenceModel(torch.nn.Module):
       elif self.flatten == 'feature':
         output_in_features_i = output_in_features_i * self.max_input_len
         output_out_features_i = self.output_size[i] * self.max_output_len
-
-      self.max_output_len = np.max(self.output_len)
-        
+  
       if self.output_size[i] > 0:
         output_layer_i = HiddenLayer(# linear transformation
                                      in_features = output_in_features_i, 
@@ -336,6 +334,10 @@ class SequenceModel(torch.nn.Module):
 
       self.output_layer.append(output_layer_i)
 
+  X = torch.empty((1,self.max_input_len,np.sum(self.input_size))).to(device = self.device,
+                                                                     dtype = self.dtype)
+  self.max_output_len = self.forward(X)[0].shape[1]
+     
   def __repr__(self):
     total_num_params = 0
     total_num_trainable_params = 0
@@ -395,10 +397,10 @@ class SequenceModel(torch.nn.Module):
     output_ = self.interaction_layer(output_)
 
     if self.store_layer_outputs: self.interaction_layer_output.append(output_)
-
+    
     if self.modulation_layer is not None:
       output_ = self.modulation_layer(output_, steps)
-
+          
       if self.store_layer_outputs: self.modulation_layer_output.append(output_)
     
     # For each output
@@ -411,7 +413,7 @@ class SequenceModel(torch.nn.Module):
       # Otherwise, pass the entire output of previous layer as the input to the ith output layer
       else:
         output_input_i = output_
-
+      
       # flatten input to output layer if desired
       if self.flatten == 'time':
         output_input_i = self.flatten_layer(output_input_i).unsqueeze(2)
