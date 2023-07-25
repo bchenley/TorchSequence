@@ -36,7 +36,7 @@ class Seq2SeqModel(torch.nn.Module):
     for arg in locals_:
       if arg != 'self':
         setattr(self, arg, locals_[arg])
-
+    
     self.num_inputs, self.num_outputs = self.encoder.num_inputs, self.decoder.num_outputs
     self.input_size, self.output_size = self.encoder.input_size, self.decoder.output_size
     self.base_type = self.encoder.base_type
@@ -59,15 +59,15 @@ class Seq2SeqModel(torch.nn.Module):
         total_encoder_hidden_size = 0
         for i in range(self.encoder.num_inputs):
           if self.encoder.base_type[i] in ['gru', 'lstm', 'lru']:
-            total_encoder_hidden_size += (1 + int(self.encoder.base_type[i] == 'lstm')) * (1 + int(self.encoder.base_rnn_bidirectional[i])) * self.encoder.base_hidden_size[i]      
+            total_encoder_hidden_size += (1 + int(self.encoder.base_type[i] == 'lstm')) * (1 + int(self.encoder.base_rnn_bidirectional[i])) * self.encoder.base_num_layers[i] * self.encoder.base_hidden_size[i]      
       else:
         total_encoder_hidden_size = sum(self.encoder.output_size)
-      
+
       self.decoder_hidden_size = []
       for i in range(self.num_inputs):
         self.decoder_hidden_size.append(0)        
-        self.decoder_hidden_size[i] = (1+int(self.decoder.base_type[i] == 'lstm')) * (1 + int(self.decoder.base_rnn_bidirectional[i])) * self.decoder.base_hidden_size[i]
-
+        self.decoder_hidden_size[i] = (1+int(self.decoder.base_type[i] == 'lstm')) * (1 + int(self.decoder.base_rnn_bidirectional[i])) * self.decoder.base_num_layers[i] * self.decoder.base_hidden_size[i]
+      
       self.enc2dec_hiddens_block = HiddenLayer(in_features = total_encoder_hidden_size,
                                                out_features = sum(self.decoder_hidden_size),
                                                bias = self.enc2dec_hiddens_bias,
@@ -107,7 +107,7 @@ class Seq2SeqModel(torch.nn.Module):
     '''
 
     num_samples, input_len, input_size = input.shape
-
+    
     encoder_steps = steps[:, :input_len] if steps is not None else None
     decoder_steps = steps[:, (input_len - 1):] if steps is not None else None
 
@@ -126,18 +126,19 @@ class Seq2SeqModel(torch.nn.Module):
         # If there are rnn hiddens
         enc2dec_hiddens_input = []
         for i in range(self.encoder.num_inputs):
+
           enc2dec_hiddens_input.append(torch.cat(encoder_hiddens[i], -1).reshape(num_samples, -1) if self.encoder.base_type[i] == 'lstm' else encoder_hiddens[i].reshape(num_samples, -1))
         enc2dec_hiddens_input = torch.cat(enc2dec_hiddens_input, -1)
       else:
         enc2dec_hiddens_input = encoder_output
 
       enc2dec_hiddens_output = self.enc2dec_hiddens_block(enc2dec_hiddens_input)
-
+      
       j = 0
       for i in range(self.decoder.num_inputs):
         if self.decoder.base_type[i] in ['gru', 'lstm', 'lru']:
-          
-          split_size = (1 + int(self.decoder.base_rnn_bidirectional[i]))*self.decoder.base_hidden_size[i]
+
+          split_size = (1 + int(self.decoder.base_rnn_bidirectional[i])) * self.decoder.base_num_layers[i] * self.decoder.base_hidden_size[i]
           
           decoder_hiddens_i = enc2dec_hiddens_output[:, j:(j + self.decoder_hidden_size[i])].split(split_size, 1)
 
@@ -146,6 +147,7 @@ class Seq2SeqModel(torch.nn.Module):
           else:
             decoder_hiddens[i] = decoder_hiddens_i[0].reshape(-1, num_samples, self.decoder.base_hidden_size[i])          
           j += self.decoder_hidden_size[i]
+          
     else:
       decoder_hiddens = None
     
