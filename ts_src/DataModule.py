@@ -95,6 +95,9 @@ class DataModule(pl.LightningDataModule):
       
       self.data = data.copy()
 
+      for name in self.input_output_names:
+        self.data[name] = self.transforms[name].fit_transform(self.data[name])
+              
       self.input_feature_names, self.output_feature_names = None, None
       if self.combine_features:
         self.input_names_original = self.input_names
@@ -139,9 +142,6 @@ class DataModule(pl.LightningDataModule):
                   self.transforms = {name: FeatureTransform(scale_type='identity')}
 
       self.data_len = self.data[self.input_output_names[0]].shape[0]
-
-      for name in self.input_output_names:
-          self.data[name] = self.transforms[name].fit_transform(self.data[name])
 
       self.data['steps'] = torch.arange(self.data_len).to(device=self.device, dtype=torch.long)
 
