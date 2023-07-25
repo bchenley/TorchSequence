@@ -29,7 +29,7 @@ class SequenceModelBase(torch.nn.Module):
     relax_minmax (list, optional): Minimum and maximum relaxation values for LRU. Default is [0.1, 0.9].
     num_filterbanks (int, optional): Number of filterbanks for LRU. Default is 1.
     cnn_kernel_size (tuple, optional): Size of the convolving kernel for CNN. Default is (1,).
-    cnn_stride (tuple, optional): Stride of the convolution for CNN. Default is (1,).
+    cnn_kernel_stride (tuple, optional): Stride of the convolution for CNN. Default is (1,).
     cnn_padding (tuple, optional): Zero-padding added to both sides of the input for CNN. Default is (0,).
     cnn_dilation (tuple, optional): Spacing between kernel elements for CNN. Default is (1,).
     cnn_groups (int, optional): Number of blocked connections from input channels to output channels for CNN. Default is 1.
@@ -103,8 +103,8 @@ class SequenceModelBase(torch.nn.Module):
               rnn_attn=False,
               rnn_weight_reg=[0.001, 1], rnn_weight_norm=None,
               relax_init=[0.5], relax_train=True, relax_minmax=[0.1, 0.9], num_filterbanks=1,
-              cnn_out_channels = None,
-              cnn_kernel_size = [(1,)], cnn_stride = [(1,)], cnn_padding = [(0,)], cnn_dilation = [(1,)], cnn_groups = [1],
+              cnn_out_channels = None, 
+              cnn_kernel_size = [(1,)], cnn_kernel_stride = [(1,)], cnn_padding = [(0,)], cnn_dilation = [(1,)], cnn_groups = [1],
               cnn_bias = [False], cnn_pool_type = [None], cnn_pool_size = [(2,)], cnn_pool_stride = [(0,)],
               encoder_output_size = None, seq_type = 'encoder',
               transformer_embedding_type='time', transformer_embedding_bias=False,
@@ -123,7 +123,7 @@ class SequenceModelBase(torch.nn.Module):
               transformer_scale_cross_attn_residual_connection=False,
               transformer_scale_feedforward_residual_connection=False,
               transformer_layer_norm=True,
-              num_heads=1, transformer_dim_feedforward=2048,
+              num_heads=1, transformer_dim_feedforward=2048, 
               self_attn_type='dot', multihead_attn_type='dot',
               memory_is_causal=True, tgt_is_causal=False,
               query_dim=None, key_dim=None, value_dim=None,
