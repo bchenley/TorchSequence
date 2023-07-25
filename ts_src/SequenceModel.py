@@ -12,7 +12,7 @@ class SequenceModel(torch.nn.Module):
                output_size = [1], output_len = [1],
                stateful = False, process_by_step = False, joint_prediction = False,
                dt = 1,
-               flatten = False,
+               flatten = None,
                store_layer_outputs = False,
                ## Sequence base parameters
                # type
@@ -268,7 +268,7 @@ class SequenceModel(torch.nn.Module):
     if self.flatten:
       self.flatten_layer = torch.nn.Flatten(1, 2)        
     else:
-      self.flatten_layer = torch.nn.Identity()
+      self.flatten_layer = None
 
     # output layer
     self.output_layer = torch.nn.ModuleList([])
@@ -294,9 +294,17 @@ class SequenceModel(torch.nn.Module):
             if self.base_type[j] != 'identity':
               output_in_features_i += (1 + int(self.base_rnn_bidirectional[j]))*self.base_hidden_size[j]
 
-      output_in_features_i = output_in_features_i * self.max_input_len if self.flatten else output_in_features_i
-      output_out_features_i = self.output_size[i] * self.max_output_len if self.flatten else self.output_size[i]
+      if self.flatten == 'time':
+        self.output_len[i] = self.output_len[i] * output_in_features_i
+        
+        output_in_features_i = 1 # output_in_features_i * self.max_input_len
+        output_out_features_i = 1 # self.output_size[i] * self.max_output_len
+      elif self.flatten == 'feature':
+        output_in_features_i = output_in_features_i * self.max_input_len
+        output_out_features_i = self.output_size[i] * self.max_output_len
 
+      self.max_output_len = np.max(self.output_len)
+        
       if self.output_size[i] > 0:
         output_layer_i = HiddenLayer(# linear transformation
                                      in_features = output_in_features_i, 
@@ -346,7 +354,7 @@ class SequenceModel(torch.nn.Module):
 
   def init_hiddens(self):
     return [None for _ in range(self.num_inputs)]
-
+  
   def process(self,
               input, hiddens,
               steps = None,
@@ -403,14 +411,17 @@ class SequenceModel(torch.nn.Module):
       # Otherwise, pass the entire output of previous layer as the input to the ith output layer
       else:
         output_input_i = output_
-      
+
       # flatten input to output layer if desired
-      output_input_i = self.flatten_layer(output_input_i)
+      if self.flatten == 'time':
+        output_input_i = self.flatten_layer(output_input_i).unsqueeze(2)
+      if self.flatten == 'feature':
+        output_input_i = self.flatten_layer(output_input_i).unsqueeze(1)
 
       # Generate output of ith output layer, append result to previous outputs      
       output_i = self.output_layer[i](output_input_i)
-      
-      if output_i.ndim <= 2:
+
+      if self.flatten == 'feature':
         output_i = output_i.reshape(num_samples, self.max_output_len, self.output_size[i])
 
       output.append(output_i)
