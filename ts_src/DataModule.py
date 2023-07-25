@@ -2,6 +2,7 @@ import pytorch_lightning as pl
 import torch
 import numpy as np
 import pandas as pd
+import pickle
 
 from ts_src import SequenceDataloader as SequenceDataloader, FeatureTransform as FeatureTransform
 
@@ -94,9 +95,6 @@ class DataModule(pl.LightningDataModule):
         data[name] = data[name].unsqueeze(1) if data[name].ndim == 1 else data[name]
       
       self.data = data.copy()
-
-      for name in self.input_output_names:
-        self.data[name] = self.transforms[name].fit_transform(self.data[name])
               
       self.input_feature_names, self.output_feature_names = None, None
       if self.combine_features:
@@ -128,18 +126,21 @@ class DataModule(pl.LightningDataModule):
           self.shift = self.shift * self.num_outputs
 
       self.has_ar = np.isin(self.output_names, self.input_names).any()
+      
+      for name in self.input_output_names:
+        if self.transforms is None:
+          if 'all' in [name for name in self.transforms]:
+            self.transforms[name] = self.transforms['all']
+          else:
+            self.transforms = {name: FeatureTransform(scale_type='identity')}
+        if name not in self.transforms:
+          if 'all' in [name for name in self.transforms]:
+            self.transforms[name] = self.transforms['all']
+          else:
+            self.transforms = {name: FeatureTransform(scale_type='identity')}
 
       for name in self.input_output_names:
-          if self.transforms is None:
-              if 'all' in [name for name in self.transforms]:
-                  self.transforms[name] = self.transforms['all']
-              else:
-                  self.transforms = {name: FeatureTransform(scale_type='identity')}
-          if name not in self.transforms:
-              if 'all' in [name for name in self.transforms]:
-                  self.transforms[name] = self.transforms['all']
-              else:
-                  self.transforms = {name: FeatureTransform(scale_type='identity')}
+        self.data[name] = self.transforms[name].fit_transform(self.data[name])
 
       self.data_len = self.data[self.input_output_names[0]].shape[0]
 
