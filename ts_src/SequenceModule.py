@@ -183,7 +183,7 @@ class SequenceModule(pl.LightningModule):
         for i,(name, param) in enumerate(self.model.named_parameters()):
           if param.requires_grad:
             self.train_history[name] = torch.cat((self.train_history[name],
-                                                  param.clone().detach().cpu().reshape(1, -1).to(param)), 0)
+                                                  param.detach().cpu().reshape(1, -1).to(param)), 0)
 
       self.current_train_step += 1
 
