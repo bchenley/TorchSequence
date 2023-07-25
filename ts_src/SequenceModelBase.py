@@ -161,7 +161,7 @@ class SequenceModelBase(torch.nn.Module):
                                 dropout = self.rnn_dropout_p,
                                 bidirectional = self.rnn_bidirectional,
                                 device = self.device, dtype = self.dtype,
-                                batch_first = True)        
+                                batch_first = True)
     elif self.base_type == 'lstm':
       self.base = torch.nn.LSTM(input_size = self.input_size,
                                 hidden_size = self.hidden_size,
