@@ -6,15 +6,15 @@ class FeatureTransform():
   '''
 
   def __init__(self,
-                scale_type = 'minmax', minmax = [0., 1.], dim = 0,
+                transform_type = 'minmax', minmax = [0., 1.], dim = 0,
                 device = 'cpu', dtype = torch.float32):
     '''
     Initializes the FeatureTransform instance.
 
     Args:
-        scale_type (str): The type of scaling to be applied. Options are 'identity', 'minmax', or 'standard'.
-        minmax (list): The minimum and maximum values to scale the data when using 'minmax' scaling.
-        dim (int): The dimension along which the scaling is applied.
+        transform_type (str): The type of transformation to be applied. Options are 'identity', 'minmax', or 'standard'.
+        minmax (list): The minimum and maximum values to transform the data when using 'minmax' transformation.
+        dim (int): The dimension along which the transformation is applied.
         device (str): The device to be used for computations.
         dtype (torch.dtype): The data type to be used for computations.
     '''
@@ -25,8 +25,8 @@ class FeatureTransform():
       if arg != 'self':
         setattr(self, arg, locals_[arg])
         
-    if self.scale_type not in ['identity', 'minmax', 'standard']:
-        raise ValueError(f"scale_type ({self.scale_type}) is not set to 'identity', 'minmax', or 'standard'.")
+    if self.transform_type not in ['identity', 'minmax', 'standard']:
+        raise ValueError(f"transform_type ({self.transform_type}) is not set to 'identity', 'minmax', or 'standard'.")
 
   def identity(self, X):
     '''
@@ -101,11 +101,11 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The transformed input data.
     '''
-    if self.scale_type == 'identity':
+    if self.transform_type == 'identity':
         X_transformed = self.identity(X)
-    elif self.scale_type == 'minmax':
+    elif self.transform_type == 'minmax':
         X_transformed = self.normalize(X)
-    elif self.scale_type == 'standard':
+    elif self.transform_type == 'standard':
         X_transformed = self.standardize(X)
 
     return X_transformed
@@ -120,11 +120,11 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The transformed input data.
     '''
-    if self.scale_type == 'identity':
+    if self.transform_type == 'identity':
         X_transformed = X
-    elif self.scale_type == 'minmax':
+    elif self.transform_type == 'minmax':
         X_transformed = (X - self.min_) / (self.max_ - self.min_) * (self.minmax[1] - self.minmax[0]) + self.minmax[0]
-    elif self.scale_type == 'standard':
+    elif self.transform_type == 'standard':
         X_transformed = (X - self.mean_) / self.std_
 
     return X_transformed
@@ -139,11 +139,11 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The inversely transformed input data.
     '''
-    if self.scale_type == 'identity':
+    if self.transform_type == 'identity':
         X_inverse_transformed = X
-    elif self.scale_type == 'minmax':
+    elif self.transform_type == 'minmax':
         X_inverse_transformed = self.inverse_normalize(X)
-    elif self.scale_type == 'standard':
+    elif self.transform_type == 'standard':
         X_inverse_transformed = self.inverse_standardize(X)
 
     return X_inverse_transformed
