@@ -872,8 +872,10 @@ class SequenceModule(pl.LightningModule):
       
       input, steps = last_input_sample, last_steps_sample
 
-      forecast = torch.empty((1, 0, max_output_size)).to(input)
-      forecast_steps = torch.empty((1, 0)).to(steps)
+      forecast = torch.empty((1, 0, max_output_size)).to(device = self.model.device,
+                                                         dtype = self.model.dtype)
+      forecast_steps = torch.empty((1, 0)).to(device = self.model.device,
+                                              dtype = torch.long)
 
       output, hiddens = self.forward(input = last_input_sample,
                                      steps = last_steps_sample,
