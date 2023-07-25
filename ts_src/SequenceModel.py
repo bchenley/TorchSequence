@@ -294,9 +294,7 @@ class SequenceModel(torch.nn.Module):
             if self.base_type[j] != 'identity':
               output_in_features_i += (1 + int(self.base_rnn_bidirectional[j]))*self.base_hidden_size[j]
 
-      if self.flatten == 'time':
-        self.output_len[i] = self.output_len[i] * output_in_features_i
-        
+      if self.flatten == 'time':        
         output_in_features_i = 1 # output_in_features_i * self.max_input_len
         output_out_features_i = 1 # self.output_size[i] * self.max_output_len
       elif self.flatten == 'feature':
@@ -334,9 +332,12 @@ class SequenceModel(torch.nn.Module):
 
       self.output_layer.append(output_layer_i)
 
-    X = torch.empty((1,self.max_input_len,np.sum(self.input_size))).to(device = self.device,
-                                                                      dtype = self.dtype)
+    X = torch.empty((1, self.max_input_len, np.sum(self.input_size))).to(device = self.device,
+                                                                         dtype = self.dtype)
+    
     self.max_output_len = self.forward(X)[0].shape[1]
+    # if self.flatten == 'time':
+    #   self.flatten = [self.max_output_len]*self.num_outputs
      
   def __repr__(self):
     total_num_params = 0
@@ -358,13 +359,15 @@ class SequenceModel(torch.nn.Module):
     return [None for _ in range(self.num_inputs)]
   
   def process(self,
-              input, hiddens,
+              input, hiddens = None,
               steps = None,
               encoder_output = None):
     
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
 
+    hiddens = hiddens or self.init_hiddens()
+    
     # List to store the output of hidden layers
     hidden_output = []
 
@@ -422,7 +425,7 @@ class SequenceModel(torch.nn.Module):
 
       # Generate output of ith output layer, append result to previous outputs      
       output_i = self.output_layer[i](output_input_i)
-
+      
       if self.flatten == 'feature':
         output_i = output_i.reshape(num_samples, self.max_output_len, self.output_size[i])
 
@@ -508,8 +511,8 @@ class SequenceModel(torch.nn.Module):
                                        hiddens = hiddens,
                                        encoder_output = encoder_output)
         
-    # Only keep the outputs for the maximum output sequence length
-    output = output[:, -self.max_output_len:]
+    # # Only keep the outputs for the maximum output sequence length
+    # output = output[:, -self.max_output_len:]
 
     # Apply the output mask if specified
     if output_mask is not None: output = output*output_mask
