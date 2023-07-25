@@ -985,7 +985,7 @@ class SequenceModule(pl.LightningModule):
           datamodule,
           max_epochs = 20,
           callbacks = [None]):
-
+    
     try:
       self.trainer = pl.Trainer(max_epochs = max_epochs,
                                 accelerator = 'gpu' if self.model.device == 'cuda' else 'cpu',
