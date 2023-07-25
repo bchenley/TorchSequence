@@ -39,7 +39,7 @@ class CNN1D(torch.nn.Module):
                  in_channels, out_channels, seq_len = 1,
                  kernel_size=[(1,)], kernel_stride=[(1,)], padding=[(0,)], 
                  dilation=[(1,)], groups=[1], bias=[False], 
-                 pool_type=[None], pool_size=[(2,)], pool_stride = [None],
+                 pool_type=[None], pool_size=[(2,)], pool_stride = [(1,)],
                  device=None, dtype=None):
         """
         Constructor method for initializing the CNN1D module and its attributes.
