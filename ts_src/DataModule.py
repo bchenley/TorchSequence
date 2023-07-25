@@ -78,7 +78,7 @@ class DataModule(pl.LightningDataModule):
       if isinstance(self.data, str):
           # If data is a string, assume it is a path to structured data
           with open(self.data, "rb") as file:
-              self.data = pickle.load(file)
+            self.data = pickle.load(file)
 
       if isinstance(self.data, pd.DataFrame):
           # If data is a pandas dataframe, assume each column is an individual feature
@@ -95,7 +95,22 @@ class DataModule(pl.LightningDataModule):
         data[name] = data[name].unsqueeze(1) if data[name].ndim == 1 else data[name]
       
       self.data = data.copy()
-              
+      
+      for name in self.input_output_names:
+        if self.transforms is None:
+            if 'all' in [name for name in self.transforms]:
+              self.transforms[name] = self.transforms['all']
+            else:
+              self.transforms = {name: FeatureTransform(scale_type='identity')}
+        if name not in self.transforms:
+            if 'all' in [name for name in self.transforms]:
+              self.transforms[name] = self.transforms['all']
+            else:
+              self.transforms = {name: FeatureTransform(scale_type='identity')}
+
+      for name in self.input_output_names:
+        self.data[name] = self.transforms[name].fit_transform(self.data[name])
+                      
       self.input_feature_names, self.output_feature_names = None, None
       if self.combine_features:
         self.input_names_original = self.input_names
@@ -107,40 +122,25 @@ class DataModule(pl.LightningDataModule):
         self.data['y'] = torch.cat([self.data[name] for name in self.output_names_original],-1)        
         self.output_names, self.num_outputs = ['y'], 1
         self.output_feature_names = self.output_names_original
-
+        
         for name in list(np.unique(self.input_names_original + self.output_names_original)): 
           del self.data[name]
-        
+
       self.input_output_names = np.unique(self.input_names + self.output_names).tolist()
       self.num_inputs, self.num_outputs = len(self.input_names), len(self.output_names)
       self.input_size = [self.data[name].shape[-1] for name in self.input_names]
       self.output_size = [self.data[name].shape[-1] for name in self.output_names]
       self.max_input_size, self.max_output_size = np.max(self.input_size), np.max(self.output_size)
-
+      
       if len(self.input_len) == 1:
           self.input_len = self.input_len * self.num_inputs
-
       if len(self.output_len) == 1:
           self.output_len = self.output_len * self.num_outputs
+
       if len(self.shift) == 1:
           self.shift = self.shift * self.num_outputs
-
-      self.has_ar = np.isin(self.output_names, self.input_names).any()
       
-      for name in self.input_output_names:
-        if self.transforms is None:
-          if 'all' in [name for name in self.transforms]:
-            self.transforms[name] = self.transforms['all']
-          else:
-            self.transforms = {name: FeatureTransform(scale_type='identity')}
-        if name not in self.transforms:
-          if 'all' in [name for name in self.transforms]:
-            self.transforms[name] = self.transforms['all']
-          else:
-            self.transforms = {name: FeatureTransform(scale_type='identity')}
-
-      for name in self.input_output_names:
-        self.data[name] = self.transforms[name].fit_transform(self.data[name])
+      self.has_ar = np.isin(self.output_names, self.input_names).any()
 
       self.data_len = self.data[self.input_output_names[0]].shape[0]
 
@@ -170,7 +170,7 @@ class DataModule(pl.LightningDataModule):
 
       self.input_output_idx, self.output_input_idx = input_output_idx, output_input_idx
       self.data_prepared = True
-
+      
   def setup(self, stage):
     '''
     Sets up the data module for a specific stage of training.
@@ -220,7 +220,7 @@ class DataModule(pl.LightningDataModule):
           val_init_input = val_init_input or []
           for i, name in enumerate(self.input_names):
               val_init_input.append(train_data[name][-(pad_dim + 1)])
-
+          
         if len(test_data) > 0:
           data_ = val_data if len(val_data) > 0 else train_data
           test_data['steps'] = torch.cat((data_['steps'][-pad_dim:], torch.arange(1, 1 + len(test_data['steps'])).to(data_['steps']) + data_['steps'][-1]))
