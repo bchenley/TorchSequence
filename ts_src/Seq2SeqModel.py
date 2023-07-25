@@ -59,7 +59,7 @@ class Seq2SeqModel(torch.nn.Module):
         total_encoder_hidden_size = 0
         for i in range(self.encoder.num_inputs):
           if self.encoder.base_type[i] in ['gru', 'lstm', 'lru']:
-            total_encoder_hidden_size += (1 + int(self.encoder.base_rnn_bidirectional[i])) * (1 + int(self.encoder.base_type[i] == 'lstm')) * self.encoder.base_hidden_size[i]      
+            total_encoder_hidden_size += (1 + int(self.encoder.base_type[i] == 'lstm')) * (1 + int(self.encoder.base_rnn_bidirectional[i])) * self.encoder.base_hidden_size[i]      
       else:
         total_encoder_hidden_size = sum(self.encoder.output_size)
       
