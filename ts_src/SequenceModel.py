@@ -31,8 +31,8 @@ class SequenceModel(torch.nn.Module):
                base_relax_init = [[0.5]], base_relax_train = [True], base_relax_minmax = [[[0.1, 0.9]]], base_num_filterbanks = [1],
                # CNN parameters
                base_cnn_out_channels = [None],
-               base_cnn_kernel_size = [[(1,)]], base_cnn_stride = [[(1,)]], base_cnn_padding = [[(0,)]], base_cnn_dilation = [[(1,)]], base_cnn_groups = [[1]], base_cnn_bias = [[False]],
-               base_cnn_pool_type = [[None]], base_cnn_pool_size = [[(2,)]],
+               base_cnn_kernel_size = [[(1,)]], base_cnn_kernel_stride = [[(1,)]], base_cnn_padding = [[(0,)]], base_cnn_dilation = [[(1,)]], base_cnn_groups = [[1]], base_cnn_bias = [[False]],
+               base_cnn_pool_type = [[None]], base_cnn_pool_size = [[(2,)]], base_cnn_pool_stride = [[(1,)]],
                # Transformer parameters
                base_seq_type = ['encoder'],
                base_transformer_embedding_type = ['time'], base_transformer_embedding_bias = [False], base_transformer_embedding_activation = ['identity'],
@@ -140,8 +140,8 @@ class SequenceModel(torch.nn.Module):
                                     relax_init = self.base_relax_init[i], relax_train = self.base_relax_train[i], relax_minmax = self.base_relax_minmax[i], num_filterbanks = self.base_num_filterbanks[i],
                                     # CNN parameters
                                     cnn_out_channels = self.base_cnn_out_channels[i],
-                                    cnn_kernel_size = self.base_cnn_kernel_size[i], cnn_stride = self.base_cnn_stride[i], cnn_padding = self.base_cnn_padding[i], cnn_dilation = self.base_cnn_dilation[i], cnn_groups = self.base_cnn_groups[i], cnn_bias = self.base_cnn_bias[i],
-                                    cnn_pool_type = self.base_cnn_pool_type[i], cnn_pool_size = self.base_cnn_pool_size[i],
+                                    cnn_kernel_size = self.base_cnn_kernel_size[i], cnn_kernel_stride = self.base_cnn_kernel_stride[i], cnn_padding = self.base_cnn_padding[i], cnn_dilation = self.base_cnn_dilation[i], cnn_groups = self.base_cnn_groups[i], cnn_bias = self.base_cnn_bias[i],
+                                    cnn_pool_type = self.base_cnn_pool_type[i], cnn_pool_size = self.base_cnn_pool_size[i], cnn_pool_stride = self.base_cnn_pool_stride[i],
                                     # Transformer parameters
                                     encoder_output_size = self.encoder_output_size, seq_type = self.base_seq_type[i],
                                     transformer_embedding_type = self.base_transformer_embedding_type[i], transformer_embedding_bias = self.base_transformer_embedding_bias[i], transformer_embedding_activation = self.base_transformer_embedding_activation[i],
