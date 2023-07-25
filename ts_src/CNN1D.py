@@ -37,7 +37,7 @@ class CNN1D(torch.nn.Module):
     """
     def __init__(self, 
                  in_channels, out_channels, seq_len = 1,
-                 kernel_size=[(1,)], stride=[(1,)], padding=[(0,)], 
+                 kernel_size=[(1,)], kernel_stride=[(1,)], padding=[(0,)], 
                  dilation=[(1,)], groups=[1], bias=[False], 
                  pool_type=[None], pool_size=[(2,)], pool_stride = [None],
                  device=None, dtype=None):
@@ -48,7 +48,7 @@ class CNN1D(torch.nn.Module):
             in_channels (int): Number of input channels.
             out_channels (list): List of integers, specifying the number of output channels for each layer.
             kernel_size (list, optional): List of tuples specifying the kernel size for each layer. Default is [(1,)].
-            stride (list, optional): List of tuples specifying the stride for each layer. Default is [(1,)].
+            kernel_stride (list, optional): List of tuples specifying the stride for each layer. Default is [(1,)].
             padding (list, optional): List of tuples specifying the padding for each layer. Default is [(0,)].
             dilation (list, optional): List of tuples specifying the dilation for each layer. Default is [(1,)].
             groups (list, optional): List of integers specifying the number of groups for each layer. Default is [1].
@@ -70,7 +70,7 @@ class CNN1D(torch.nn.Module):
         self.num_layers = len(out_channels)
 
         if len(self.kernel_size) == 1: self.kernel_size = self.kernel_size * self.num_layers
-        if len(self.stride) == 1: self.stride = self.stride * self.num_layers
+        if len(self.kernel_stride) == 1: self.kernel_stride = self.kernel_stride * self.num_layers
         if len(self.padding) == 1: self.padding = self.padding * self.num_layers
         if len(self.dilation) == 1: self.dilation = self.dilation * self.num_layers
         if len(self.groups) == 1: self.groups = self.groups * self.num_layers
@@ -88,7 +88,7 @@ class CNN1D(torch.nn.Module):
             self.cnn[-1].append(torch.nn.Conv1d(in_channels=in_channels_i,
                                                 out_channels=self.out_channels[i],
                                                 kernel_size=self.kernel_size[i],
-                                                stride=self.stride[i],
+                                                stride=self.kernel_stride[i],
                                                 padding=self.padding[i],
                                                 dilation=self.dilation[i],
                                                 groups=self.groups[i],
