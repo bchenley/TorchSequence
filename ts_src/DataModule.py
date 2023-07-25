@@ -204,7 +204,7 @@ class DataModule(pl.LightningDataModule):
       if self.pad_data and (self.start_step > 0):
 
         pad_dim = self.start_step
-
+        
         train_data['steps'] = torch.cat((train_data['steps'],
                                          torch.arange(1, 1 + pad_dim).to(device=self.device, dtype=torch.long) + train_data['steps'][-1]),0)
 
@@ -212,17 +212,17 @@ class DataModule(pl.LightningDataModule):
           train_data[name] = torch.nn.functional.pad(train_data[name], (0, 0, pad_dim, 0), mode='constant', value=0)
 
         if len(val_data) > 0:
-          val_data['steps'] = torch.cat((train_data['steps'][-pad_dim:], (torch.arange(1, 1 + len(val_data['steps'])) + train_data['steps'][-1]).to(device = self.device, dtype = torch.long)))
+          val_data['steps'] = torch.cat((train_data['steps'][-pad_dim:], torch.arange(1, 1 + len(val_data['steps'])).to(train_data['steps']) + train_data['steps'][-1]))
           for name in self.input_output_names:
               val_data[name] = torch.cat((train_data[name][-pad_dim:], val_data[name]), 0)
-
+        
           val_init_input = val_init_input or []
           for i, name in enumerate(self.input_names):
               val_init_input.append(train_data[name][-(pad_dim + 1)])
 
         if len(test_data) > 0:
           data_ = val_data if len(val_data) > 0 else train_data
-          test_data['steps'] = torch.cat((data_['steps'][-pad_dim:], (torch.arange(1, 1 + len(test_data['steps'])) + data_['steps'][-1]).to(device = self.device, dtype = torch.long)))
+          test_data['steps'] = torch.cat((data_['steps'][-pad_dim:], torch.arange(1, 1 + len(test_data['steps'])).to(data_['steps']) + data_['steps'][-1]))
           for name in self.input_output_names:
             test_data[name] = torch.cat((data_[name][-pad_dim:], test_data[name]), 0)
 
