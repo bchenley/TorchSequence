@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import pandas as pd
 
-from ts_src.SequenceDataloader import SequenceDataloader
+from ts_src import SequenceDataloader as SequenceDataloader, FeatureScaler as FeatureScaler
 
 class DataModule(pl.LightningDataModule):
   def __init__(self,
