@@ -14,7 +14,7 @@ class SequenceModule(pl.LightningModule):
                model,
                opt, loss_fn, metric_fn = None,
                constrain = False, penalize = False,
-               track = False,
+               track_performance = False, track_params = False,
                model_dir = None):
 
     super().__init__()
@@ -38,7 +38,7 @@ class SequenceModule(pl.LightningModule):
 
     self.hiddens = None
 
-    self.track = track
+    self.track_performance, self.track_params = track_performance, track_params
 
     self.model_dir = model_dir
   
@@ -158,32 +158,36 @@ class SequenceModule(pl.LightningModule):
     self.log('train_step_loss', train_step_loss.sum(), on_step = True, prog_bar = True)
     #
 
-    if self.track:
+    if self.track_performance or self.track_params:
       if self.train_history is None:
         self.current_train_step = 0
         self.train_history = {'steps': torch.empty((0, 1)).to(device = train_step_loss.device,
                                                               dtype = torch.long)}
-        for i in range(self.model.num_outputs):
-          loss_name_i = self.loss_fn.name + '_' + self.trainer.datamodule.output_names[i]
-          self.train_history[loss_name_i] = torch.empty((0, 1)).to(train_step_loss)
+        if self.track_performance:                                                              
+          for i in range(self.model.num_outputs):
+            loss_name_i = self.loss_fn.name + '_' + self.trainer.datamodule.output_names[i]
+            self.train_history[loss_name_i] = torch.empty((0, 1)).to(train_step_loss)
 
-        for name, param in self.model.named_parameters():
-          if param.requires_grad == True:
-            self.train_history[name] = torch.empty((0, param.numel())).to(param)
+        if self.track_params: 
+          for name, param in self.model.named_parameters():
+            if param.requires_grad == True:
+              self.train_history[name] = torch.empty((0, param.numel())).to(param)
 
       else:
         self.train_history['steps'] = torch.cat((self.train_history['steps'],
                                                  torch.tensor(self.current_train_step).reshape(1, 1).to(train_step_loss)), 0)
 
-        for i in range(self.trainer.datamodule.num_outputs):
-          loss_name_i = self.loss_fn.name + '_' + self.trainer.datamodule.output_names[i]
-          self.train_history[loss_name_i] = torch.cat((self.train_history[loss_name_i],
+        if self.track_performance:  
+          for i in range(self.trainer.datamodule.num_outputs):
+            loss_name_i = self.loss_fn.name + '_' + self.trainer.datamodule.output_names[i]
+            self.train_history[loss_name_i] = torch.cat((self.train_history[loss_name_i],
                                                        train_step_loss[i].cpu().reshape(1, 1).to(train_step_loss)), 0)
 
-        for i,(name, param) in enumerate(self.model.named_parameters()):
-          if param.requires_grad:
-            self.train_history[name] = torch.cat((self.train_history[name],
-                                                  param.detach().cpu().reshape(1, -1).to(param)), 0)
+        if self.track_params: 
+          for i,(name, param) in enumerate(self.model.named_parameters()):
+            if param.requires_grad:
+              self.train_history[name] = torch.cat((self.train_history[name],
+                                                    param.detach().cpu().reshape(1, -1).to(param)), 0)
 
       self.current_train_step += 1
 
@@ -258,7 +262,7 @@ class SequenceModule(pl.LightningModule):
 
     self.log('val_epoch_loss', val_epoch_loss.sum(), on_step = False, on_epoch = True, prog_bar = True)
 
-    if self.track:
+    if self.track_performance:  
       if self.val_history is None:
         self.val_history = {'epochs': torch.empty((0, 1)).to(device = val_epoch_loss.device,
                                                              dtype = torch.long)}
@@ -307,7 +311,7 @@ class SequenceModule(pl.LightningModule):
     output_batch = output_batch[:batch_size]
     steps_batch = steps_batch[:batch_size]
     #
-
+    
     # perform forward pass to compute gradients
     output_pred_batch, self.hiddens = self.forward(input = input_batch,
                                                   steps = steps_batch,
@@ -462,17 +466,20 @@ class SequenceModule(pl.LightningModule):
   def predict(self,
               reduction = 'mean',
               baseline_model = None):
-
+    
+    self.model.to(device = self.trainer.datamodule.device,
+                  dtype = self.trainer.datamodule.dtype)
+    
     self.baseline_model = baseline_model
-
+    
     self.trainer.datamodule.predicting = True
-
+    
     self.trainer.enable_progress_bar = False
-
+     
     start_step = self.trainer.datamodule.start_step
 
     with torch.no_grad():
-
+      
       ## Predict training data
       self.hiddens = None
       self.predict_output_mask = self.trainer.datamodule.train_output_mask
@@ -742,12 +749,12 @@ class SequenceModule(pl.LightningModule):
           except:
             ax_if = ax
 
-        train_target_if = self.train_prediction_data[f"{output_name}_actual"][:, f]
-        train_prediction_if = self.train_prediction_data[f"{output_name}_prediction"][:, f]
+        train_target_if = self.train_prediction_data[f"{output_name}_actual"][:, f].cpu()
+        train_prediction_if = self.train_prediction_data[f"{output_name}_prediction"][:, f].cpu()
         train_loss_if = np.round(self.train_prediction_data[f"{output_name}_{self.loss_fn.name}"][f].item(),2)
         train_metric_if = np.round(self.train_prediction_data[f"{output_name}_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
         if include_baseline:
-          train_baseline_prediction_if = self.train_prediction_data[f"{output_name}_baseline_prediction"][:, f]
+          train_baseline_prediction_if = self.train_prediction_data[f"{output_name}_baseline_prediction"][:, f].cpu()
           train_baseline_loss_if = np.round(self.train_prediction_data[f"{output_name}_baseline_{self.loss_fn.name}"][f].item(),2)
           train_baseline_metric_if = np.round(self.train_prediction_data[f"{output_name}_baseline_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
 
@@ -763,12 +770,12 @@ class SequenceModule(pl.LightningModule):
         ax_if.axvspan(train_time.min(), train_time.max(), facecolor='gray', alpha=0.2, label = train_label)
 
         if val_time is not None:
-          val_target_if = self.val_prediction_data[f"{output_name}_actual"][:, f]
-          val_prediction_if = self.val_prediction_data[f"{output_name}_prediction"][:, f]
+          val_target_if = self.val_prediction_data[f"{output_name}_actual"][:, f].cpu()
+          val_prediction_if = self.val_prediction_data[f"{output_name}_prediction"][:, f].cpu()
           val_loss_if = np.round(self.val_prediction_data[f"{output_name}_{self.loss_fn.name}"][f].item(),2)
           val_metric_if = np.round(self.val_prediction_data[f"{output_name}_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
           if include_baseline:
-            val_baseline_prediction_if = self.val_prediction_data[f"{output_name}_baseline_prediction"][:, f]
+            val_baseline_prediction_if = self.val_prediction_data[f"{output_name}_baseline_prediction"][:, f].cpu()
             val_baseline_loss_if = np.round(self.val_prediction_data[f"{output_name}_baseline_{self.loss_fn.name}"][f].item(),2)
             val_baseline_metric_if = np.round(self.val_prediction_data[f"{output_name}_baseline_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
 
@@ -784,12 +791,12 @@ class SequenceModule(pl.LightningModule):
           ax_if.axvspan(val_time.min(), val_time.max(), facecolor='blue', alpha=0.2, label = val_label)
 
         if test_time is not None:
-          test_target_if = self.test_prediction_data[f"{output_name}_actual"][:, f]
-          test_prediction_if = self.test_prediction_data[f"{output_name}_prediction"][:, f]
+          test_target_if = self.test_prediction_data[f"{output_name}_actual"][:, f].cpu()
+          test_prediction_if = self.test_prediction_data[f"{output_name}_prediction"][:, f].cpu()
           test_loss_if = np.round(self.test_prediction_data[f"{output_name}_{self.loss_fn.name}"][f].item(),2)
           test_metric_if = np.round(self.test_prediction_data[f"{output_name}_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
           if include_baseline:
-            test_baseline_prediction_if = self.test_prediction_data[f"{output_name}_baseline_prediction"][:, f]
+            test_baseline_prediction_if = self.test_prediction_data[f"{output_name}_baseline_prediction"][:, f].cpu()
             test_baseline_loss_if = np.round(self.test_prediction_data[f"{output_name}_baseline_{self.loss_fn.name}"][f].item(),2)
             test_baseline_metric_if = np.round(self.test_prediction_data[f"{output_name}_baseline_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
 
@@ -834,6 +841,9 @@ class SequenceModule(pl.LightningModule):
   ## forecast
   def forecast(self, num_forecast_steps = 1, hiddens = None):
 
+    self.model.to(device = self.trainer.datamodule.device,
+                  dtype = self.trainer.datamodule.dtype)
+          
     with torch.no_grad():
       steps = None
 
