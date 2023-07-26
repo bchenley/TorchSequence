@@ -513,8 +513,8 @@ class SequenceModel(torch.nn.Module):
                                        hiddens = hiddens,
                                        encoder_output = encoder_output)
         
-    # # Only keep the outputs for the maximum output sequence length
-    # output = output[:, -self.max_output_len:]
+    # Only keep the outputs for the maximum output sequence length
+    output = output[:, -self.max_output_len:]
 
     # Apply the output mask if specified
     if output_mask is not None: output = output*output_mask
