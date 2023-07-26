@@ -373,7 +373,7 @@ class SequenceModule(pl.LightningModule):
     for param in history:
       ax_i += 1
       ax = fig.add_subplot(num_params, 1, ax_i)
-      ax.plot(train_history[x_label].cpu(), train_history[param].cpu(), label = 'Train')
+      ax.plot(train_history[x_label].cpu(), train_history[param].cpu(), 'k', label = 'Train')
       if (self.val_history is not None) & (param in self.val_history) & (x_label == 'epochs'):
         N = np.min([self.val_history[x_label].shape[0], self.val_history[param].shape[0]])
 
@@ -383,12 +383,13 @@ class SequenceModule(pl.LightningModule):
           if self.metric_fn.name in param:
             metric = self.val_history[param][:N]
 
-        ax.plot(self.val_history[x_label][:N].cpu(), metric.cpu(), label = 'Val')
+        ax.plot(self.val_history[x_label][:N].cpu(), metric.cpu(), 'r', label = 'Val')
       ax.set_title(param)
       ax.set_xlabel(x_label)
       ax.set_ylabel(param)
+      ax.grid()
       ax.legend()
-    plt.grid()
+      
   ##
 
   ## Prediction
@@ -700,7 +701,7 @@ class SequenceModule(pl.LightningModule):
                        output_feature_units = None,
                        include_baseline = False,
                        figsize = None):
-
+    
     time_name = self.trainer.datamodule.time_name
     output_names = self.trainer.datamodule.output_names
     output_feature_names = self.trainer.datamodule.output_feature_names
