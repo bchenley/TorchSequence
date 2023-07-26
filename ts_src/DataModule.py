@@ -107,7 +107,7 @@ class DataModule(pl.LightningDataModule):
               self.transforms[name] = self.transforms['all']
             else:
               self.transforms = {name: FeatureTransform(scale_type='identity')}
-
+      
       for name in self.input_output_names:
         self.data[name] = self.transforms[name].fit_transform(self.data[name])
                       
@@ -123,8 +123,8 @@ class DataModule(pl.LightningDataModule):
         self.output_names, self.num_outputs = ['y'], 1
         self.output_feature_names = self.output_names_original
         
-        for name in list(np.unique(self.input_names_original + self.output_names_original)): 
-          del self.data[name]
+        # for name in list(np.unique(self.input_names_original + self.output_names_original)): 
+        #   del self.data[name]
 
       self.input_output_names = np.unique(self.input_names + self.output_names).tolist()
       self.num_inputs, self.num_outputs = len(self.input_names), len(self.output_names)
