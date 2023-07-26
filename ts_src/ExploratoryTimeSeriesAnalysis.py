@@ -2,7 +2,8 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ts_src import moving_average as moving_average, fft as fft
+from ts_src.moving_average import moving_average
+from ts_src.fft import fft
 
 class ExploratoryTimeSeriesAnalysis():
   """
@@ -191,7 +192,7 @@ class ExploratoryTimeSeriesAnalysis():
         None
       """
 
-      lags = self.lags
+      lags = self.lags.cpu()
       fig, ax = plt.subplots(int(np.sqrt(len(self.xcorr))), int(np.sqrt(len(self.xcorr))), figsize=figsize, num=fig_num)
 
       xcorr_names = list(self.xcorr)
@@ -203,7 +204,7 @@ class ExploratoryTimeSeriesAnalysis():
           ax_ixiy = ax[ix, iy] if int(np.sqrt(len(self.xcorr))) > 1 else ax
 
           i += 1
-          xcorr_ = self.xcorr[xcorr_names[i]].clone()
+          xcorr_ = self.xcorr[xcorr_names[i]].clone().cpu()
 
           if domain == 'frequency':
             xaxis, xcorr_, _ = fft(xcorr_, fs=1 / self.dt)
