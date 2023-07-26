@@ -118,7 +118,8 @@ class ExploratoryTimeSeriesAnalysis():
     for name in data_names:
       data_ = self.data[name]
       if not isinstance(data_, torch.Tensor):
-        data_ = torch.tensor(data_).to(device = self.device, dtype = self.dtype)
+        data_ = torch.tensor(data_)
+      data_ = data_.to(device = self.device, dtype = self.dtype)
       
       data.append(data_)
       input_size.append(data_.shape[-1])
