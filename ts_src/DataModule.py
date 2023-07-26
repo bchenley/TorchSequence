@@ -287,7 +287,7 @@ class DataModule(pl.LightningDataModule):
                                           output_names = self.output_names,
                                           step_name = 'steps',
                                           data = data,
-                                          batch_size = self.batch_size,
+                                          batch_size = 1,
                                           input_len = self.input_len, 
                                           output_len = self.output_len,
                                           shift = self.shift,
