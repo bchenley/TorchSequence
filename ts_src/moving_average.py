@@ -33,6 +33,7 @@ def moving_average(X, window):
         k = m[(m >= 0) & (m < X.shape[0])]
 
         window_ = window[(m >= 0) & (m < X.shape[0])]
+
         window_ /= window_.sum(0)
 
         y[i] = torch.matmul(window_, X[k])
