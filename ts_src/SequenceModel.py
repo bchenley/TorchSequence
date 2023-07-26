@@ -300,6 +300,8 @@ class SequenceModel(torch.nn.Module):
       elif self.flatten == 'feature':
         output_in_features_i = output_in_features_i * self.max_input_len
         output_out_features_i = self.output_size[i] * self.max_output_len
+      else:
+        output_out_features_i = self.output_size[i]
   
       if self.output_size[i] > 0:
         output_layer_i = HiddenLayer(# linear transformation
