@@ -41,7 +41,7 @@ class SequenceModule(pl.LightningModule):
     self.track_performance, self.track_params = track_performance, track_params
 
     self.model_dir = model_dir
-  
+
   def forward(self,
               input,
               hiddens = None,
@@ -163,12 +163,12 @@ class SequenceModule(pl.LightningModule):
         self.current_train_step = 0
         self.train_history = {'steps': torch.empty((0, 1)).to(device = train_step_loss.device,
                                                               dtype = torch.long)}
-        if self.track_performance:                                                              
+        if self.track_performance:
           for i in range(self.model.num_outputs):
             loss_name_i = self.loss_fn.name + '_' + self.trainer.datamodule.output_names[i]
             self.train_history[loss_name_i] = torch.empty((0, 1)).to(train_step_loss)
 
-        if self.track_params: 
+        if self.track_params:
           for name, param in self.model.named_parameters():
             if param.requires_grad == True:
               self.train_history[name] = torch.empty((0, param.numel())).to(param)
@@ -177,13 +177,13 @@ class SequenceModule(pl.LightningModule):
         self.train_history['steps'] = torch.cat((self.train_history['steps'],
                                                  torch.tensor(self.current_train_step).reshape(1, 1).to(train_step_loss)), 0)
 
-        if self.track_performance:  
+        if self.track_performance:
           for i in range(self.trainer.datamodule.num_outputs):
             loss_name_i = self.loss_fn.name + '_' + self.trainer.datamodule.output_names[i]
             self.train_history[loss_name_i] = torch.cat((self.train_history[loss_name_i],
                                                        train_step_loss[i].cpu().reshape(1, 1).to(train_step_loss)), 0)
 
-        if self.track_params: 
+        if self.track_params:
           for i,(name, param) in enumerate(self.model.named_parameters()):
             if param.requires_grad:
               self.train_history[name] = torch.cat((self.train_history[name],
@@ -233,7 +233,7 @@ class SequenceModule(pl.LightningModule):
     output_batch = output_batch[:batch_size]
     steps_batch = steps_batch[:batch_size]
     #
-    
+
     # perform forward pass to compute gradients
     output_pred_batch, self.hiddens = self.forward(input = input_batch,
                                                   steps = steps_batch,
@@ -262,7 +262,7 @@ class SequenceModule(pl.LightningModule):
 
     self.log('val_epoch_loss', val_epoch_loss.sum(), on_step = False, on_epoch = True, prog_bar = True)
 
-    if self.track_performance:  
+    if self.track_performance:
       if self.val_history is None:
         self.val_history = {'epochs': torch.empty((0, 1)).to(device = val_epoch_loss.device,
                                                              dtype = torch.long)}
@@ -311,7 +311,7 @@ class SequenceModule(pl.LightningModule):
     output_batch = output_batch[:batch_size]
     steps_batch = steps_batch[:batch_size]
     #
-    
+
     # perform forward pass to compute gradients
     output_pred_batch, self.hiddens = self.forward(input = input_batch,
                                                   steps = steps_batch,
@@ -466,20 +466,20 @@ class SequenceModule(pl.LightningModule):
   def predict(self,
               reduction = 'mean',
               baseline_model = None):
-    
+
     self.model.to(device = self.trainer.datamodule.device,
                   dtype = self.trainer.datamodule.dtype)
-    
+
     self.baseline_model = baseline_model
-    
+
     self.trainer.datamodule.predicting = True
-    
+
     self.trainer.enable_progress_bar = False
-     
+
     start_step = self.trainer.datamodule.start_step
 
     with torch.no_grad():
-      
+
       ## Predict training data
       self.hiddens = None
       self.predict_output_mask = self.trainer.datamodule.train_output_mask
@@ -843,7 +843,7 @@ class SequenceModule(pl.LightningModule):
 
     self.model.to(device = self.trainer.datamodule.device,
                   dtype = self.trainer.datamodule.dtype)
-          
+
     with torch.no_grad():
       steps = None
 
@@ -864,25 +864,25 @@ class SequenceModule(pl.LightningModule):
       #   output_window_idx = self.trainer.datamodule.train_output_window_idx
 
       forecast_dl = self.trainer.datamodule.forecast_dataloader()
-      
+
       for batch in forecast_dl: last_sample = batch
 
       forecast_time = self.trainer.datamodule.dt + np.arange(num_forecast_steps) * self.trainer.datamodule.dt + self.trainer.datamodule.last_time
 
       input, _, steps, batch_size = last_sample
-      
+
       last_input_sample, last_steps_sample = input[:batch_size][-1:], steps[:batch_size][-1:]
-      
+
       input_window_idx = self.trainer.datamodule.forecast_input_window_idx
       output_window_idx = self.trainer.datamodule.forecast_output_window_idx
       max_output_len = self.trainer.datamodule.forecast_max_output_len
-      max_input_size, max_output_size = self.trainer.datamodule.max_input_size, self.trainer.datamodule.max_output_size
+      total_input_size, total_output_size = np.sum(self.trainer.datamodule.input_size), np.sum(self.trainer.datamodule.output_size)
       output_mask = self.trainer.datamodule.forecast_output_mask
       output_input_idx, input_output_idx = self.trainer.datamodule.output_input_idx, self.trainer.datamodule.input_output_idx
-      
+
       input, steps = last_input_sample, last_steps_sample
 
-      forecast = torch.empty((1, 0, max_output_size)).to(device = self.model.device,
+      forecast = torch.empty((1, 0, total_output_size)).to(device = self.model.device,
                                                          dtype = self.model.dtype)
       forecast_steps = torch.empty((1, 0)).to(device = self.model.device,
                                               dtype = torch.long)
@@ -896,18 +896,18 @@ class SequenceModule(pl.LightningModule):
 
       forecast = torch.cat((forecast, output[:, -max_output_len:]), 1)
       forecast_steps = torch.cat((forecast_steps, steps[:, -max_output_len:]), 1)
-      
+
       steps += max_output_len
 
       while forecast.shape[1] < num_forecast_steps:
 
-        input_ = torch.zeros((1, max_output_len, max_input_size)).to(input)
+        input_ = torch.zeros((1, max_output_len, total_input_size)).to(input)
 
         if len(output_input_idx) > 0:
           input_[:, :, output_input_idx] = output[:, -max_output_len:, input_output_idx]
 
         input = torch.cat((input[:, max_output_len:], input_), 1)
-        
+
         output, hiddens = self.forward(input = input,
                                        steps = steps,
                                        hiddens = hiddens,
@@ -929,6 +929,27 @@ class SequenceModule(pl.LightningModule):
     return forecast_reduced, forecast_time
   ##
 
+  # ##
+  # def predict_sample(self, input, hiddens):
+
+  #   input = input.unsqueeze(0) if input.ndim == 2
+
+  #   transforms = self.trainer.datamodule.transforms
+
+  #   input_names = self.trainer.datamodule.input_feature_names or self.trainer.datamodule.input_names
+  #   output_names = self.trainer.datamodule.output_feature_names or self.trainer.datamodule.output_names
+
+  #   j = 0
+  #   for i,name in enumerate(input_names):
+  #     input[..., j:(j+self.model.input_size[i])] = transforms[name].transform(input[..., j:(j+self.model.input_size[i])])
+
+  #   prediction, hiddens = self.forward(input = input,
+  #                                      hidden = hidden,
+  #                                      )
+
+  #   transforms[output_name_i]
+  # ##
+
   ##
   def generate_reduced_output(self, output, output_steps, reduction='mean', transforms=None):
 
@@ -938,6 +959,8 @@ class SequenceModule(pl.LightningModule):
 
     # Create a tensor to store the reduced output
     output_reduced = torch.zeros((len(unique_output_steps), np.sum(self.model.output_size))).to(output)
+
+    output_names = self.trainer.datamodule.output_feature_names or self.trainer.datamodule.output_names
 
     k = -1
     for step in unique_output_steps:
@@ -974,7 +997,7 @@ class SequenceModule(pl.LightningModule):
     if transforms is not None:
         j = 0
         for i in range(self.model.num_outputs):
-            output_name_i = self.trainer.datamodule.output_names[i]
+            output_name_i = output_names[i]
             output_reduced[:, j:(j + self.model.output_size[i])] = transforms[output_name_i].inverse_transform(output_reduced[:, j:(j + self.model.output_size[i])])
             j += self.model.output_size[i]
 
@@ -985,7 +1008,7 @@ class SequenceModule(pl.LightningModule):
           datamodule,
           max_epochs = 20,
           callbacks = [None]):
-    
+
     try:
       self.trainer = pl.Trainer(max_epochs = max_epochs,
                                 accelerator = 'gpu' if self.model.device == 'cuda' else 'cpu',
