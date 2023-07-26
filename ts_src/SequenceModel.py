@@ -218,7 +218,7 @@ class SequenceModel(torch.nn.Module):
           interaction_in_features += self.base_transformer_dim_feedforward[i]
 
       self.interaction_layer = HiddenLayer(# linear transformation
-                                          in_features = self.interaction_in_features, out_features = self.interaction_out_features,
+                                          in_features = interaction_in_features, out_features = self.interaction_out_features,
                                           bias = self.interaction_bias,
                                           # activation
                                           activation = self.interaction_activation,
