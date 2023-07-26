@@ -2,8 +2,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ts_src.moving_average import moving_average
-from ts_src.fft import fft
+from ts_src import moving_average as moving_average, fft as fft
 
 class ExploratoryTimeSeriesAnalysis():
   """
@@ -64,7 +63,7 @@ class ExploratoryTimeSeriesAnalysis():
     data_ = []
     for i, name in enumerate(data_names):
       data_.append(torch.tensor(self.data[name]).to(device=self.device, dtype=self.dtype)
-                    if ~isinstance(self.data[name], torch.Tensor) else self.data[name].to(device=self.device,
+                    if not isinstance(self.data[name], torch.Tensor) else self.data[name].to(device=self.device,
                                                                                           dtype=self.dtype))
 
       data_[-1] = data_[-1] - moving_average(data_[-1], torch.hann_window(hann_window_len[i]).to(data_[-1])) \
@@ -117,7 +116,7 @@ class ExploratoryTimeSeriesAnalysis():
     data, input_size = [], []
     for name in data_names:
       data_ = self.data[name]
-      if ~isinstance(data_, torch.Tensor):
+      if not isinstance(data_, torch.Tensor):
         data_ = torch.tensor(data_).to(device = self.device, dtype = self.dtype)
       
       data.append(data_)
@@ -139,7 +138,7 @@ class ExploratoryTimeSeriesAnalysis():
       data_ = []
       for i, name in enumerate(data_names):
         data_.append(torch.tensor(self.data[name]).to(device=self.device, dtype=self.dtype)
-                      if ~isinstance(self.data[name], torch.Tensor) else self.data[name].to(device=self.device,
+                      if not isinstance(self.data[name], torch.Tensor) else self.data[name].to(device=self.device,
                                                                                           dtype=self.dtype))
 
         data_[-1] = data_[-1] - moving_average(data_[-1], torch.hann_window(hann_window_len[i]).to(data_[-1])) \
