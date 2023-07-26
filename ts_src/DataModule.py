@@ -14,7 +14,7 @@ class DataModule(pl.LightningDataModule):
                 pct_train_val_test = [1., 0., 0.],
                 batch_size = -1,
                 input_len = [1], output_len = [1], shift = [0], stride = 1,
-                dt = 1,
+                dt = None,
                 time_unit = 's',
                 pad_data = False,
                 print_summary = True,
