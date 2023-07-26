@@ -384,19 +384,19 @@ class SequenceModel(torch.nn.Module):
                                                    else input_i,
                                                    hiddens = hiddens[i],
                                                    encoder_output = encoder_output)
-
+      
       base_output_i = torch.nn.functional.pad(base_output_i,
                                               (0, 0, np.max([0, base_output_i.shape[1]-input_len]), 0),
                                               "constant", 0)
       
       if self.store_layer_outputs: self.base_layer_output[i].append(base_output_i)
-
+      
       # Generate hidden layer outputs for ith input, append result to previous hidden layer output of previous inputs
       hidden_output_i = self.hidden_layer[i](base_output_i)
       hidden_output.append(hidden_output_i)
       
       if self.store_layer_outputs: self.hidden_layer_output[i].append(hidden_output_i)
-
+    
     output_ = torch.cat(hidden_output,-1)
 
     output_ = self.interaction_layer(output_)
@@ -480,6 +480,7 @@ class SequenceModel(torch.nn.Module):
     # Process output and updated hiddens
 
     if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder
+
       output, hiddens = self.process(input = input,
                                      steps = steps,
                                      hiddens = hiddens,
