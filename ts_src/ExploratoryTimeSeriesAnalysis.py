@@ -192,7 +192,7 @@ class ExploratoryTimeSeriesAnalysis():
         None
       """
 
-      lags = self.lags.cpu()
+      lags = self.lags
       fig, ax = plt.subplots(int(np.sqrt(len(self.xcorr))), int(np.sqrt(len(self.xcorr))), figsize=figsize, num=fig_num)
 
       xcorr_names = list(self.xcorr)
@@ -204,7 +204,7 @@ class ExploratoryTimeSeriesAnalysis():
           ax_ixiy = ax[ix, iy] if int(np.sqrt(len(self.xcorr))) > 1 else ax
 
           i += 1
-          xcorr_ = self.xcorr[xcorr_names[i]].clone().cpu()
+          xcorr_ = self.xcorr[xcorr_names[i]].clone()
 
           if domain == 'frequency':
             xaxis, xcorr_, _ = fft(xcorr_, fs=1 / self.dt)
