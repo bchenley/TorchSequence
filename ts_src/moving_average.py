@@ -6,17 +6,18 @@ def moving_average(X, window):
     Applies a moving average filter to the input signal.
 
     Args:
-        X: The input signal.
+        X: The input signal (PyTorch tensor).
         window: The window of the moving average filter.
 
     Returns:
         y: The output signal after applying the moving average filter.
     '''
-    # if isinstance(X, torch.Tensor):
-    #     X = X.cpu().numpy()
-    # if isinstance(window, torch.Tensor):
-    #     window = window.cpu().numpy()
 
+    if not isinstance(window, torch.Tensor):
+        window = torch.tensor(window).to(X)
+    else:
+        window = window.to(X)
+        
     len_window = window.shape[0]
 
     y = torch.empty_like(X)
