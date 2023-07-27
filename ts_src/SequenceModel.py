@@ -337,7 +337,7 @@ class SequenceModel(torch.nn.Module):
 
     X = torch.empty((1, self.max_input_len, np.sum(self.input_size))).to(device = self.device,
                                                                          dtype = self.dtype)
-    encoder_output = torch.empty((1, self.max_input, encoder_output_size)).to(X) if encoder_output_size is not None else None
+    encoder_output = torch.empty((1, self.max_input_len, encoder_output_size)).to(X) if encoder_output_size is not None else None
                     
     self.max_output_len = self.forward(X, encoder_output = encoder_output)[0].shape[1]
     # if self.flatten == 'time':
