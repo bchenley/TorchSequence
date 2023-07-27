@@ -9,7 +9,7 @@ import time
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 
-from ts_src.Loss import Loss
+from ts_src.Criterion import Criterion
 
 class SequenceModule(pl.LightningModule):
   def __init__(self,
