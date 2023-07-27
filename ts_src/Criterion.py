@@ -3,7 +3,7 @@ class Criterion():
   A class for computing criterion functions.
   '''
 
-  def __init__(self, name='mse', dims=0):
+  def __init__(self, name='mse', dims=None):
     '''
     Initializes the Criterion instance.
 
