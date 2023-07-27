@@ -63,7 +63,7 @@ class HiddenLayer(torch.nn.Module):
                                  bias = self.bias, device = self.device, dtype = self.dtype)
           
             if self.weights_to_1: # (self.in_features == 1) & (self.out_features == 1):
-              f1.weight.data.fill(1.0)
+              f1.weight.data.fill_(1.0)
               f1.weight.requires_grad = False
 
     if self.activation == 'identity':
