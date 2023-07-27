@@ -646,12 +646,12 @@ class SequenceModule(pl.LightningModule):
       train_prediction_data[f"{output_name}_actual"] = train_target_i
       train_prediction_data[f"{output_name}_prediction"] = train_prediction_i
 
-      train_loss_i = Loss(self.loss_fn.name,
+      train_loss_i = Criterion(self.loss_fn.name,
                           dims=(0,1))(train_prediction_i.unsqueeze(0), train_target_i.unsqueeze(0))
       train_prediction_data[f"{output_name}_{self.loss_fn.name}"] = train_loss_i
 
       if self.metric_fn is not None:
-        train_metric_i = Loss(self.metric_fn.name,
+        train_metric_i = Criterion(self.metric_fn.name,
                             dims=(0,1))(train_prediction_i.unsqueeze(0), train_target_i.unsqueeze(0))
         train_prediction_data[f"{output_name}_{self.metric_fn.name}"] = train_metric_i
 
@@ -659,11 +659,11 @@ class SequenceModule(pl.LightningModule):
       if train_baseline_pred is not None:
         train_baseline_pred_i = train_baseline_pred[:, j:(j+self.trainer.datamodule.output_size[i])]
 
-        train_baseline_loss_i = Loss(self.loss_fn.name,
+        train_baseline_loss_i = Criterion(self.loss_fn.name,
                                      dims=(0,1))(train_baseline_pred_i.unsqueeze(0), train_target_i.unsqueeze(0))
 
         if self.metric_fn is not None:
-          train_baseline_metric_i = Loss(self.metric_fn.name,
+          train_baseline_metric_i = Criterion(self.metric_fn.name,
                                          dims=(0,1))(train_baseline_pred_i.unsqueeze(0), train_target_i.unsqueeze(0))
 
       train_prediction_data[f"{output_name}_baseline_prediction"] = train_baseline_pred_i
@@ -683,12 +683,12 @@ class SequenceModule(pl.LightningModule):
         val_prediction_data[f"{output_name}_actual"] = val_target_i
         val_prediction_data[f"{output_name}_prediction"] = val_prediction_i
 
-        val_loss_i = Loss(self.loss_fn.name,
+        val_loss_i = Criterion(self.loss_fn.name,
                             dims=(0,1))(val_prediction_i.unsqueeze(0), val_target_i.unsqueeze(0))
         val_prediction_data[f"{output_name}_{self.loss_fn.name}"] = val_loss_i
 
         if self.metric_fn is not None:
-          val_metric_i = Loss(self.metric_fn.name,
+          val_metric_i = Criterion(self.metric_fn.name,
                               dims=(0,1))(val_prediction_i.unsqueeze(0), val_target_i.unsqueeze(0))
           val_prediction_data[f"{output_name}_{self.metric_fn.name}"] = val_metric_i
 
@@ -696,11 +696,11 @@ class SequenceModule(pl.LightningModule):
         if val_baseline_pred is not None:
           val_baseline_pred_i = val_baseline_pred[:, j:(j+self.trainer.datamodule.output_size[i])]
 
-          val_baseline_loss_i = Loss(self.loss_fn.name,
+          val_baseline_loss_i = Criterion(self.loss_fn.name,
                               dims=(0,1))(val_baseline_pred_i.unsqueeze(0), val_target_i.unsqueeze(0))
 
           if self.metric_fn is not None:
-            val_baseline_metric_i = Loss(self.metric_fn.name,
+            val_baseline_metric_i = Criterion(self.metric_fn.name,
                                          dims=(0,1))(val_baseline_pred_i.unsqueeze(0), val_target_i.unsqueeze(0))
 
         val_prediction_data[f"{output_name}_baseline_prediction"] = val_baseline_pred_i
@@ -720,12 +720,12 @@ class SequenceModule(pl.LightningModule):
         test_prediction_data[f"{output_name}_actual"] = test_target_i
         test_prediction_data[f"{output_name}_prediction"] = test_prediction_i
 
-        test_loss_i = Loss(self.loss_fn.name,
+        test_loss_i = Criterion(self.loss_fn.name,
                            dims=(0,1))(test_prediction_i.unsqueeze(0), test_target_i.unsqueeze(0))
         test_prediction_data[f"{output_name}_{self.loss_fn.name}"] = test_loss_i
 
         if self.metric_fn is not None:
-          test_metric_i = Loss(self.metric_fn.name,
+          test_metric_i = Criterion(self.metric_fn.name,
                               dims=(0,1))(test_prediction_i.unsqueeze(0), test_target_i.unsqueeze(0))
           test_prediction_data[f"{output_name}_{self.metric_fn.name}"] = test_metric_i
 
@@ -733,11 +733,11 @@ class SequenceModule(pl.LightningModule):
         if test_baseline_pred is not None:
           test_baseline_pred_i = test_baseline_pred[:, j:(j+self.trainer.datamodule.output_size[i])]
 
-          test_baseline_loss_i = Loss(self.loss_fn.name,
+          test_baseline_loss_i = Criterion(self.loss_fn.name,
                                       dims=(0,1))(test_baseline_pred_i.unsqueeze(0), test_target_i.unsqueeze(0))
 
           if self.metric_fn is not None:
-            test_baseline_metric_i = Loss(self.metric_fn.name,
+            test_baseline_metric_i = Criterion(self.metric_fn.name,
                                           dims=(0,1))(test_baseline_pred_i.unsqueeze(0), test_target_i.unsqueeze(0))
 
         test_prediction_data[f"{output_name}_baseline_prediction"] = test_baseline_pred_i
