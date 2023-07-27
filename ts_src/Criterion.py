@@ -25,26 +25,30 @@ class Criterion():
     Returns:
         torch.Tensor: The computed criterion value.
     '''
+    
     if self.name == 'mae':
         # Mean Absolute Error (L1 loss)
-        criterion = (y_true - y_pred).abs().nanmean(dim=self.dims)
+        criterion = (y_true - y_pred).abs()
     elif self.name == 'mse':
         # Mean Squared Error
-        criterion = (y_true - y_pred).pow(2).nanmean(dim=self.dims)
+        criterion = (y_true - y_pred).pow(2)
     elif self.name == 'mase':
         # Mean Absolute Scaled Error
-        criterion = (y_true - y_pred).abs().nanmean(dim=self.dims) / (y_true.diff(n=1, dim=self.dims).abs().nanmean(dim=self.dims))
+        criterion = (y_true - y_pred).abs() / (y_true.diff(n=1, dim=self.dims).abs().nanmean(dim=self.dims))
     elif self.name == 'rmse':
         # Root Mean Squared Error
-        criterion = (y_true - y_pred).pow(2).nanmean(dim=self.dims).sqrt()
+        criterion = (y_true - y_pred).pow(2).sqrt()
     elif self.name == 'nmse':
         # Normalized Mean Squared Error
-        criterion = (y_true - y_pred).pow(2).nanmean(dim=self.dims) / y_true.pow(2).nanmean(dim=self.dims)
+        criterion = (y_true - y_pred).pow(2) / y_true.pow(2).nanmean(dim=self.dims)
     elif self.name == 'mape':
         # Mean Absolute Percentage Error
-        criterion = (((y_true - y_pred) / y_true).abs() * 100).nanmean(dim=self.dims)
+        criterion = (((y_true - y_pred) / y_true).abs() * 100)
     elif self.name == 'fb':
         # Fractional Bias
         criterion = (y_pred.nansum(dim=self.dims) - y_true.nansum(dim=self.dims)) / y_true.nansum(dim=self.dims)
 
+    if self.dims is not None:
+      criterion = criterion.nanmean(dim=self.dims)
+      
     return criterion
