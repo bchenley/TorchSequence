@@ -126,12 +126,10 @@ class SequenceDataset(torch.utils.data.Dataset):
     
     window_idx_n = self.total_window_idx
 
-    print(self.data[self.step_name])
-    
     num_samples = 0
     while window_idx_n.max() < self.data_len:
         num_samples += 1
-        print(window_idx_n)
+
         steps_samples.append(self.data[self.step_name][window_idx_n])
         
         # input
