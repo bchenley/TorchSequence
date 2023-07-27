@@ -9,7 +9,7 @@ import time
 from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
 
-from ts_src import Loss as Loss
+from ts_src.Loss import Loss
 
 class SequenceModule(pl.LightningModule):
   def __init__(self,
@@ -558,6 +558,7 @@ class SequenceModule(pl.LightningModule):
       # train_loss = torch.stack([l.sum() for l in train_loss.split(self.model.output_size, -1)], 0)
 
       train_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name] # [start_step:]
+      train_time = train_time[(train_output_steps.cpu() - start_step).numpy()]
 
       train_baseline_pred, train_baseline_loss = None, None
       if self.baseline_model is not None:
@@ -585,6 +586,7 @@ class SequenceModule(pl.LightningModule):
         # val_loss = torch.stack([l.sum() for l in val_loss.split(self.model.output_size, -1)], 0)
 
         val_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name] # [start_step:]
+        val_time = val_time[(val_output_steps.cpu() - start_step).numpy()]
 
         if not self.trainer.datamodule.pad_data:
           val_time = val_time[start_step:]
@@ -617,6 +619,7 @@ class SequenceModule(pl.LightningModule):
         # test_loss = torch.stack([l.sum() for l in test_loss.split(self.model.output_size, -1)], 0)
 
         test_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name] # [start_step:]
+        test_time = test_time[(test_output_steps.cpu() - start_step).numpy()]
 
         if not self.trainer.datamodule.pad_data:
           test_time = test_time[start_step:]
@@ -1060,7 +1063,7 @@ class SequenceModule(pl.LightningModule):
 
     # Return the reduced output and unique output steps
     return output_reduced, unique_output_steps
-
+  
   def fit(self,
           datamodule,
           max_epochs = 20,
