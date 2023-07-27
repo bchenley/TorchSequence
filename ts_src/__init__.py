@@ -4,7 +4,7 @@ import importlib
 
 __all__ = ['ExploratoryTimeSeriesAnalysis',
            'FeatureTransform',
-           'Loss', 
+           'Criterion', 
            'fft', 
            'periodogram', 
            'moving_average', 
