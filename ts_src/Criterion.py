@@ -46,7 +46,7 @@ class Criterion():
         criterion = (((y_true - y_pred) / y_true).abs() * 100)
     elif self.name == 'fb':
         # Fractional Bias
-        criterion = (y_pred.nansum(dim=self.dims) - y_true.nansum(dim=self.dims)) / y_true.nansum(dim=self.dims)
+        criterion = (y_pred.nansum(dim=self.dims) - y_true.nansum(dim=self.dims)) / y_true.nansum(dim=self.dims) * 100
 
     if self.dims is not None:
       criterion = criterion.nanmean(dim=self.dims)
