@@ -1,10 +1,13 @@
 import torch 
 
-from ts_src import LRU as LRU, HiddenLayer as HiddenLayer, Embedding as Embedding, \
-     Attention as Attention, PositionalEncoding as PositionalEncoding, \
-     TransformerEncoderLayer as TransformerEncoderLayer, \
-     TransformerDecoderLayer as TransformerDecoderLayer, \
-     CNN1D as CNN1D
+from ts_src.LRU import LRU
+from ts_src.HiddenLayer import HiddenLayer
+from ts_src.Embedding import Embedding
+from ts_src.Attention import Attention
+from ts_src.PositionalEncoding import PositionalEncoding
+from ts_src.TransformerEncoderLayer import TransformerEncoderLayer
+from ts_src.TransformerDecoderLayer import TransformerDecoderLayer
+from ts_src.CNN1D import CNN1D
 
 class SequenceModelBase(torch.nn.Module):
   '''
