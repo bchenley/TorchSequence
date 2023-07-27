@@ -303,7 +303,7 @@ class SequenceModelBase(torch.nn.Module):
                                               out_features = self.hidden_size,
                                               activation = 'identity',
                                               bias = self.encoder_bias,
-                                              device = self.device, dtyp = self.dtype)
+                                              device = self.device, dtype = self.dtype)
 
         self.base[1].norm = None if not self.transformer_layer_norm else self.base[1].norm
 
