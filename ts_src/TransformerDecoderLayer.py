@@ -1,5 +1,8 @@
 import torch
 
+from ts_src.Attention import Attention
+from ts_src.Polynomial import Polynomial
+
 class TransformerDecoderLayer(torch.nn.TransformerDecoderLayer):
   '''
   Transformer Decoder Layer module that extends `torch.nn.TransformerDecoderLayer`.
