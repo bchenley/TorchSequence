@@ -448,7 +448,7 @@ class SequenceModel(torch.nn.Module):
               target = None,
               output_window_idx = None,
               input_mask = None, output_mask = None,
-              output_input_idx = None, input_output_idx = None,
+              output_input_idx = [], input_output_idx = [],
               encoder_output= None):
     
     self.base_layer_output = [[] for _ in range(self.num_inputs)]
