@@ -532,8 +532,8 @@ class SequenceModule(pl.LightningModule):
 
     self.trainer.enable_progress_bar = False
 
-    start_step = self.trainer.datamodule.start_step
-
+    start_step = self.trainer.datamodule.start_step if self.trainer.datamodule.pad_data else 0
+    
     with torch.no_grad():
 
       ## Predict training data
@@ -543,8 +543,8 @@ class SequenceModule(pl.LightningModule):
 
       self.trainer.predict(self, self.trainer.datamodule.train_dl.dl)
 
-      if self.trainer.datamodule.pad_data:
-        self.prediction, self.target, self.output_steps = self.prediction[start_step:], self.target[start_step:], self.output_steps[start_step:]
+      # if self.trainer.datamodule.pad_data:
+      #   self.prediction, self.target, self.output_steps = self.prediction[start_step:], self.target[start_step:], self.output_steps[start_step:]
 
       train_prediction, train_output_steps = self.generate_reduced_output(self.prediction, self.output_steps,
                                                                           reduction = reduction, transforms=self.trainer.datamodule.transforms)
@@ -557,7 +557,7 @@ class SequenceModule(pl.LightningModule):
 
       # train_loss = torch.stack([l.sum() for l in train_loss.split(self.model.output_size, -1)], 0)
 
-      train_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name][start_step:]
+      train_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name] # [start_step:]
 
       train_baseline_pred, train_baseline_loss = None, None
       if self.baseline_model is not None:
@@ -565,7 +565,7 @@ class SequenceModule(pl.LightningModule):
         # train_baseline_loss = self.loss_fn(train_baseline_pred.unsqueeze(0),
         #                                    train_target.unsqueeze(0))
       ##
-
+     
       # Predict validation data
       val_prediction, val_target, val_time, val_loss, val_baseline_pred, val_baseline_loss = None, None, None, None, None, None
       if len(self.trainer.datamodule.val_dl.dl) > 0:
@@ -584,7 +584,7 @@ class SequenceModule(pl.LightningModule):
         #                         val_target.unsqueeze(0))
         # val_loss = torch.stack([l.sum() for l in val_loss.split(self.model.output_size, -1)], 0)
 
-        val_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name]
+        val_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name] # [start_step:]
 
         if not self.trainer.datamodule.pad_data:
           val_time = val_time[start_step:]
@@ -616,7 +616,7 @@ class SequenceModule(pl.LightningModule):
         #                         test_target.unsqueeze(0))
         # test_loss = torch.stack([l.sum() for l in test_loss.split(self.model.output_size, -1)], 0)
 
-        test_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name]
+        test_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name] # [start_step:]
 
         if not self.trainer.datamodule.pad_data:
           test_time = test_time[start_step:]
