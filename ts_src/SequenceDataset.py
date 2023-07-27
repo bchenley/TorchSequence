@@ -79,8 +79,9 @@ class SequenceDataset(torch.utils.data.Dataset):
     self.total_window_idx = torch.arange(self.total_window_size).to(device = self.device, 
                                                                     dtype = torch.long)
     
-    self.start_step = self.max_input_len - self.max_output_len + self.max_shift + int(self.has_ar)
-      
+    # self.start_step = self.max_input_len - self.max_output_len + self.max_shift + int(self.has_ar)    
+    self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift)]).item()
+
     if self.print_summary:
       print('\n'.join([f'Data length: {self.data_len}',
                        f'Window size: {self.total_window_size}',
@@ -124,11 +125,13 @@ class SequenceDataset(torch.utils.data.Dataset):
     min_output_idx = torch.cat(self.output_window_idx).min().item()
     
     window_idx_n = self.total_window_idx
+
+    print(self.data[self.step_name])
     
     num_samples = 0
     while window_idx_n.max() < self.data_len:
         num_samples += 1
-        
+        print(window_idx_n)
         steps_samples.append(self.data[self.step_name][window_idx_n])
         
         # input
