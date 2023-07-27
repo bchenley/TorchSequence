@@ -556,9 +556,9 @@ class SequenceModule(pl.LightningModule):
       #                           train_target.unsqueeze(0))
 
       # train_loss = torch.stack([l.sum() for l in train_loss.split(self.model.output_size, -1)], 0)
-
-      train_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name] # [start_step:]
-      train_time = train_time[(train_output_steps.cpu() - start_step).numpy()]
+      
+      # train_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name]
+      train_time =  self.trainer.datamodule.data[self.trainer.datamodule.time_name][(train_output_steps.cpu() - start_step).numpy()]
 
       train_baseline_pred, train_baseline_loss = None, None
       if self.baseline_model is not None:
@@ -585,8 +585,8 @@ class SequenceModule(pl.LightningModule):
         #                         val_target.unsqueeze(0))
         # val_loss = torch.stack([l.sum() for l in val_loss.split(self.model.output_size, -1)], 0)
 
-        val_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name] # [start_step:]
-        val_time = val_time[(val_output_steps.cpu() - start_step).numpy()]
+        # val_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name]
+        val_time =  self.trainer.datamodule.data[self.trainer.datamodule.time_name][(val_output_steps.cpu() - start_step).numpy()]
 
         if not self.trainer.datamodule.pad_data:
           val_time = val_time[start_step:]
@@ -618,8 +618,8 @@ class SequenceModule(pl.LightningModule):
         #                         test_target.unsqueeze(0))
         # test_loss = torch.stack([l.sum() for l in test_loss.split(self.model.output_size, -1)], 0)
 
-        test_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name] # [start_step:]
-        test_time = test_time[(test_output_steps.cpu() - start_step).numpy()]
+        # test_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name]
+        test_time =  self.trainer.datamodule.data[self.trainer.datamodule.time_name][(test_output_steps.cpu() - start_step).numpy()]
 
         if not self.trainer.datamodule.pad_data:
           test_time = test_time[start_step:]
@@ -753,6 +753,80 @@ class SequenceModule(pl.LightningModule):
 
     self.trainer.enable_progress_bar = True
     self.trainer.datamodule.predicting = False
+  ##
+  
+  ##
+  def evaluate_model(self,
+                     loss = 'mse', metric = None):
+
+    loss_name, metric_name = loss, metric
+
+    stride = self.trainer.datamodule.stride
+
+    # loss_name = self.loss_fn.name
+    loss_fn = Criterion(loss_name) 
+
+    metric_fn = None
+    
+    if metric_name is not None:
+      # metric_name = self.metric_fn.name
+      metric_fn = Criterion(metric_name, 0 if metric_name == 'fb' else None)
+      
+    if self.test_prediction_data is not None:
+      prediction_data = self.test_prediction_data      
+    elif self.val_prediction_data is not None:
+      prediction_data = self.val_prediction_data
+    else:
+      prediction_data = self.train_prediction_data
+
+    time = prediction_data[self.trainer.datamodule.time_name]
+
+    self.evaluation_data = {}
+    for name in self.trainer.datamodule.output_names:
+      
+      target = prediction_data[f"{name}_actual"]
+      prediction = prediction_data[f"{name}_prediction"]
+
+      # loss
+      step_loss = loss_fn(target, prediction)
+      global_loss = step_loss.mean(0)
+      stride_loss, stride_time = [], []
+
+      self.evaluation_data[f"{name}_step_{loss_name}"] = step_loss
+      self.evaluation_data[f"{name}_global_{loss_name}"] = global_loss
+      
+      for i in range(stride, step_loss.shape[0]+1, stride):
+        stride_time.append(time[(i-stride):i])
+        stride_loss.append(step_loss[(i-stride):i].mean(0))
+
+      self.evaluation_data[f"{name}_stride_{loss_name}"] = torch.cat(stride_loss,0)
+    #
+
+    # metric
+    if metric_fn is not None:
+      if metric_fn.dims is None:
+        step_metric = metric_fn(target, prediction)
+        global_metric = step_metric.mean(0)
+        stride_loss, stride_time = [], []
+        
+        for i in range(stride, step_metric.shape[0]+1, stride):
+          stride_metric.append(step_metric[(i-stride):i].mean(0))
+
+      else:
+        step_metric = None
+        global_metric = metric_fn(target, prediction)
+          
+        stride_metric = []
+        for i in range(stride, target.shape[0]+1, stride):
+          stride_metric.append(metric_fn(target[(i-stride):i], prediction[(i-stride):i]).reshape(-1, target.shape[-1]))
+
+      self.evaluation_data[f"{name}_step_{metric_name}"] = step_metric
+      self.evaluation_data[f"{name}_global_{metric_name}"] = global_metric      
+      self.evaluation_data[f"{name}_stride_{metric_name}"] = torch.cat(stride_metric,0)
+    
+    self.evaluation_data[f"stride_{self.trainer.datamodule.time_name}"] = stride_time
+    #
+  ##
 
   ##
   def plot_predictions(self,
