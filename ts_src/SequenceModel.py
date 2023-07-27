@@ -479,8 +479,7 @@ class SequenceModel(torch.nn.Module):
 
     # Process output and updated hiddens
 
-    if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder
-
+    if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder      
       output, hiddens = self.process(input = input,
                                      steps = steps,
                                      hiddens = hiddens,
