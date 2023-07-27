@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 import pickle
 
-from ts_src import SequenceDataloader as SequenceDataloader, FeatureTransform as FeatureTransform
+from ts_src.SequenceDataloader import SequenceDataloader
+from ts_src.FeatureTransform import FeatureTransform
 
 class DataModule(pl.LightningDataModule):
   def __init__(self,
