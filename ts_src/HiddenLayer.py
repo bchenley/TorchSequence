@@ -24,9 +24,11 @@ class HiddenLayer(torch.nn.Module):
       dtype (torch.dtype): Data type of the model parameters.
 
   '''
-
-  def __init__(self, in_features, out_features=None, bias=True, activation='identity',
-                weight_reg=[0.001, 1], weight_norm=2, degree=1, coef_init=None, coef_train=True,
+  
+  def __init__(self, in_features, out_features=None, 
+               bias=True, activation='identity',
+                weights_to_1 = False, weight_reg=[0.001, 1], weight_norm=2, 
+                degree=1, coef_init=None, coef_train=True,
                 coef_reg=[0.001, 1], zero_order=False, softmax_dim=-1, dropout_p=0.0,
                 device='cpu', dtype=torch.float32):
     super(HiddenLayer, self).__init__()
@@ -59,9 +61,9 @@ class HiddenLayer(torch.nn.Module):
         else:
             f1 = torch.nn.Linear(in_features = self.in_features, out_features = self.out_features,
                                  bias = self.bias, device = self.device, dtype = self.dtype)
-
-            if (self.in_features == 1) & (self.out_features == 1):
-              f1.weight.data = torch.ones_like(f1.weight)
+          
+            if self.weights_to_1: # (self.in_features == 1) & (self.out_features == 1):
+              f1.weight.data.fill(1.0)
               f1.weight.requires_grad = False
 
     if self.activation == 'identity':
