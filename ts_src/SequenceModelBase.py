@@ -99,6 +99,7 @@ class SequenceModelBase(torch.nn.Module):
   def __init__(self,
               input_size, hidden_size, seq_len=None,
               base_type='gru', num_layers=1,
+              stateful = False,
               encoder_bias=False, decoder_bias=False,
               rnn_bias = True,
               rnn_dropout_p = 0,
@@ -347,14 +348,14 @@ class SequenceModelBase(torch.nn.Module):
         hiddens (list or torch.Tensor): Initialized hidden states.
     '''
     if self.base_type == 'lru':
-        hiddens = torch.zeros((self.base.num_filterbanks, num_samples, self.base.hidden_size)).to(device=self.device,
-                                                                                                    dtype=self.dtype)
+        hiddens = None # torch.zeros((self.base.num_filterbanks, num_samples, self.base.hidden_size)).to(device=self.device,
+                                                                                                    # dtype=self.dtype)
     else:
         if self.base_type == 'lstm':
-            hiddens = [torch.zeros((self.base.num_layers*(1+int(self.base.bidirectional)), num_samples, self.base.hidden_size)).to(device=self.device,
+            hiddens = None # [torch.zeros((self.base.num_layers*(1+int(self.base.bidirectional)), num_samples, self.base.hidden_size)).to(device=self.device,
                                                                                                                                    dtype=self.dtype)] * 2                                                                                                                                   
         else:
-            hiddens = torch.zeros((self.base.num_layers*(1+int(self.base.bidirectional)), num_samples, self.base.hidden_size)).to(device=self.device,
+            hiddens = None # torch.zeros((self.base.num_layers*(1+int(self.base.bidirectional)), num_samples, self.base.hidden_size)).to(device=self.device,
                                                                                                                                   dtype=self.dtype)
 
     return hiddens
@@ -375,7 +376,7 @@ class SequenceModelBase(torch.nn.Module):
     '''
     num_samples, input_len, input_size = input.shape
 
-    if (hiddens is None) & (self.base_type in ['lru', 'lstm', 'gru']):
+    if (hiddens is None) & (not self.stateful): # (self.base_type in ['lru', 'lstm', 'gru']):
         hiddens = self.init_hiddens(num_samples)
     
     if self.encoder_block is not None:
