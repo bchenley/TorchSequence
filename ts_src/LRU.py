@@ -79,7 +79,7 @@ class LRU(torch.nn.RNN):
     '''
     num_samples, input_size = input.shape
 
-    hiddens = hiddens or self.init_hiddens(num_samples)
+    hiddens = hiddens if hiddens is not None else self.init_hiddens(num_samples)
 
     sq_relax = torch.sqrt(self.relax)
 
