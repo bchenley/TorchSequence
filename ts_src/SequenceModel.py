@@ -476,7 +476,7 @@ class SequenceModel(torch.nn.Module):
     total_output_size = np.sum(self.output_size)
 
     # Initiate hiddens if None or not stateful
-    if (hiddens is None) | (not self.stateful) & any(type_ in ['gru', 'lstm', 'lru'] for type_ in self.base_type):
+    if (hiddens is None) & any(type_ in ['gru', 'lstm', 'lru'] for type_ in self.base_type):
       hiddens = hiddens or self.init_hiddens()
 
     # Process output and updated hiddens
