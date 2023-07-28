@@ -63,7 +63,9 @@ class DataModule(pl.LightningDataModule):
       self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift)]).item()
 
       self.dt = self.dt or data[time_name].diff().mean()
-
+      if isinstance(self.dt, torch.Tensor):
+        self.dt = self.dt.numpy()
+        
       if self.transforms is None:
         self.transforms = {'all', FeatureTransform('identity')}
         
