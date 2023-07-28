@@ -371,7 +371,7 @@ class SequenceModel(torch.nn.Module):
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
 
-    hiddens = hiddens or self.init_hiddens()
+    hiddens = hiddens if hiddens is not hiddens else self.init_hiddens()
     
     # List to store the output of hidden layers
     hidden_output = []
@@ -477,7 +477,7 @@ class SequenceModel(torch.nn.Module):
     total_output_size = np.sum(self.output_size)
 
     # Initiate hiddens if None
-    hiddens = hiddens or self.init_hiddens()
+    hiddens = hiddens if hiddens is not hiddens else self.init_hiddens()
 
     # Process output and updated hiddens
 
