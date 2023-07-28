@@ -1001,7 +1001,7 @@ class SequenceModule(pl.LightningModule):
 
       for batch in forecast_dl: last_sample = batch
 
-      forecast_time = self.trainer.datamodule.dt + np.arange(num_forecast_steps) * self.trainer.datamodule.dt + self.trainer.datamodule.last_time
+      forecast_time = self.trainer.datamodule.dt + torch.arange(num_forecast_steps) * self.trainer.datamodule.dt + self.trainer.datamodule.last_time
       # forecast_time = self.trainer.datamodule.last_time + pd.to_timedelta(np.arange(num_forecast_steps) * self.trainer.datamodule.dt)
 
       input, _, steps, batch_size = last_sample
