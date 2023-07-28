@@ -522,25 +522,26 @@ class SequenceModule(pl.LightningModule):
   def predict(self,
               reduction = 'mean',
               baseline_model = None):
-
+  
     self.model.to(device = self.trainer.datamodule.device,
                   dtype = self.trainer.datamodule.dtype)
 
     self.baseline_model = baseline_model
-
+    
     self.trainer.datamodule.predicting = True
 
     self.trainer.enable_progress_bar = False
-
+    
     start_step = self.trainer.datamodule.start_step if self.trainer.datamodule.pad_data else 0
+    
+    self.hiddens = None
     
     with torch.no_grad():
 
-      ## Predict training data
-      self.hiddens = None
+      ## Predict training data      
       self.predict_output_mask = self.trainer.datamodule.train_output_mask
       self.predict_output_window_idx = self.trainer.datamodule.train_output_window_idx
-
+      
       self.trainer.predict(self, self.trainer.datamodule.train_dl.dl)
 
       # if self.trainer.datamodule.pad_data:
@@ -1014,6 +1015,11 @@ class SequenceModule(pl.LightningModule):
       output_mask = self.trainer.datamodule.forecast_output_mask
       output_input_idx, input_output_idx = self.trainer.datamodule.output_input_idx, self.trainer.datamodule.input_output_idx
 
+      max_input_window_idx = np.max([idx.max().cpu() for idx in input_window_idx])
+      max_output_window_idx = np.max([idx.max().cpu() for idx in output_window_idx])
+
+      forecast_len = np.max([1, max_output_window_idx - max_input_window_idx])
+
       input, steps = last_input_sample, last_steps_sample
 
       forecast = torch.empty((1, 0, total_output_size)).to(device = self.model.device,
@@ -1028,19 +1034,19 @@ class SequenceModule(pl.LightningModule):
                                      output_mask = output_mask,
                                      output_input_idx = output_input_idx, input_output_idx = input_output_idx)
 
-      forecast = torch.cat((forecast, output[:, -max_output_len:]), 1)
-      forecast_steps = torch.cat((forecast_steps, steps[:, -max_output_len:]), 1)
+      forecast = torch.cat((forecast, output[:, -forecast_len:]), 1)
+      forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
 
-      steps += max_output_len
+      steps += forecast_len
 
       while forecast.shape[1] < num_forecast_steps:
 
-        input_ = torch.zeros((1, max_output_len, total_input_size)).to(input)
+        input_ = torch.zeros((1, forecast_len, total_input_size)).to(input)
 
         if len(output_input_idx) > 0:
-          input_[:, :, output_input_idx] = output[:, -max_output_len:, input_output_idx]
+          input_[:, :, output_input_idx] = output[:, -forecast_len:, input_output_idx]
 
-        input = torch.cat((input[:, max_output_len:], input_), 1)
+        input = torch.cat((input[:, forecast_len:], input_), 1)
 
         output, hiddens = self.forward(input = input,
                                        steps = steps,
@@ -1049,10 +1055,10 @@ class SequenceModule(pl.LightningModule):
                                        output_mask = output_mask,
                                        output_input_idx = output_input_idx, input_output_idx = input_output_idx)
 
-        forecast = torch.cat((forecast, output[:, -max_output_len:]), 1)
-        forecast_steps = torch.cat((forecast_steps, steps[:, -max_output_len:]), 1)
+        forecast = torch.cat((forecast, output[:, -forecast_len:]), 1)
+        forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
 
-        steps += max_output_len
+        steps += forecast_len
 
       forecast, forecast_steps = forecast[:, -num_forecast_steps:], forecast_steps[:, -num_forecast_steps:]
       forecast_reduced, forecast_steps_reduced = self.generate_reduced_output(forecast, forecast_steps,
