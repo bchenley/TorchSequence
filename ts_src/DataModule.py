@@ -64,6 +64,9 @@ class DataModule(pl.LightningDataModule):
 
       self.dt = self.dt or data[time_name].diff().mean()
 
+      if self.transforms is None:
+        self.transforms = {'all', FeatureTransform('identity')}
+        
       self.predicting, self.data_prepared = False, False
 
   def prepare_data(self):
