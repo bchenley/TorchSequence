@@ -353,10 +353,10 @@ class SequenceModelBase(torch.nn.Module):
     else:
         if self.base_type == 'lstm':
             hiddens = None # [torch.zeros((self.base.num_layers*(1+int(self.base.bidirectional)), num_samples, self.base.hidden_size)).to(device=self.device,
-                                                                                                                                   dtype=self.dtype)] * 2                                                                                                                                   
+                                                                                                                                   # dtype=self.dtype)] * 2                                                                                                                                   
         else:
             hiddens = None # torch.zeros((self.base.num_layers*(1+int(self.base.bidirectional)), num_samples, self.base.hidden_size)).to(device=self.device,
-                                                                                                                                  dtype=self.dtype)
+                                                                                                                                  # dtype=self.dtype)
 
     return hiddens
 
