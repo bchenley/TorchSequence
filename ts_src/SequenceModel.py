@@ -10,7 +10,7 @@ class SequenceModel(torch.nn.Module):
                #
                input_size = [1], input_len = [1],
                output_size = [1], output_len = [1],
-               stateful = False, process_by_step = False, joint_prediction = False,
+               base_stateful = [False], process_by_step = False, joint_prediction = False,
                dt = 1,
                flatten = None,
                store_layer_outputs = False,
@@ -127,6 +127,7 @@ class SequenceModel(torch.nn.Module):
       seq_base_i = SequenceModelBase(input_size = self.input_size[i],
                                     hidden_size = self.base_hidden_size[i],
                                     seq_len = self.input_len[i],
+                                    stateful = base_stateful[i],
                                     # type
                                     base_type = self.base_type[i], num_layers = self.base_num_layers[i],
                                     encoder_bias = self.base_encoder_bias[i], decoder_bias = self.base_decoder_bias[i],
@@ -475,7 +476,7 @@ class SequenceModel(torch.nn.Module):
     # Get the total output size
     total_output_size = np.sum(self.output_size)
 
-    # Initiate hiddens if None or not stateful
+    # Initiate hiddens if None
     hiddens = hiddens or self.init_hiddens()
 
     # Process output and updated hiddens
