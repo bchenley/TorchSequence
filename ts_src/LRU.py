@@ -1,8 +1,8 @@
 import torch 
 
-class LRU(torch.nn.RNN):
+class LRU(torch.nn.Module): # (torch.nn.RNN):
   '''
-  Laguerre Recurrent Unit (LRU) model based on RNN architecture.
+  Laguerre Recurrent Unit (LRU) model.
 
   Args:
       input_size (int): Number of expected features in the input.
