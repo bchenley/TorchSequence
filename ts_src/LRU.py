@@ -21,7 +21,7 @@ class LRU(torch.nn.Module): # (torch.nn.RNN):
                input_size, hidden_size, weight_reg=[0.001, 1], weight_norm=2, bias=False,
                relax_init=[0.5], relax_train=True, relax_minmax=[[0.1, 0.9]], device='cpu', dtype=torch.float32):
 
-    super(LRU, self).__init__(input_size=input_size, hidden_size=hidden_size, batch_first=True)
+    super(LRU, self).__init__()
 
     locals_ = locals().copy()
 
