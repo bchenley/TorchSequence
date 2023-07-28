@@ -45,14 +45,6 @@ class LRU(torch.nn.Module): # (torch.nn.RNN):
     else:
       self.input_block = torch.nn.Identity()
 
-    self.bias_hh_l0.requires_grad = False
-    self.bias_hh_l0.requires_grad = False
-
-    self.weight_ih_l0 = None
-    self.weight_hh_l0 = None
-    self.bias_ih_l0 = None
-    self.bias_hh_l0 = None
-
   def init_hiddens(self, num_samples):
     '''
     Initialize the hidden state of the LRU model.
