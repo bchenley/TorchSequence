@@ -99,7 +99,16 @@ class DataModule(pl.LightningDataModule):
         data[name] = data[name].unsqueeze(1) if data[name].ndim == 1 else data[name]
       
       self.data = data.copy()
-      
+
+      for name in self.input_output_names:
+  
+        data = torch.roll(data.clone(), shifts = k, dims = dim)
+  
+        if k >= 0:
+          data = data.index_select(dim = dim, index = torch.arange(k, data.shape[dim]))
+        else:
+          data = data.index_select(dim = dim, index = torch.arange(data.shape[dim] + k))
+            
       for name in self.input_output_names:
         if self.transforms is None:
             if 'all' in [name for name in self.transforms]:
