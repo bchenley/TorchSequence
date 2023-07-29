@@ -1,8 +1,10 @@
 import torch
 import numpy as np
 
-from ts_src import SequenceModelBase as SequenceModelBase, LRU as LRU, \
-     HiddenLayer as HiddenLayer, ModulationLayer as ModulationLayer
+from ts_src.SequenceModelBase import SequenceModelBase
+from ts_src.LRU import LRU
+from ts_src.HiddenLayer import HiddenLayer
+from ts_src.ModulationLayer import ModulationLayer
 
 class SequenceModel(torch.nn.Module):
   def __init__(self,
@@ -371,7 +373,7 @@ class SequenceModel(torch.nn.Module):
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
 
-    hiddens = hiddens if hiddens is not hiddens else self.init_hiddens()
+    hiddens = hiddens if hiddens is not None else self.init_hiddens()
     
     # List to store the output of hidden layers
     hidden_output = []
@@ -477,11 +479,11 @@ class SequenceModel(torch.nn.Module):
     total_output_size = np.sum(self.output_size)
 
     # Initiate hiddens if None
-    hiddens = hiddens if hiddens is not hiddens else self.init_hiddens()
+    hiddens = hiddens if hiddens is not None else self.init_hiddens()
 
     # Process output and updated hiddens
 
-    if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder      
+    if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder
       output, hiddens = self.process(input = input,
                                      steps = steps,
                                      hiddens = hiddens,
@@ -504,6 +506,7 @@ class SequenceModel(torch.nn.Module):
             input_[:, (n+1):(n+2), output_input_idx] = target[:, n:(n+1), input_output_idx] if target is not None else output[-1][..., input_output_idx]
 
         output = torch.cat(output, 1)
+
       else:
          
         input_ = torch.nn.functional.pad(input.clone(),
