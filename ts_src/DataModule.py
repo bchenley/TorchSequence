@@ -12,7 +12,7 @@ class DataModule(pl.LightningDataModule):
                 data,
                 time_name, input_names, output_names,
                 time_shifts = None,
-                combine_features = None, transforms = None,
+                combine_features = None, transforms = {'all': FeatureTransform('identity')},
                 pct_train_val_test = [1., 0., 0.],
                 batch_size = -1,
                 input_len = [1], output_len = [1], shift = [0], stride = 1,
@@ -64,10 +64,7 @@ class DataModule(pl.LightningDataModule):
       self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift)]).item()
 
       self.dt = self.dt or data[time_name].diff().mean()
-        
-      if self.transforms is None:
-        self.transforms = {'all', FeatureTransform('identity')}
-        
+
       self.predicting, self.data_prepared = False, False
 
   def prepare_data(self):
