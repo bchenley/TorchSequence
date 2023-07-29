@@ -11,6 +11,7 @@ class DataModule(pl.LightningDataModule):
   def __init__(self,
                 data,
                 time_name, input_names, output_names,
+                time_shifts = None,
                 combine_features = None, transforms = None,
                 pct_train_val_test = [1., 0., 0.],
                 batch_size = -1,
@@ -99,16 +100,31 @@ class DataModule(pl.LightningDataModule):
         data[name] = data[name].unsqueeze(1) if data[name].ndim == 1 else data[name]
       
       self.data = data.copy()
+      
+      mask = torch.ones((self.data[self.time_name].shape[0]), dtype = bool)
+
+      # Shift data
+      for name in self.time_shifts:
+
+        s = self.time_shifts[name]
+
+        self.data[name] = torch.roll(self.data[name], shifts = s, dims = 0)
+        
+        nan_idx = (torch.arange(s) if s >= 0 else torch.arange(self.data[name].shape[0]+s, self.data[name].shape[0])).to(device = self.device)
+        
+        mask[nan_idx] = False
+
+        self.data[name].index_fill_(0, nan_idx, float('nan'))
+
+      if isinstance(self.data[self.time_name], pd.core.series.Series):      
+        self.data[self.time_name] = self.data[self.time_name].values[mask] 
+      else:
+        self.data[self.time_name] = self.data[self.time_name][mask] 
 
       for name in self.input_output_names:
-  
-        data = torch.roll(data.clone(), shifts = k, dims = dim)
-  
-        if k >= 0:
-          data = data.index_select(dim = dim, index = torch.arange(k, data.shape[dim]))
-        else:
-          data = data.index_select(dim = dim, index = torch.arange(data.shape[dim] + k))
-            
+        self.data[name] = self.data[name][mask]
+      #
+
       for name in self.input_output_names:
         if self.transforms is None:
             if 'all' in [name for name in self.transforms]:
