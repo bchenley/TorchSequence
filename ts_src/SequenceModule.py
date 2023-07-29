@@ -486,7 +486,7 @@ class SequenceModule(pl.LightningModule):
                                                    hiddens = self.hiddens,
                                                    target = None,
                                                    input_window_idx = self.predict_input_window_idx,
-                                                   input_window_idx = self.predict_output_window_idx,
+                                                   output_window_idx = self.predict_output_window_idx,
                                                    output_input_idx = self.trainer.datamodule.output_input_idx,
                                                    input_output_idx = self.trainer.datamodule.input_output_idx,
                                                    output_mask = self.predict_output_mask)
