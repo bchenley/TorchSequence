@@ -545,7 +545,7 @@ class SequenceModule(pl.LightningModule):
 
       ## Predict training data      
       self.predict_output_mask = self.trainer.datamodule.train_output_mask
-      self.preidct_input_window_idx = self.trainer.datamodule.train_input_window_idx
+      self.predict_input_window_idx = self.trainer.datamodule.train_input_window_idx
       self.predict_output_window_idx = self.trainer.datamodule.train_output_window_idx
       
       self.trainer.predict(self, self.trainer.datamodule.train_dl.dl)
