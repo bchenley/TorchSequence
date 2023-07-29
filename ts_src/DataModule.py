@@ -131,10 +131,9 @@ class DataModule(pl.LightningDataModule):
           self.transforms[name] = self.transforms['all']
         elif name not in self.transforms:
           self.transforms = {name: FeatureTransform(transform_type='identity')}
-          
-      for name in self.input_output_names:
+        
         self.data[name] = self.transforms[name].fit_transform(self.data[name])
-                      
+                    
       self.input_feature_names, self.output_feature_names = None, None
       if self.combine_features:
         self.input_names_original = self.input_names
