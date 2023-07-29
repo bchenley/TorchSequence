@@ -49,7 +49,7 @@ class SequenceModule(pl.LightningModule):
               hiddens = None,
               steps = None,
               target = None,
-              output_window_idx = None,
+              input_window_idx = None, output_window_idx = None,
               output_mask = None,
               output_input_idx = None, input_output_idx = None,
               encoder_output= None):
@@ -58,6 +58,7 @@ class SequenceModule(pl.LightningModule):
                                          steps = steps,
                                          hiddens = hiddens,
                                          target = target,
+                                         input_window_idx = input_window_idx,
                                          output_window_idx = output_window_idx,
                                          output_mask = output_mask,
                                          output_input_idx = output_input_idx,
@@ -110,6 +111,7 @@ class SequenceModule(pl.LightningModule):
                                                    steps = steps_batch,
                                                    hiddens = self.hiddens,
                                                    target = output_batch,
+                                                   input_window_idx = self.trainer.datamodule.train_input_window_idx,
                                                    output_window_idx = self.trainer.datamodule.train_output_window_idx,
                                                    output_input_idx = self.trainer.datamodule.output_input_idx,
                                                    input_output_idx = self.trainer.datamodule.input_output_idx,
@@ -261,6 +263,7 @@ class SequenceModule(pl.LightningModule):
                                                   steps = steps_batch,
                                                   hiddens = self.hiddens,
                                                   target = None,
+                                                  input_window_idx = self.trainer.datamodule.val_input_window_idx, 
                                                   output_window_idx = self.trainer.datamodule.val_output_window_idx,
                                                   output_input_idx = self.trainer.datamodule.output_input_idx,
                                                   input_output_idx = self.trainer.datamodule.input_output_idx,
@@ -359,6 +362,7 @@ class SequenceModule(pl.LightningModule):
                                                   steps = steps_batch,
                                                   hiddens = self.hiddens,
                                                   target = None,
+                                                  input_window_idx = self.trainer.datamodule.test_input_window_idx, 
                                                   output_window_idx = self.trainer.datamodule.test_output_window_idx,
                                                   output_input_idx = self.trainer.datamodule.output_input_idx,
                                                   input_output_idx = self.trainer.datamodule.input_output_idx,
@@ -481,7 +485,8 @@ class SequenceModule(pl.LightningModule):
                                                    steps = steps_batch,
                                                    hiddens = self.hiddens,
                                                    target = None,
-                                                   output_window_idx = self.predict_output_window_idx,
+                                                   input_window_idx = self.predict_input_window_idx,
+                                                   input_window_idx = self.predict_output_window_idx,
                                                    output_input_idx = self.trainer.datamodule.output_input_idx,
                                                    input_output_idx = self.trainer.datamodule.input_output_idx,
                                                    output_mask = self.predict_output_mask)
@@ -540,6 +545,7 @@ class SequenceModule(pl.LightningModule):
 
       ## Predict training data      
       self.predict_output_mask = self.trainer.datamodule.train_output_mask
+      self.preidct_input_window_idx = self.trainer.datamodule.train_input_window_idx
       self.predict_output_window_idx = self.trainer.datamodule.train_output_window_idx
       
       self.trainer.predict(self, self.trainer.datamodule.train_dl.dl)
@@ -572,6 +578,7 @@ class SequenceModule(pl.LightningModule):
       val_prediction, val_target, val_time, val_loss, val_baseline_pred, val_baseline_loss = None, None, None, None, None, None
       if len(self.trainer.datamodule.val_dl.dl) > 0:
         self.predict_output_mask = self.trainer.datamodule.val_output_mask
+        self.predict_input_window_idx = self.trainer.datamodule.val_input_window_idx
         self.predict_output_window_idx = self.trainer.datamodule.val_output_window_idx
 
         self.trainer.predict(self, self.trainer.datamodule.val_dl.dl) ;
@@ -605,6 +612,7 @@ class SequenceModule(pl.LightningModule):
       test_prediction, test_target, test_time, test_loss, test_baseline_pred, test_baseline_loss = None, None, None, None, None, None
       if len(self.trainer.datamodule.test_dl.dl) > 0:
         self.predict_output_mask = self.trainer.datamodule.test_output_mask
+        self.predict_input_window_idx = self.trainer.datamodule.test_input_window_idx
         self.predict_output_window_idx = self.trainer.datamodule.test_output_window_idx
 
         self.trainer.predict(self, self.trainer.datamodule.test_dl.dl) ;
@@ -980,23 +988,7 @@ class SequenceModule(pl.LightningModule):
 
     with torch.no_grad():
       steps = None
-
-      # if len(self.trainer.datamodule.test_dl.dl) > 0:
-      #   for batch in self.trainer.datamodule.test_dl.dl: last_sample = batch
-      #   last_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name].max()
-      #   data = self.trainer.datamodule.test_data
-      #   output_window_idx = self.trainer.datamodule.test_output_window_idx
-      # elif len(self.trainer.datamodule.val_dl.dl) > 0:
-      #   for batch in self.trainer.datamodule.val_dl.dl: last_sample = batch
-      #   last_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name].max()
-      #   data = self.trainer.datamodule.val_data
-      #   output_window_idx = self.trainer.datamodule.val_output_window_idx
-      # else:
-      #   for batch in self.trainer.datamodule.train_dl.dl: last_sample = batch
-      #   last_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name].max()
-      #   data = self.trainer.datamodule.train_data
-      #   output_window_idx = self.trainer.datamodule.train_output_window_idx
-
+      
       forecast_dl = self.trainer.datamodule.forecast_dataloader()
 
       for batch in forecast_dl: last_sample = batch
@@ -1030,6 +1022,7 @@ class SequenceModule(pl.LightningModule):
       output, hiddens = self.forward(input = last_input_sample,
                                      steps = last_steps_sample,
                                      hiddens = hiddens,
+                                     input_window_idx = input_window_idx,
                                      output_window_idx = output_window_idx,
                                      output_mask = output_mask,
                                      output_input_idx = output_input_idx, input_output_idx = input_output_idx)
@@ -1051,6 +1044,7 @@ class SequenceModule(pl.LightningModule):
         output, hiddens = self.forward(input = input,
                                        steps = steps,
                                        hiddens = hiddens,
+                                       input_window_idx = input_window_idx,
                                        output_window_idx = output_window_idx,
                                        output_mask = output_mask,
                                        output_input_idx = output_input_idx, input_output_idx = input_output_idx)
