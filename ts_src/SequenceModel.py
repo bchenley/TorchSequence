@@ -366,27 +366,31 @@ class SequenceModel(torch.nn.Module):
     return [None for _ in range(self.num_inputs)]
   
   def process(self,
-              input, hiddens = None,
+              input, input_window_idx = None, 
+              hiddens = None,
               steps = None,
               encoder_output = None):
     
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
 
+    input_window_idx = [torch.arange(input_len).to(device = self.device, dtype = torch.long)] \
+                        if input_window_idx is not None else input_window_idx
+                
     hiddens = hiddens if hiddens is not None else self.init_hiddens()
     
     # List to store the output of hidden layers
     hidden_output = []
-
+    
     # Process each input in the batch individually
     for i,input_i in enumerate(input.split(self.input_size, -1)):
-
+    
       # Generate output and hiddens of sequence base for the ith input 
       base_output_i, hiddens[i] = self.seq_base[i](input = input_i[:, -1:] \
                                                    if (self.seq_base[i].base_type in ['gru','lstm','lru']) \
                                                     & (self.seq_base[i].seq_type == 'decoder') \
                                                     & (not self.joint_prediction) \
-                                                   else input_i,
+                                                   else input_i[:, input_window_idx[i]],
                                                    hiddens = hiddens[i],
                                                    encoder_output = encoder_output)
       
@@ -449,7 +453,7 @@ class SequenceModel(torch.nn.Module):
               input, steps = None,
               hiddens = None,
               target = None,
-              output_window_idx = None,
+              input_window_idx = None, output_window_idx = None,
               input_mask = None, output_mask = None,
               output_input_idx = [], input_output_idx = [],
               encoder_output= None):
@@ -468,6 +472,9 @@ class SequenceModel(torch.nn.Module):
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
 
+    input_window_idx = [torch.arange(input_len).to(device = self.device, dtype = torch.long)] \
+                       if input_window_idx is not None else input_window_idx
+                
     # Get total number of steps
     if steps is not None:
       _, num_steps = steps.shape
@@ -485,6 +492,7 @@ class SequenceModel(torch.nn.Module):
 
     if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder
       output, hiddens = self.process(input = input,
+                                     input_window_idx = input_window_idx,
                                      steps = steps,
                                      hiddens = hiddens,
                                      encoder_output = encoder_output)
@@ -514,6 +522,7 @@ class SequenceModel(torch.nn.Module):
                                           "constant", 0).to(input)
         
         output, hiddens = self.process(input = input_,
+                                       input_window_idx = input_window_idx,
                                        steps = steps,
                                        hiddens = hiddens,
                                        encoder_output = encoder_output)
