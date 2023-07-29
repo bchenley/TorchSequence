@@ -7,7 +7,6 @@ def load_yfinance(symbols,
                   start_date,
                   end_date = None,
                   interval = '1d',
-                  # datetime_unit = 'D',
                   date_format = "%y-%m-%d"):
 
   end_date = end_date or datetime.now().strftime(date_format)
@@ -22,10 +21,6 @@ def load_yfinance(symbols,
   date_df = df.filter(regex = 'Date')
   date_df.columns = ['date']
   date_df['date'] = pd.to_datetime(date_df['date'])
-
-  # date_df = date_df.astype(f'datetime64[{datetime_unit}]')
-  date_df.columns = ['date']
-  time_name = 'date'
 
   df = df.drop(columns=df.filter(regex='Date').columns)
 
