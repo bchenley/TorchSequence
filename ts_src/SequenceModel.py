@@ -5,7 +5,7 @@ from ts_src.SequenceModelBase import SequenceModelBase
 from ts_src.LRU import LRU
 from ts_src.HiddenLayer import HiddenLayer
 from ts_src.ModulationLayer import ModulationLayer
-
+ 
 class SequenceModel(torch.nn.Module):
   def __init__(self,
                num_inputs, num_outputs,
