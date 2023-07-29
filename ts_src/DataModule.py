@@ -104,25 +104,26 @@ class DataModule(pl.LightningDataModule):
       mask = torch.ones((self.data[self.time_name].shape[0]), dtype = bool)
 
       # Shift data
-      for name in self.time_shifts:
-
-        s = self.time_shifts[name]
-
-        self.data[name] = torch.roll(self.data[name], shifts = s, dims = 0)
-        
-        nan_idx = (torch.arange(s) if s >= 0 else torch.arange(self.data[name].shape[0]+s, self.data[name].shape[0])).to(device = self.device)
-        
-        mask[nan_idx] = False
-
-        self.data[name].index_fill_(0, nan_idx, float('nan'))
-
-      if isinstance(self.data[self.time_name], pd.core.series.Series):      
-        self.data[self.time_name] = self.data[self.time_name].values[mask] 
-      else:
-        self.data[self.time_name] = self.data[self.time_name][mask] 
-
-      for name in self.input_output_names:
-        self.data[name] = self.data[name][mask]
+      if self.time_shifts is not None:
+        for name in self.time_shifts:
+  
+          s = self.time_shifts[name]
+  
+          self.data[name] = torch.roll(self.data[name], shifts = s, dims = 0)
+          
+          nan_idx = (torch.arange(s) if s >= 0 else torch.arange(self.data[name].shape[0]+s, self.data[name].shape[0])).to(device = self.device)
+          
+          mask[nan_idx] = False
+  
+          self.data[name].index_fill_(0, nan_idx, float('nan'))
+  
+        if isinstance(self.data[self.time_name], pd.core.series.Series):      
+          self.data[self.time_name] = self.data[self.time_name].values[mask] 
+        else:
+          self.data[self.time_name] = self.data[self.time_name][mask] 
+  
+        for name in self.input_output_names:
+          self.data[name] = self.data[name][mask]
       #
 
       for name in self.input_output_names:
