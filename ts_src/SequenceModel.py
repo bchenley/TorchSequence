@@ -341,7 +341,7 @@ class SequenceModel(torch.nn.Module):
     X = torch.empty((1, self.max_input_len, np.sum(self.input_size))).to(device = self.device,
                                                                          dtype = self.dtype)
     encoder_output = torch.empty((1, self.max_input_len, encoder_output_size)).to(X) if encoder_output_size is not None else None
-                    
+    
     self.max_output_len = self.forward(X, encoder_output = encoder_output)[0].shape[1]
     # if self.flatten == 'time':
     #   self.flatten = [self.max_output_len]*self.num_outputs
@@ -374,9 +374,9 @@ class SequenceModel(torch.nn.Module):
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
 
-    input_window_idx = [torch.arange(input_len).to(device = self.device, dtype = torch.long)] \
-                        if input_window_idx is not None else input_window_idx
-                
+    input_window_idx = [torch.arange(input_len).to(device = self.device, dtype = torch.long) for i in range(self.num_inputs)] \
+                       if input_window_idx is None else input_window_idx
+    
     hiddens = hiddens if hiddens is not None else self.init_hiddens()
     
     # List to store the output of hidden layers
@@ -384,7 +384,9 @@ class SequenceModel(torch.nn.Module):
     
     # Process each input in the batch individually
     for i,input_i in enumerate(input.split(self.input_size, -1)):
-    
+      
+      hidden_output_i = torch.zeros((num_samples, input_len, self.hidden_out_features[i])).to(input)
+
       # Generate output and hiddens of sequence base for the ith input 
       base_output_i, hiddens[i] = self.seq_base[i](input = input_i[:, -1:] \
                                                    if (self.seq_base[i].base_type in ['gru','lstm','lru']) \
@@ -401,7 +403,7 @@ class SequenceModel(torch.nn.Module):
       if self.store_layer_outputs: self.base_layer_output[i].append(base_output_i)
       
       # Generate hidden layer outputs for ith input, append result to previous hidden layer output of previous inputs
-      hidden_output_i = self.hidden_layer[i](base_output_i)
+      hidden_output_i[:, input_window_idx[i]] = self.hidden_layer[i](base_output_i)
       hidden_output.append(hidden_output_i)
       
       if self.store_layer_outputs: self.hidden_layer_output[i].append(hidden_output_i)
@@ -472,8 +474,8 @@ class SequenceModel(torch.nn.Module):
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
 
-    input_window_idx = [torch.arange(input_len).to(device = self.device, dtype = torch.long)] \
-                       if input_window_idx is not None else input_window_idx
+    input_window_idx = [torch.arange(input_len).to(device = self.device, dtype = torch.long) for i in range(self.num_inputs)] \
+                       if input_window_idx is None else input_window_idx
                 
     # Get total number of steps
     if steps is not None:
