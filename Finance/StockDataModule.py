@@ -179,12 +179,10 @@ class StockDataModule(pl.LightningDataModule):
           mask[nan_idx] = False
   
           self.data[name].index_fill_(0, nan_idx, float('nan'))
-  
-        if isinstance(self.data['date'], pd.core.series.Series):      
-          self.data['date'] = self.data['date'].values[mask] 
-        else:
-          self.data['date'] = self.data['date'][mask] 
-  
+       
+        self.data['date'] = self.data['date'].values[mask] 
+        self.data['time'] = self.data['time'].values[mask] 
+        
         for name in self.input_output_names:
           self.data[name] = self.data[name][mask]
       #
