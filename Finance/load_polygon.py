@@ -5,17 +5,17 @@ import json
 
 def load_polygon(apiKey,
                  symbols,
-                 start_date,
-                 end_date = None,
+                 start_time,
+                 end_time = None,
                  # datetime_unit = 'D',
                  date_format = "%y-%m-%d",
                  parsing = 'day'):
 
-  end_date = end_date or datetime.now().strftime(date_format)
+  end_time = end_time or datetime.now().strftime(date_format)
 
   df = None
   for symbol in symbols:
-    url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/{parsing}/{str(start_date)}/{str(end_date)}?apiKey={apiKey}"
+    url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/{parsing}/{str(start_time)}/{str(end_time)}?apiKey={apiKey}"
 
     page = requests.get(url)
 
