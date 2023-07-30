@@ -385,7 +385,13 @@ class SequenceModel(torch.nn.Module):
     # Process each input in the batch individually
     for i,input_i in enumerate(input.split(self.input_size, -1)):
       
-      hidden_output_i = torch.zeros((num_samples, input_len, self.hidden_out_features[i])).to(input)
+      if self.hidden_out_features[i] > 0:
+        hidden_out_features_i = self.hidden_out_features[i]
+      else:
+        hidden_out_features_i = self.base_hidden_size[i]
+
+      hidden_output_i = torch.zeros((num_samples, input_len, hidden_out_features_i)).to(input)
+        
 
       # Generate output and hiddens of sequence base for the ith input 
       base_output_i, hiddens[i] = self.seq_base[i](input = input_i[:, -1:] \
