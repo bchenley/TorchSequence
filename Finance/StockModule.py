@@ -1,21 +1,25 @@
-import torch
 import pytorch_lightning as pl
+import torch
 
 import numpy as np
+import pandas as pd
+
 import time
 
+from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
+
+from TorchTimeSeries.ts_src.Criterion import Criterion
 
 class StockModule(pl.LightningModule):
   def __init__(self,
                model,
                opt, loss_fn, metric_fn = None,
-               teach = True,
                constrain = False, penalize = False,
-               track = False,
+               track_performance = False, track_params = False,
                model_dir = None):
 
-    super(StockModule, self).__init__()
+    super().__init__()
 
     self.automatic_optimization = False
 
@@ -30,13 +34,13 @@ class StockModule(pl.LightningModule):
     self.train_history, self.val_history = None, None
     self.current_val_epoch = 0
 
-    self.train_step_loss = []
-    self.val_step_loss = []
-    self.test_step_loss = []
+    self.train_step_loss, self.train_step_metric = [], []
+    self.val_epoch_loss, self.val_epoch_metric = [], []
+    self.test_epoch_loss, self.test_epoch_metric = [], []
 
     self.hiddens = None
 
-    self.track = track
+    self.track_performance, self.track_params = track_performance, track_params
 
     self.model_dir = model_dir
 
@@ -45,32 +49,33 @@ class StockModule(pl.LightningModule):
               hiddens = None,
               steps = None,
               target = None,
-              output_window_idx = None,
+              input_window_idx = None, output_window_idx = None,
               output_mask = None,
               output_input_idx = None, input_output_idx = None,
               encoder_output= None):
 
     output, hiddens = self.model.forward(input = input,
                                          steps = steps,
-                                        hiddens = hiddens,
-                                        target = target,
-                                        output_window_idx = output_window_idx,
-                                        output_mask = output_mask,
-                                        output_input_idx = output_input_idx,
-                                        input_output_idx = input_output_idx,
-                                        encoder_output= encoder_output)
+                                         hiddens = hiddens,
+                                         target = target,
+                                         input_window_idx = input_window_idx,
+                                         output_window_idx = output_window_idx,
+                                         output_mask = output_mask,
+                                         output_input_idx = output_input_idx,
+                                         input_output_idx = input_output_idx,
+                                         encoder_output= encoder_output)
 
     return output, hiddens
-  
+
   ## Configure optimizers
   def configure_optimizers(self):
     return self.opt
   ##
-   
+
   ## train model
   def on_train_start(self):
     self.run_time = time.time()
-   
+
   def training_step(self, batch, batch_idx):
 
     # constrain model if desired
@@ -106,6 +111,7 @@ class StockModule(pl.LightningModule):
                                                    steps = steps_batch,
                                                    hiddens = self.hiddens,
                                                    target = output_batch,
+                                                   input_window_idx = self.trainer.datamodule.train_input_window_idx,
                                                    output_window_idx = self.trainer.datamodule.train_output_window_idx,
                                                    output_input_idx = self.trainer.datamodule.output_input_idx,
                                                    input_output_idx = self.trainer.datamodule.input_output_idx,
@@ -115,6 +121,7 @@ class StockModule(pl.LightningModule):
     # get loss for each output
     loss = self.loss_fn(output_pred_batch*self.trainer.datamodule.train_output_mask,
                         output_batch*self.trainer.datamodule.train_output_mask)
+
     loss = torch.stack([l.sum() for l in loss.split(self.model.output_size, -1)], 0)
     #
 
@@ -123,14 +130,28 @@ class StockModule(pl.LightningModule):
     #
 
     self.opt.zero_grad()
-    loss.sum().backward()
+    if len(loss) > 1:
+      for i in range(len(loss)):
+        loss[i].backward(retain_graph = True)
+    else:
+      loss.backward()
     self.opt.step()
 
     # store loss to be used later in `on_train_epoch_end`
-    self.train_step_loss.append(loss)
+    self.train_step_loss.append(loss)    
     #
 
-    return {"loss": loss}
+    metric = None
+    if self.metric_fn is not None:
+      # get metric for each output    
+      metric = self.metric_fn(output_pred_batch*self.trainer.datamodule.train_output_mask,
+                              output_batch*self.trainer.datamodule.train_output_mask)
+
+      metric = torch.stack([m.sum() for m in metric.split(self.model.output_size, -1)], 0)
+      self.train_step_metric.append(metric)
+      #
+
+    return {"loss": loss, "metric": metric}
 
   def on_train_batch_start(self, batch, batch_idx):
     if self.hiddens is not None:
@@ -145,38 +166,52 @@ class StockModule(pl.LightningModule):
 
     # reduced loss of current batch
     train_step_loss = outputs['loss'].detach()
+    train_step_metric = outputs['metric'].detach() if outputs['metric'] is not None else None
     #
 
     # log and display sum of batch loss
     self.log('train_step_loss', train_step_loss.sum(), on_step = True, prog_bar = True)
     #
 
-    if self.track:
+    if self.track_performance or self.track_params:
       if self.train_history is None:
         self.current_train_step = 0
         self.train_history = {'steps': torch.empty((0, 1)).to(device = train_step_loss.device,
                                                               dtype = torch.long)}
-        for i in range(self.model.num_outputs):
-          loss_name_i = self.loss_fn.name + '_' + self.trainer.datamodule.output_names[i]
-          self.train_history[loss_name_i] = torch.empty((0, 1)).to(train_step_loss)
+        if self.track_performance:
+          for i in range(self.model.num_outputs):
+            loss_name_i = self.loss_fn.name + '_' + self.trainer.datamodule.output_names[i]
+            self.train_history[loss_name_i] = torch.empty((0, 1)).to(train_step_loss)
 
-        for name, param in self.model.named_parameters():
-          if param.requires_grad == True:
-            self.train_history[name] = torch.empty((0, param.numel())).to(param)
+            if train_step_metric is not None:
+              metric_name_i = self.metric_fn.name + '_' + self.trainer.datamodule.output_names[i]
+              self.train_history[metric_name_i] = torch.empty((0, 1)).to(train_step_metric)
+
+        if self.track_params:
+          for name, param in self.model.named_parameters():
+            if param.requires_grad == True:
+              self.train_history[name] = torch.empty((0, param.numel())).to(param)
 
       else:
         self.train_history['steps'] = torch.cat((self.train_history['steps'],
                                                  torch.tensor(self.current_train_step).reshape(1, 1).to(train_step_loss)), 0)
 
-        for i in range(self.trainer.datamodule.num_outputs):
-          loss_name_i = self.loss_fn.name + '_' + self.trainer.datamodule.output_names[i]
-          self.train_history[loss_name_i] = torch.cat((self.train_history[loss_name_i],
+        if self.track_performance:
+          for i in range(self.trainer.datamodule.num_outputs):
+            loss_name_i = self.loss_fn.name + '_' + self.trainer.datamodule.output_names[i]
+            self.train_history[loss_name_i] = torch.cat((self.train_history[loss_name_i],
                                                        train_step_loss[i].cpu().reshape(1, 1).to(train_step_loss)), 0)
 
-        for i,(name, param) in enumerate(self.model.named_parameters()):
-          if param.requires_grad:
-            self.train_history[name] = torch.cat((self.train_history[name],
-                                                  param.clone().detach().cpu().reshape(1, -1).to(param)), 0)
+            if train_step_metric is not None:
+              metric_name_i = self.metric_fn.name + '_' + self.trainer.datamodule.output_names[i]
+            self.train_history[metric_name_i] = torch.cat((self.train_history[metric_name_i],
+                                                           train_step_metric[i].cpu().reshape(1, 1).to(train_step_metric)), 0)
+            
+        if self.track_params:
+          for i,(name, param) in enumerate(self.model.named_parameters()):
+            if param.requires_grad:
+              self.train_history[name] = torch.cat((self.train_history[name],
+                                                    param.detach().cpu().reshape(1, -1).to(param)), 0)
 
       self.current_train_step += 1
 
@@ -204,7 +239,7 @@ class StockModule(pl.LightningModule):
 
     # keep the first `batch_size` batches of hiddens
     if self.hiddens is not None:
-
+      
       for i in range(self.model.num_inputs):
         if (self.model.base_type[i] in ['gru', 'lstm', 'lru']) & (self.hiddens[i] is not None):
           if self.model.base_type[i] == 'lstm':
@@ -228,6 +263,7 @@ class StockModule(pl.LightningModule):
                                                   steps = steps_batch,
                                                   hiddens = self.hiddens,
                                                   target = None,
+                                                  input_window_idx = self.trainer.datamodule.val_input_window_idx, 
                                                   output_window_idx = self.trainer.datamodule.val_output_window_idx,
                                                   output_input_idx = self.trainer.datamodule.output_input_idx,
                                                   input_output_idx = self.trainer.datamodule.input_output_idx,
@@ -240,23 +276,38 @@ class StockModule(pl.LightningModule):
     loss = torch.stack([l.sum() for l in loss.split(self.model.output_size, -1)], 0)
     #
 
-    self.val_step_loss.append(loss)
+    self.val_epoch_loss.append(loss)
 
-    {"loss": loss}
+    metric = None
+    if self.metric_fn is not None:
+      # get metric for each output    
+      metric = self.metric_fn(output_pred_batch*self.trainer.datamodule.val_output_mask,
+                              output_batch*self.trainer.datamodule.val_output_mask)
+
+      metric = torch.stack([m.sum() for m in metric.split(self.model.output_size, -1)], 0)
+      self.val_epoch_metric.append(metric)
+      #
+
+    return {"loss": loss, "metric": metric}
 
   def on_validation_epoch_end(self):
     # epoch loss
-    val_epoch_loss = torch.stack(self.val_step_loss).mean(0)
+    val_epoch_loss = torch.stack(self.val_epoch_loss).mean(0)
+    val_epoch_metric = torch.stack(self.val_epoch_metric).mean(0) if len(self.val_epoch_metric) > 0 else None
     #
 
     self.log('val_epoch_loss', val_epoch_loss.sum(), on_step = False, on_epoch = True, prog_bar = True)
 
-    if self.track:
+    if self.track_performance:
       if self.val_history is None:
         self.val_history = {'epochs': torch.empty((0, 1)).to(device = val_epoch_loss.device,
                                                              dtype = torch.long)}
         for i in range(self.trainer.datamodule.num_outputs):
           self.val_history[self.loss_fn.name + '_' + self.trainer.datamodule.output_names[i]] = torch.empty((0, 1)).to(val_epoch_loss)
+
+          if val_epoch_metric is not None:
+            metric_name_i = self.metric_fn.name + '_' + self.trainer.datamodule.output_names[i]
+            self.val_history[metric_name_i] = torch.empty((0, 1)).to(val_epoch_metric)
 
       else:
         self.val_history['epochs'] = torch.cat((self.val_history['epochs'],
@@ -267,11 +318,16 @@ class StockModule(pl.LightningModule):
           self.val_history[loss_name_i] = torch.cat((self.val_history[loss_name_i],
                                                     val_epoch_loss[i].cpu().reshape(1, 1).to(val_epoch_loss)), 0)
           
+          if val_epoch_metric is not None:
+            metric_name_i = self.metric_fn.name + '_' + self.trainer.datamodule.output_names[i]
+          self.val_history[metric_name_i] = torch.cat((self.val_history[metric_name_i],
+                                                       val_epoch_metric[i].cpu().reshape(1, 1).to(val_epoch_metric)), 0)
+
       self.current_val_epoch += 1
 
-    self.val_step_loss.clear()
+    self.val_epoch_loss.clear()
+    self.val_epoch_metric.clear()
 
-    
   ## End of validation
 
   ## Test Model
@@ -306,6 +362,7 @@ class StockModule(pl.LightningModule):
                                                   steps = steps_batch,
                                                   hiddens = self.hiddens,
                                                   target = None,
+                                                  input_window_idx = self.trainer.datamodule.test_input_window_idx, 
                                                   output_window_idx = self.trainer.datamodule.test_output_window_idx,
                                                   output_input_idx = self.trainer.datamodule.output_input_idx,
                                                   input_output_idx = self.trainer.datamodule.input_output_idx,
@@ -318,21 +375,34 @@ class StockModule(pl.LightningModule):
     loss = torch.stack([l.sum() for l in loss.split(self.model.output_size, -1)], 0)
     #
 
-    self.test_step_loss.append(loss)
+    self.test_epoch_loss.append(loss)
 
-    {"loss": loss}
+    metric = None
+    if self.metric_fn is not None:
+      # get metric for each output    
+      metric = self.metric_fn(output_pred_batch*self.trainer.datamodule.test_output_mask,
+                              output_batch*self.trainer.datamodule.test_output_mask)
+
+      metric = torch.stack([m.sum() for m in metric.split(self.model.output_size, -1)], 0)
+      self.test_epoch_metric.append(metric)
+      #
+
+    return {"loss": loss, "metric": metric}
 
   def on_test_epoch_end(self):
     # epoch loss
-    test_epoch_loss = torch.stack(self.test_step_loss).mean(0)
-    self.test_step_loss.clear()
+    test_epoch_loss = torch.stack(self.test_epoch_loss).mean(0)
+    test_epoch_metric = torch.stack(self.test_epoch_metric).mean(0) if len(self.test_epoch_metric) > 0 else None
+
+    self.test_epoch_loss.clear()
+    self.test_epoch_metric.clear()
     #
 
     self.log('test_epoch_loss', test_epoch_loss.sum(), on_epoch = True, prog_bar = True)
   ## End of Testing
 
   ## plot history
-  def plot_history(self, history = None, plot_train_history_by = 'epochs'):
+  def plot_history(self, history = None, plot_train_history_by = 'epochs', figsize = None):
 
     history = [self.loss_fn.name] if history is None else history
 
@@ -357,12 +427,12 @@ class StockModule(pl.LightningModule):
       train_history = self.train_history
 
     num_params = len(history)
-    fig = plt.figure(figsize = (5, 5*num_params))
+    fig = plt.figure(figsize = figsize if figsize is not None else (5, 5*num_params))
     ax_i = 0
     for param in history:
       ax_i += 1
       ax = fig.add_subplot(num_params, 1, ax_i)
-      ax.plot(train_history[x_label], train_history[param], label = 'Train')
+      ax.plot(train_history[x_label].cpu(), train_history[param].cpu(), 'k', label = 'Train')
       if (self.val_history is not None) & (param in self.val_history) & (x_label == 'epochs'):
         N = np.min([self.val_history[x_label].shape[0], self.val_history[param].shape[0]])
 
@@ -371,12 +441,14 @@ class StockModule(pl.LightningModule):
         elif self.metric_fn.name is not None:
           if self.metric_fn.name in param:
             metric = self.val_history[param][:N]
-        
-        ax.plot(self.val_history[x_label][:N], metric, label = 'Val')
+
+        ax.plot(self.val_history[x_label][:N].cpu(), metric.cpu(), 'r', label = 'Val')
       ax.set_title(param)
+      ax.set_xlabel(x_label)
       ax.set_ylabel(param)
+      ax.grid()
       ax.legend()
-    plt.grid()
+      
   ##
 
   ## Prediction
@@ -413,6 +485,7 @@ class StockModule(pl.LightningModule):
                                                    steps = steps_batch,
                                                    hiddens = self.hiddens,
                                                    target = None,
+                                                   input_window_idx = self.predict_input_window_idx,
                                                    output_window_idx = self.predict_output_window_idx,
                                                    output_input_idx = self.trainer.datamodule.output_input_idx,
                                                    input_output_idx = self.trainer.datamodule.input_output_idx,
@@ -422,7 +495,7 @@ class StockModule(pl.LightningModule):
     # get loss for each output
     step_loss = self.loss_fn(output_pred_batch*self.predict_output_mask,
                              output_batch*self.predict_output_mask)
-    step_loss = torch.stack([l.sum() for l in step_loss.split(self.model.input_size, -1)], 0)
+    step_loss = torch.stack([l.sum() for l in step_loss.split(self.model.output_size, -1)], 0)
     #
 
     output_steps_batch = steps_batch[:, -output_len:]
@@ -822,161 +895,8 @@ class StockModule(pl.LightningModule):
       fig.tight_layout()
       self.residual_histogram = plt.gcf()
   ##
-
-  ## forecast
-  def forecast(self,
-               num_forecast_steps = 1,
-               hiddens = None):
-
-    self.trainer.datamodule.predicting = True
-
-    if not hasattr(self.trainer.datamodule, 'test_dl'):
-      self.trainer.datamodule.test_dataloader()
-
-    with torch.no_grad():
-      steps = None
-
-      if len(self.trainer.datamodule.test_dl.dl) > 0:
-        for batch in self.trainer.datamodule.test_dl.dl: last_sample = batch
-        data = self.trainer.datamodule.test_data
-        output_window_idx = self.trainer.datamodule.test_output_window_idx
-        output_mask = self.trainer.datamodule.train_output_mask
-      elif len(self.trainer.datamodule.val_dl.dl) > 0:
-        for batch in self.trainer.datamodule.val_dl.dl: last_sample = batch
-        data = self.trainer.datamodule.val_data
-        output_window_idx = self.trainer.datamodule.val_output_window_idx
-        output_mask = self.trainer.datamodule.val_output_mask
-      else:
-        for batch in self.trainer.datamodule.train_dl.dl: last_sample = batch
-        data = self.trainer.datamodule.train_data
-        output_window_idx = self.trainer.datamodule.train_output_window_idx
-        output_mask = self.trainer.datamodule.test_output_mask
-
-      input, output, steps, batch_size = last_sample
-
-      last_input_sample, last_output_sample, last_steps_sample = input[:batch_size][-1:], output[:batch_size][-1:], steps[:batch_size][-1:]
-
-      max_output_len = self.trainer.datamodule.max_output_len
-      total_output_size = self.trainer.datamodule.total_output_size
-      output_input_idx, input_output_idx = self.trainer.datamodule.output_input_idx, self.trainer.datamodule.input_output_idx
-
-      if max_output_len == -1:
-        max_output_len = 1
-        output_mask  = output_mask[:1, :1]
-
-      _, hiddens = self.forward(input = last_input_sample,
-                                steps = last_steps_sample,
-                                hiddens = hiddens,
-                                target = None,
-                                output_window_idx = output_window_idx,
-                                output_mask = output_mask,
-                                output_input_idx = output_input_idx,
-                                input_output_idx = input_output_idx)
-
-      forecast = torch.empty((1, 0, total_output_size)).to(output)
-      forecast_steps = torch.empty((1, 0)).to(last_steps_sample)
-
-      input, output, steps = last_input_sample, last_output_sample, last_steps_sample
-
-      steps += max_output_len
-
-      while forecast.shape[1] < num_forecast_steps:
-
-        input_ = torch.zeros((1, max_output_len, total_output_size)).to(input)
-
-        if len(output_input_idx) > 0:
-          input_[:, :, output_input_idx] = output[:, -max_output_len:, input_output_idx]
-
-        input = torch.cat((input[:, max_output_len:], input_), 1)
-
-        output, hiddens = self.forward(input = input,
-                                      steps = steps,
-                                      hiddens = hiddens,
-                                      target = None,
-                                      output_window_idx = output_window_idx,
-                                      output_len = max_output_len,
-                                      output_mask = output_mask,
-                                      output_input_idx = output_input_idx,
-                                      input_output_idx = input_output_idx)
-
-        forecast = torch.cat((forecast, output[:, -max_output_len:]), 1)
-        forecast_steps = torch.cat((forecast_steps, steps[:, -max_output_len:]), 1)
-
-        steps += max_output_len
-
-      forecast, forecast_steps = forecast[:, -num_forecast_steps:], forecast_steps[:, -num_forecast_steps:]
-      forecast_reduced, forecast_steps_reduced = self.generate_reduced_output(forecast, forecast_steps,
-                                                                          transforms=self.trainer.datamodule.transforms)
-
-      forecast_data = {} # {'date': forecast_time}
-
-      forecast_data['steps'] = forecast_steps_reduced
-
-      for symbol in self.trainer.datamodule.symbols:
-        forecast_data[symbol] = {}
-
-        for f,feature in enumerate(self.trainer.datamodule.output_feature_names[symbol]):
-          idx_f = self.trainer.datamodule.output_feature_idx[symbol][f]
-
-          forecast_data[symbol][feature] = forecast_reduced[:, idx_f]
-
-    self.forecast_data = forecast_data
-
-    self.trainer.datamodule.predicting = True
-  ##
-
-  def generate_reduced_output(self,
-                              output, output_steps, reduction = 'mean', transforms = None):
-
-    # Get unique output steps and remove any -1 values
-    unique_output_steps = output_steps.unique()
-    unique_output_steps = unique_output_steps[unique_output_steps != -1]
-
-    # Create a tensor to store the reduced output
-    output_reduced = torch.zeros((len(unique_output_steps), np.sum(self.model.output_size))).to(output)
-
-    k = -1
-    for step in unique_output_steps:
-      k += 1
-
-      # Find the indices of the current step in the output_steps tensor
-      batch_step_idx = torch.where(output_steps == step)
-      num_step_output = len(batch_step_idx[0])
-
-      j = 0
-      for i in range(self.model.num_outputs):
-
-          # Extract the output for the current output index
-          output_i = output[:, :, j:(j + self.model.output_size[i])]
-          output_reduced_i = []
-
-          step_output_i = []
-          for batch_idx, step_idx in zip(*batch_step_idx[:2]):
-              step_output_i.append(output_i[batch_idx, step_idx, :].reshape(1, 1, -1))
-
-          if len(step_output_i) > 0:
-              step_output_i = torch.cat(step_output_i, 0)
-
-              # Reduce the step outputs based on the specified reduction method
-              step_output_reduced_i = (step_output_i.median(0)[0] if reduction == 'median' else
-                                        step_output_i.mean(0)).reshape(-1, self.model.output_size[i])
-
-              # Assign the reduced output to the output_reduced tensor
-              output_reduced[k, j:(j + self.model.output_size[i])] = step_output_reduced_i.squeeze(0)
-
-          j += self.model.output_size[i]
-
-    # Optionally invert the reduced output using data scalers
-    if transforms is not None:
-        j = 0
-        for i in range(self.model.num_outputs):
-            output_name_i = self.trainer.datamodule.output_names[i]
-            output_reduced[:, j:(j + self.model.output_size[i])] = transforms[output_name_i].inverse_transform(output_reduced[:, j:(j + self.model.output_size[i])])
-            j += self.model.output_size[i]
-
-    # Return the reduced output and unique output steps
-    return output_reduced, unique_output_steps
-
+  
+  ##  
   def report(self, file_path):
 
     current_time = datetime.now().strftime(self.trainer.datamodule.date_format) # "%Y-%m-%d-%H-%M-%S"
@@ -1010,20 +930,152 @@ class StockModule(pl.LightningModule):
         df[('date', '', '')] = pd.Series(test_time)
         df[(symbol, feature, "Actual")] = pd.Series(test_target_sf.numpy())
         df[(symbol, feature, "Prediction")] = pd.Series(test_prediction_sf.numpy())
-        df[(symbol, feature, self.loss_fn.name)] = Loss(self.loss_fn.name, reduction=None)(test_prediction_sf, test_target_sf)
+        df[(symbol, feature, self.loss_fn.name)] = Criterion(self.loss_fn.name, reduction=None)(test_prediction_sf, test_target_sf)
         if self.metric_fn is not None:
-          df[(symbol, feature, self.metric_fn.name)] = Loss(self.metric_fn.name, reduction=None)(test_prediction_sf, test_target_sf)
-
-    # with pd.ExcelWriter(file_path, engine = 'openpyxl') as writer: # Append data to exisiting sheet
-    #   df.to_excel(writer, sheet_name = 'Predictions', header = False)
-
-    # df['date'] = df['date'].values.astype(f'datetime64[{self.trainer.datamodule.datetime_unit}]')
-
-    # df.to_csv(file_path, index = False) # f"{self.model_dir}/test_results.csv"
-    # print(f"Results saved to {self.model_dir}")
+          df[(symbol, feature, self.metric_fn.name)] = Criterion(self.metric_fn.name, reduction=None)(test_prediction_sf, test_target_sf)
 
     return df
+  ##
 
+  ## forecast
+  def forecast(self, num_forecast_steps = 1, hiddens = None):
+
+    self.model.to(device = self.trainer.datamodule.device,
+                  dtype = self.trainer.datamodule.dtype)
+
+    with torch.no_grad():
+      steps = None
+      
+      forecast_dl = self.trainer.datamodule.forecast_dataloader()
+
+      for batch in forecast_dl: last_sample = batch
+
+      forecast_time = self.trainer.datamodule.dt + torch.arange(num_forecast_steps) * self.trainer.datamodule.dt + self.trainer.datamodule.last_time
+      # forecast_time = self.trainer.datamodule.last_time + pd.to_timedelta(np.arange(num_forecast_steps) * self.trainer.datamodule.dt)
+
+      input, _, steps, batch_size = last_sample
+
+      last_input_sample, last_steps_sample = input[:batch_size][-1:], steps[:batch_size][-1:]
+
+      input_window_idx = self.trainer.datamodule.forecast_input_window_idx
+      output_window_idx = self.trainer.datamodule.forecast_output_window_idx
+      max_output_len = self.trainer.datamodule.forecast_max_output_len
+      total_input_size, total_output_size = np.sum(self.trainer.datamodule.input_size), np.sum(self.trainer.datamodule.output_size)
+      output_mask = self.trainer.datamodule.forecast_output_mask
+      output_input_idx, input_output_idx = self.trainer.datamodule.output_input_idx, self.trainer.datamodule.input_output_idx
+
+      max_input_window_idx = np.max([idx.max().cpu() for idx in input_window_idx])
+      max_output_window_idx = np.max([idx.max().cpu() for idx in output_window_idx])
+
+      forecast_len = np.max([1, max_output_window_idx - max_input_window_idx])
+
+      input, steps = last_input_sample, last_steps_sample
+
+      forecast = torch.empty((1, 0, total_output_size)).to(device = self.model.device,
+                                                         dtype = self.model.dtype)
+      forecast_steps = torch.empty((1, 0)).to(device = self.model.device,
+                                              dtype = torch.long)
+
+      output, hiddens = self.forward(input = last_input_sample,
+                                     steps = last_steps_sample,
+                                     hiddens = hiddens,
+                                     input_window_idx = input_window_idx,
+                                     output_window_idx = output_window_idx,
+                                     output_mask = output_mask,
+                                     output_input_idx = output_input_idx, input_output_idx = input_output_idx)
+
+      forecast = torch.cat((forecast, output[:, -forecast_len:]), 1)
+      forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
+
+      steps += forecast_len
+
+      while forecast.shape[1] < num_forecast_steps:
+
+        input_ = torch.zeros((1, forecast_len, total_input_size)).to(input)
+
+        if len(output_input_idx) > 0:
+          input_[:, :, output_input_idx] = output[:, -forecast_len:, input_output_idx]
+
+        input = torch.cat((input[:, forecast_len:], input_), 1)
+
+        output, hiddens = self.forward(input = input,
+                                       steps = steps,
+                                       hiddens = hiddens,
+                                       input_window_idx = input_window_idx,
+                                       output_window_idx = output_window_idx,
+                                       output_mask = output_mask,
+                                       output_input_idx = output_input_idx, input_output_idx = input_output_idx)
+
+        forecast = torch.cat((forecast, output[:, -forecast_len:]), 1)
+        forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
+
+        steps += forecast_len
+
+      forecast, forecast_steps = forecast[:, -num_forecast_steps:], forecast_steps[:, -num_forecast_steps:]
+      forecast_reduced, forecast_steps_reduced = self.generate_reduced_output(forecast, forecast_steps,
+                                                                          transforms=self.trainer.datamodule.transforms)
+
+      # self.forecast_data = {"warmup_time": }
+
+    return forecast_reduced, forecast_time
+  ##
+
+  ##
+  def generate_reduced_output(self, output, output_steps, reduction='mean', transforms=None):
+
+    # Get unique output steps and remove any -1 values
+    unique_output_steps = output_steps.unique()
+    unique_output_steps = unique_output_steps[unique_output_steps != -1]
+
+    # Create a tensor to store the reduced output
+    output_reduced = torch.zeros((len(unique_output_steps), np.sum(self.model.output_size))).to(output)
+
+    output_names = self.trainer.datamodule.output_feature_names or self.trainer.datamodule.output_names
+
+    k = -1
+    for step in unique_output_steps:
+        k += 1
+
+        # Find the indices of the current step in the output_steps tensor
+        batch_step_idx = torch.where(output_steps == step)
+        num_step_output = len(batch_step_idx[0])
+
+        j = 0
+        for i in range(self.model.num_outputs):
+
+            # Extract the output for the current output index
+            output_i = output[:, :, j:(j + self.model.output_size[i])]
+            output_reduced_i = []
+
+            step_output_i = []
+            for batch_idx, step_idx in zip(*batch_step_idx[:2]):
+                step_output_i.append(output_i[batch_idx, step_idx, :].reshape(1, 1, -1))
+
+            if len(step_output_i) > 0:
+                step_output_i = torch.cat(step_output_i, 0)
+
+                # Reduce the step outputs based on the specified reduction method
+                step_output_reduced_i = (step_output_i.median(0)[0] if reduction == 'median' else
+                                         step_output_i.mean(0)).reshape(-1, self.model.output_size[i])
+
+                # Assign the reduced output to the output_reduced tensor
+                output_reduced[k, j:(j + self.model.output_size[i])] = step_output_reduced_i.squeeze(0)
+
+            j += self.model.output_size[i]
+
+    # Optionally invert the reduced output using data scalers
+    if transforms is not None:
+        j = 0
+        for i in range(self.model.num_outputs):
+            output_name_i = output_names[i]
+            output_reduced[:, j:(j + self.model.output_size[i])] = transforms[output_name_i].inverse_transform(output_reduced[:, j:(j + self.model.output_size[i])])
+            j += self.model.output_size[i]
+
+    # Return the reduced output and unique output steps
+    return output_reduced, unique_output_steps
+  ##
+
+  ##
   def fit(self,
           datamodule,
           max_epochs = 20,
@@ -1042,3 +1094,4 @@ class StockModule(pl.LightningModule):
       self.model.to(device = self.model.device,
                     dtype = self.model.dtype)
       self.model.load_state_dict(state_dict)
+  ##
