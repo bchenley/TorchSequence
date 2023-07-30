@@ -17,7 +17,6 @@ class StockDataModule(pl.LightningDataModule):
                input_names, output_names,               
                start_date,
                end_date = None,
-               time_name = 'date',
                apiKey = None,
                datetime_unit = 'D', date_format = "%Y-%m-%d", parsing = 'day', interval = '1d',
                combine_stock_features = True,
@@ -98,7 +97,7 @@ class StockDataModule(pl.LightningDataModule):
           df['_'.join([attr,hvD])] = daily_volatility(df[attr], days = days, interval = self.interval)
       ##
 
-      df = df.filter(items=[self.time_name] + self.input_output_names)
+      df = df.filter(items=['date'] + self.input_output_names)
 
       if np.any(df.isna()):
         df = df[(np.where(df.isna().any(axis = 1))[0].max()+1):]
@@ -108,17 +107,18 @@ class StockDataModule(pl.LightningDataModule):
       #
 
       # Convert dataframe to dictionary of tensors. Concatenate stock features, if desired.
-      self.data = {self.time_name: pd.to_datetime(df[self.time_name]).dt.to_period(self.datetime_unit).dt.to_timestamp().values}
-      # self.data = {self.time_name: pd.to_datetime(df[self.time_name]).dt.to_timestamp().values}
+      self.data = {'date': pd.to_datetime(df['date']).dt.to_period(self.datetime_unit).dt.to_timestamp().values}
+      self.data['time'] = torch.tensor(np.array(self.data['date']).tolist()).to(device = self.device,
+                                                                                dtype = self.dtype)
       
       for col in df.columns:
-        if col != self.time_name:
+        if col != 'date':
           try: self.data[col] = torch.tensor(df[col].values.reshape(df[col].shape[0], -1)).to(device = self.device,
                                                                                               dtype = self.dtype)
           except: self.data[col] = df[col].values.reshape(df[col].shape[0], -1).to(device = self.device,
                                                                                    dtype = self.dtype)
       
-      self.dt = self.dt or np.diff(self.data[self.time_name]).mean()
+      self.dt = self.dt or np.diff(self.data['date']).mean()
 
       self.output_feature_names = {}
       self.output_feature_idx = {}
@@ -165,7 +165,7 @@ class StockDataModule(pl.LightningDataModule):
       #
       
       # Shift data
-      mask = torch.ones((self.data[self.time_name].shape[0]), dtype = bool)
+      mask = torch.ones((self.data['date'].shape[0]), dtype = bool)
 
       if self.time_shifts is not None:
         for name in self.time_shifts:
@@ -180,10 +180,10 @@ class StockDataModule(pl.LightningDataModule):
   
           self.data[name].index_fill_(0, nan_idx, float('nan'))
   
-        if isinstance(self.data[self.time_name], pd.core.series.Series):      
-          self.data[self.time_name] = self.data[self.time_name].values[mask] 
+        if isinstance(self.data['date'], pd.core.series.Series):      
+          self.data['date'] = self.data['date'].values[mask] 
         else:
-          self.data[self.time_name] = self.data[self.time_name][mask] 
+          self.data['date'] = self.data['date'][mask] 
   
         for name in self.input_output_names:
           self.data[name] = self.data[name][mask]
@@ -254,21 +254,21 @@ class StockDataModule(pl.LightningDataModule):
       
       if self.train_val_test_periods is not None:
         train_period = [pd.Period(date_str, freq = self.datetime_unit).to_timestamp() for date_str in self.train_val_test_periods[0]]
-        train_data = {name: self.data[name][(self.data[self.time_name]>=train_period[0]) & (self.data[self.time_name]<=train_period[1])] for name in list(self.data)}
+        train_data = {name: self.data[name][(self.data['date']>=train_period[0]) & (self.data['date']<=train_period[1])] for name in list(self.data)}
 
-        train_len = train_data[self.time_name].shape[0]
+        train_len = train_data['date'].shape[0]
 
         if len(self.train_val_test_periods[1]) > 0:
           val_period = [pd.Period(date_str, freq = self.datetime_unit).to_timestamp() for date_str in self.train_val_test_periods[1]]
-          val_data = {name: self.data[name][(self.data[self.time_name]>=val_period[0]) & (self.data[self.time_name]<=val_period[1])] for name in list(self.data)}
-          val_len = val_data[self.time_name].shape[0]
+          val_data = {name: self.data[name][(self.data['date']>=val_period[0]) & (self.data['date']<=val_period[1])] for name in list(self.data)}
+          val_len = val_data['date'].shape[0]
         else:
           val_data = {}
 
         if len(self.train_val_test_periods[2]) > 0:
           test_period = [pd.Period(date_str, freq = self.datetime_unit).to_timestamp() for date_str in self.train_val_test_periods[2]]
-          test_data = {name: self.data[name][(self.data[self.time_name]>=test_period[0]) & (self.data[self.time_name]<=test_period[1])] for name in list(self.data)}
-          test_len = test_data[self.time_name].shape[0]
+          test_data = {name: self.data[name][(self.data['date']>=test_period[0]) & (self.data['date']<=test_period[1])] for name in list(self.data)}
+          test_len = test_data['date'].shape[0]
         else:
           test_data = {}
 
@@ -361,20 +361,20 @@ class StockDataModule(pl.LightningDataModule):
       init_input = self.test_init_input
       input_len = self.test_max_input_len
       output_len = self.test_max_output_len
-      self.last_time = self.test_data[self.time_name].max()
+      self.last_time = self.test_data['date'].max()
       
     elif len(self.val_data) > 0:
       data = self.val_data.copy()
       init_input = self.val_init_input
       input_len = self.val_max_input_len
       output_len = self.val_max_output_len
-      self.last_time = self.val_data[self.time_name].max()
+      self.last_time = self.val_data['date'].max()
     else:
       data = self.train_data.copy()
       init_input = self.train_init_input
       input_len = self.train_max_input_len
       output_len = self.train_max_output_len
-      self.last_time = self.train_data[self.time_name].max()
+      self.last_time = self.train_data['date'].max()
     
     self.forecast_dl = SequenceDataloader(input_names = self.input_names, 
                                           output_names = self.output_names,
