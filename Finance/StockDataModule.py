@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
+from TorchTimeSeries.ts_src.FeatureTransform import FeatureTransform
 from TorchTimeSeries.ts_src.SequenceDataloader import SequenceDataloader
 from TorchTimeSeries.Finance.load_polygon import load_polygon
 from TorchTimeSeries.Finance.load_yfinance import load_yfinance
