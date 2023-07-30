@@ -4,16 +4,16 @@ import numpy as np
 import yfinance as yf
 
 def load_yfinance(symbols,
-                  start_date,
-                  end_date = None,
+                  start_time,
+                  end_time = None,
                   interval = '1d',
                   date_format = "%y-%m-%d"):
 
-  end_date = end_date or datetime.now().strftime(date_format)
+  end_time = end_time or datetime.now().strftime(date_format)
 
   df = yf.download(tickers = symbols,
-                   start = start_date,
-                   end = end_date,
+                   start = start_time,
+                   end = end_time,
                    group_by = 'ticker',
                    interval = interval,
                    progress = False).reset_index()
