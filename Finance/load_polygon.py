@@ -7,7 +7,6 @@ def load_polygon(apiKey,
                  symbols,
                  start_time,
                  end_time = None,
-                 # datetime_unit = 'D',
                  date_format = "%y-%m-%d",
                  parsing = 'day'):
 
