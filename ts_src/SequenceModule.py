@@ -838,6 +838,134 @@ class SequenceModule(pl.LightningModule):
   ##
 
   ##
+  def evaluate_forecast(self, num_forecast_steps = 1, hiddens = None):
+
+    if len(self.trainer.datamodule.test_data) > 0:   
+      if not hasattr(self.trainer.datamodule, 'test_dl'): 
+        self.trainer.datamodule.predicting = True
+        self.trainer.datamodule.test_dataloader()
+        self.trainer.datamodule.predicting = False
+
+      forecast_dl = self.trainer.datamodule.test_dl.dl  
+      input_window_idx = self.trainer.datamodule.test_input_window_idx
+      output_window_idx = self.trainer.datamodule.test_output_window_idx
+      max_input_len, max_output_len = self.trainer.datamodule.test_max_input_len, self.trainer.datamodule.test_max_output_len
+      output_mask = self.trainer.datamodule.test_output_mask
+
+    elif len(self.trainer.datamodule.val_data) > 0:    
+      if not hasattr(self.trainer.datamodule, 'val_dl'): 
+        self.trainer.datamodule.predicting = True
+        self.trainer.datamodule.val_dataloader()
+        self.trainer.datamodule.predicting = False
+
+      forecast_dl = self.trainer.datamodule.val_dl.dl
+      input_window_idx = self.trainer.datamodule.val_input_window_idx
+      output_window_idx = self.trainer.datamodule.val_output_window_idx
+      max_input_len, max_output_len = self.trainer.datamodule.val_max_input_len, self.trainer.datamodule.val_max_output_len
+      output_mask = self.trainer.datamodule.val_output_mask
+
+    else:        
+      if not hasattr(self.trainer.datamodule, 'train_dl'): 
+        self.trainer.datamodule.predicting = True
+        self.trainer.datamodule.train_dataloader()
+        self.trainer.datamodule.predicting = False
+
+      forecast_dl = self.trainer.datamodule.train_dl.dl
+      input_window_idx = self.trainer.datamodule.train_input_window_idx
+      output_window_idx = self.trainer.datamodule.train_output_window_idx
+      max_input_len, max_output_len = self.trainer.datamodule.train_max_input_len, self.trainer.datamodule.train_max_output_len
+      output_mask = self.trainer.datamodule.train_output_mask
+
+    output_input_idx, input_output_idx = self.trainer.datamodule.input_output_idx, self.trainer.datamodule.input_output_idx
+
+    time = self.trainer.datamodule.data[self.trainer.datamodule.time_name]
+
+    start_step = self.trainer.datamodule.start_step
+
+    unique_output_window_idx = torch.cat(output_window_idx).unique()
+
+    hiddens = None
+    input, target, steps = [], [], []
+    for batch in forecast_dl: 
+
+      input_batch, target_batch, steps_batch, batch_size = batch
+      
+      input_batch, target_batch, steps_batch = input_batch[:batch_size], target_batch[:batch_size], steps_batch[:batch_size]
+
+      input.append(input_batch)
+      target.append(target_batch)
+      steps.append(steps_batch)
+      
+    input, target, steps = torch.cat(input), torch.cat(target), torch.cat(steps)
+
+    output_steps = steps[:, unique_output_window_idx]  
+
+    self.forecast_time = [[time.iloc[s - start_step]] for s in output_steps]
+
+    num_samples = input.shape[0]
+
+    max_input_window_idx = np.max([idx.max().cpu() for idx in input_window_idx])
+    max_output_window_idx = np.max([idx.max().cpu() for idx in output_window_idx])
+    max_output_size = np.max(self.model.output_size)
+
+    forecast_len = np.max([1, max_output_window_idx - max_input_window_idx + 1])
+
+    forecast = torch.empty((num_samples, 0, max_output_size)).to(device = self.model.device,
+                                                                dtype = self.model.dtype)
+    forecast_steps = torch.empty((num_samples, 0)).to(device = self.model.device,
+                                                      dtype = torch.long)
+
+    output, hiddens = self.forward(input = input,
+                                          steps = steps,
+                                          hiddens = hiddens,
+                                          input_window_idx = input_window_idx,
+                                          output_window_idx = output_window_idx,
+                                          output_mask = output_mask,
+                                          output_input_idx = output_input_idx, 
+                                          input_output_idx = input_output_idx)
+
+    forecast = torch.cat((forecast, output[:, -forecast_len:]), 1)
+    forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
+
+    steps += forecast_len
+
+    while forecast.shape[1] < num_forecast_steps:
+
+      input_ = torch.zeros((1, forecast_len, max_output_size)).to(input)
+
+      if len(output_input_idx) > 0:
+        input_[:, :, output_input_idx] = output[:, -forecast_len:, input_output_idx]
+
+      input = torch.cat((input[:, forecast_len:], input_), 1)
+
+      output, hiddens = self.forward(input = input,
+                                            steps = steps,
+                                            hiddens = hiddens,
+                                            input_window_idx = input_window_idx,
+                                            output_window_idx = output_window_idx,
+                                            output_mask = output_mask,
+                                            output_input_idx = output_input_idx, 
+                                            input_output_idx = input_output_idx)
+
+      forecast = torch.cat((forecast, output[:, -forecast_len:]), 1)
+      forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
+
+      steps += forecast_len
+
+    j = 0
+    for i,name in enumerate(self.trainer.datamodule.output_names):
+      forecast[..., j:(j+self.model.output_size[i])] = self.trainer.datamodule.transforms[name].inverse_transform(forecast[..., j:(j+self.model.output_size[i])])
+      target[..., j:(j+self.model.output_size[i])] = self.trainer.datamodule.transforms[name].inverse_transform(target[..., j:(j+self.model.output_size[i])])
+
+    self.forecast, self.forecast_target = forecast, target
+
+    self.forecast_loss = Criterion(self.loss_fn.name, dims = 1)(forecast, target)
+    self.forecast_metric = None
+    if self.metric_fn.name is not None:
+      self.forecast_metric = Criterion(self.metric_fn.name, dims = 1)(forecast, target)    
+  ##
+  
+  ##
   def plot_predictions(self,
                        output_feature_units = None,
                        include_baseline = False,
@@ -1010,7 +1138,7 @@ class SequenceModule(pl.LightningModule):
       max_input_window_idx = np.max([idx.max().cpu() for idx in input_window_idx])
       max_output_window_idx = np.max([idx.max().cpu() for idx in output_window_idx])
 
-      forecast_len = np.max([1, max_output_window_idx - max_input_window_idx])
+      forecast_len = np.max([1, max_output_window_idx - max_input_window_idx + 1])
 
       input, steps = last_input_sample, last_steps_sample
 
