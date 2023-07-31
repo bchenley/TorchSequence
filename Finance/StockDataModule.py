@@ -101,7 +101,7 @@ class StockDataModule(pl.LightningDataModule):
           df['_'.join([attr,hvD])] = daily_volatility(df[attr], days = days, interval = self.interval)
       ##
 
-      df = df.filter(items=[self.time_name] + self.input_output_names)
+      df = df.filter(items = [self.time_name] + self.input_output_names)
 
       if np.any(df.isna()):
         df = df[(np.where(df.isna().any(axis = 1))[0].max()+1):]
@@ -111,7 +111,7 @@ class StockDataModule(pl.LightningDataModule):
       #
 
       # Convert dataframe to dictionary of tensors. Concatenate features, if desired.
-      data = {self.time_name: df[self.time_name]}
+      data = {self.time_name: df[self.time_name].values}
       for name in self.input_output_names:
         data[name] = torch.tensor(np.array(df[name])).to(device = self.device, dtype = self.dtype)
         
