@@ -527,25 +527,30 @@ class StockModule(pl.LightningModule):
   def predict(self,
               reduction = 'mean',
               baseline_model = None):
+  
+    self.model.to(device = self.trainer.datamodule.device,
+                  dtype = self.trainer.datamodule.dtype)
 
     self.baseline_model = baseline_model
-
+    
     self.trainer.datamodule.predicting = True
 
     self.trainer.enable_progress_bar = False
+    
+    start_step = self.trainer.datamodule.start_step if self.trainer.datamodule.pad_data else 0
+    
+    time_name = self.trainer.datamodule.time_name
 
-    pad_dim = self.trainer.datamodule.start_step*int(self.trainer.datamodule.pad_data)
-
+    self.hiddens = None
+    
     with torch.no_grad():
 
-      ## Predict training data
-      self.hiddens = None
+      ## Predict training data      
       self.predict_output_mask = self.trainer.datamodule.train_output_mask
+      self.predict_input_window_idx = self.trainer.datamodule.train_input_window_idx
       self.predict_output_window_idx = self.trainer.datamodule.train_output_window_idx
-
+      
       self.trainer.predict(self, self.trainer.datamodule.train_dl.dl)
-
-      self.prediction, self.target, self.output_steps = self.prediction[pad_dim:], self.target[pad_dim:], self.output_steps[pad_dim:]
 
       train_prediction, train_output_steps = self.generate_reduced_output(self.prediction, self.output_steps,
                                                                           reduction = reduction, transforms=self.trainer.datamodule.transforms)
@@ -553,12 +558,7 @@ class StockModule(pl.LightningModule):
       train_target, _ = self.generate_reduced_output(self.target, self.output_steps,
                                                      reduction = reduction, transforms=self.trainer.datamodule.transforms)
 
-      # train_loss = self.loss_fn(train_prediction.unsqueeze(0),
-      #                           train_target.unsqueeze(0))
-
-      # train_loss = torch.stack([l.sum() for l in train_loss.split(self.model.input_size, -1)], 0)
-
-      train_time = self.trainer.datamodule.train_data['date'][pad_dim:]
+      train_time =  self.trainer.datamodule.data[self.time_name][(train_output_steps.cpu() - start_step).numpy()]
 
       train_baseline_pred, train_baseline_loss = None, None
       if self.baseline_model is not None:
@@ -566,11 +566,12 @@ class StockModule(pl.LightningModule):
         # train_baseline_loss = self.loss_fn(train_baseline_pred.unsqueeze(0),
         #                                    train_target.unsqueeze(0))
       ##
-
+     
       # Predict validation data
       val_prediction, val_target, val_time, val_loss, val_baseline_pred, val_baseline_loss = None, None, None, None, None, None
       if len(self.trainer.datamodule.val_dl.dl) > 0:
         self.predict_output_mask = self.trainer.datamodule.val_output_mask
+        self.predict_input_window_idx = self.trainer.datamodule.val_input_window_idx
         self.predict_output_window_idx = self.trainer.datamodule.val_output_window_idx
 
         self.trainer.predict(self, self.trainer.datamodule.val_dl.dl) ;
@@ -581,17 +582,14 @@ class StockModule(pl.LightningModule):
         val_target, _ = self.generate_reduced_output(self.target, self.output_steps,
                                                      reduction = reduction, transforms=self.trainer.datamodule.transforms)
 
-        # val_loss = self.loss_fn(val_prediction.unsqueeze(0),
-        #                         val_target.unsqueeze(0))
-        # val_loss = torch.stack([l.sum() for l in val_loss.split(self.model.input_size, -1)], 0)
+        val_time =  self.trainer.datamodule.data[self.time_name][(val_output_steps.cpu() - start_step).numpy()]
 
-        val_time = self.trainer.datamodule.val_data['date']
+        if not self.trainer.datamodule.pad_data:
+          val_time = val_time[start_step:]
 
         val_baseline_pred, val_baseline_loss = None, None
         if self.baseline_model is not None:
-          val_baseline_pred = self.baseline_model(val_target)
-          # val_baseline_loss = self.loss_fn(val_baseline_pred.unsqueeze(0),
-          #                                  val_target.unsqueeze(0))
+          val_baseline_pred = self.baseline_model(val_target)          
       #
 
       # Predict testing data
@@ -600,39 +598,37 @@ class StockModule(pl.LightningModule):
       test_prediction, test_target, test_time, test_loss, test_baseline_pred, test_baseline_loss = None, None, None, None, None, None
       if len(self.trainer.datamodule.test_dl.dl) > 0:
         self.predict_output_mask = self.trainer.datamodule.test_output_mask
+        self.predict_input_window_idx = self.trainer.datamodule.test_input_window_idx
         self.predict_output_window_idx = self.trainer.datamodule.test_output_window_idx
 
         self.trainer.predict(self, self.trainer.datamodule.test_dl.dl) ;
 
         test_prediction, test_output_steps = self.generate_reduced_output(self.prediction, self.output_steps,
-                                                                          reduction = reduction, transforms=self.trainer.datamodule.transforms)
+                                                                          reduction = reduction, transforms = self.trainer.datamodule.transforms)
 
         test_target, _ = self.generate_reduced_output(self.target, self.output_steps,
                                                       reduction = reduction, transforms=self.trainer.datamodule.transforms)
 
-        # test_loss = self.loss_fn(test_prediction.unsqueeze(0),
-        #                         test_target.unsqueeze(0))
-        # test_loss = torch.stack([l.sum() for l in test_loss.split(self.model.input_size, -1)], 0)
+        test_time =  self.trainer.datamodule.data[self.time_name][(test_output_steps.cpu() - start_step).numpy()]
 
-        test_time = self.trainer.datamodule.test_data['date']
+        if not self.trainer.datamodule.pad_data:
+          test_time = test_time[start_step:]
 
         test_baseline_pred, test_baseline_loss = None, None
         if self.baseline_model is not None:
-          test_baseline_pred = self.baseline_model(test_target)
-          # test_baseline_loss = self.loss_fn(test_baseline_pred.unsqueeze(0),
-          #                                   test_target.unsqueeze(0))
+          test_baseline_pred = self.baseline_model(test_target)          
       #
 
-    train_prediction_data, val_prediction_data, test_prediction_data = {'date': train_time}, None, None
+    train_prediction_data, val_prediction_data, test_prediction_data = {time_name: train_time}, None, None
 
     train_prediction_data['steps'] = train_output_steps
 
     if val_prediction is not None:
-      val_prediction_data = {'date': val_time}
+      val_prediction_data = {time_name: val_time}
       val_prediction_data['steps'] = val_output_steps
 
     if test_prediction is not None:
-      test_prediction_data = {'date': test_time}
+      test_prediction_data = {time_name: test_time}
       test_prediction_data['steps'] = test_output_steps
 
     for symbol in self.trainer.datamodule.symbols:
@@ -648,21 +644,21 @@ class StockModule(pl.LightningModule):
         if train_baseline_pred is not None:
           train_prediction_data[symbol][f"{feature}_baseline_prediction"] = train_baseline_pred[:, idx_f]
 
-        train_loss_sf = self.loss_fn(train_prediction[:,idx_f:(idx_f+1)].unsqueeze(0), # *self.trainer.datamodule.train_output_mask[:,idx_f:(idx_f+1)],
-                                     train_target[:,idx_f:(idx_f+1)].unsqueeze(0)) # *self.trainer.datamodule.train_output_mask[:,idx_f:(idx_f+1)])
+        train_loss_sf = self.loss_fn(train_prediction[:,idx_f:(idx_f+1)].unsqueeze(0), 
+                                     train_target[:,idx_f:(idx_f+1)].unsqueeze(0)) 
         train_prediction_data[symbol][f"{feature}_{self.loss_fn.name}"] = train_loss_sf
         if train_baseline_pred is not None:
-          train_baseline_loss_sf = self.loss_fn(train_baseline_pred[:,idx_f:(idx_f+1)].unsqueeze(0), # *self.trainer.datamodule.train_output_mask[:,idx_f:(idx_f+1)],
-                                                train_target[:,idx_f:(idx_f+1)].unsqueeze(0)) # *self.trainer.datamodule.train_output_mask[:,idx_f:(idx_f+1)])
+          train_baseline_loss_sf = self.loss_fn(train_baseline_pred[:,idx_f:(idx_f+1)].unsqueeze(0), 
+                                                train_target[:,idx_f:(idx_f+1)].unsqueeze(0)) 
           train_prediction_data[symbol][f"{feature}_baseline_{self.loss_fn.name}"] = train_baseline_loss_sf
 
         if self.metric_fn is not None:
-          train_metric_sf = self.metric_fn(train_prediction[:,idx_f:(idx_f+1)].unsqueeze(0), # *self.trainer.datamodule.train_output_mask[:,idx_f:(idx_f+1)],
-                                          train_target[:,idx_f:(idx_f+1)].unsqueeze(0)) # *self.trainer.datamodule.train_output_mask[:,idx_f:(idx_f+1)])
+          train_metric_sf = self.metric_fn(train_prediction[:,idx_f:(idx_f+1)].unsqueeze(0), 
+                                          train_target[:,idx_f:(idx_f+1)].unsqueeze(0)) 
           train_prediction_data[symbol][f"{feature}_{self.metric_fn.name}"] = train_metric_sf
           if train_baseline_pred is not None:
-            train_baseline_metric_sf = self.metric_fn(train_baseline_pred[:,idx_f:(idx_f+1)].unsqueeze(0), # *self.trainer.datamodule.train_output_mask[:,idx_f:(idx_f+1)],
-                                                      train_target[:,idx_f:(idx_f+1)].unsqueeze(0)) # *self.trainer.datamodule.train_output_mask[:,idx_f:(idx_f+1)])
+            train_baseline_metric_sf = self.metric_fn(train_baseline_pred[:,idx_f:(idx_f+1)].unsqueeze(0), 
+                                                      train_target[:,idx_f:(idx_f+1)].unsqueeze(0)) 
             train_prediction_data[symbol][f"{feature}_baseline_{self.metric_fn.name}"] = train_baseline_metric_sf
 
         if val_prediction is not None:
@@ -671,21 +667,21 @@ class StockModule(pl.LightningModule):
           if val_baseline_pred is not None:
             val_prediction_data[symbol][f"{feature}_baseline_prediction"] = val_baseline_pred[:, idx_f]
 
-          val_loss_sf = self.loss_fn(val_prediction[:,idx_f:(idx_f+1)].unsqueeze(0), # *self.trainer.datamodule.val_output_mask[:,idx_f:(idx_f+1)],
-                                     val_target[:,idx_f:(idx_f+1)].unsqueeze(0)) # *self.trainer.datamodule.val_output_mask[:,idx_f:(idx_f+1)])
+          val_loss_sf = self.loss_fn(val_prediction[:,idx_f:(idx_f+1)].unsqueeze(0),
+                                     val_target[:,idx_f:(idx_f+1)].unsqueeze(0))
           val_prediction_data[symbol][f"{feature}_{self.loss_fn.name}"] = val_loss_sf
           if val_baseline_pred is not None:
-            val_baseline_loss_sf = self.loss_fn(val_baseline_pred[:,idx_f:(idx_f+1)].unsqueeze(0), # *self.trainer.datamodule.val_output_mask[:,idx_f:(idx_f+1)],
-                                                val_target[:,idx_f:(idx_f+1)].unsqueeze(0)) # *self.trainer.datamodule.val_output_mask[:,idx_f:(idx_f+1)])
+            val_baseline_loss_sf = self.loss_fn(val_baseline_pred[:,idx_f:(idx_f+1)].unsqueeze(0), 
+                                                val_target[:,idx_f:(idx_f+1)].unsqueeze(0)) 
             val_prediction_data[symbol][f"{feature}_baseline_{self.loss_fn.name}"] = val_baseline_loss_sf
 
           if self.metric_fn is not None:
-            val_metric_sf = self.metric_fn(val_prediction[:,idx_f:(idx_f+1)].unsqueeze(0), # *self.trainer.datamodule.val_output_mask[:,idx_f:(idx_f+1)],
-                                           val_target[:,idx_f:(idx_f+1)].unsqueeze(0)) # *self.trainer.datamodule.val_output_mask[:,idx_f:(idx_f+1)])
+            val_metric_sf = self.metric_fn(val_prediction[:,idx_f:(idx_f+1)].unsqueeze(0), 
+                                           val_target[:,idx_f:(idx_f+1)].unsqueeze(0))
             val_prediction_data[symbol][f"{feature}_{self.metric_fn.name}"] = val_metric_sf
             if val_baseline_pred is not None:
-              val_baseline_metric_sf = self.metric_fn(val_baseline_pred[:,idx_f:(idx_f+1)].unsqueeze(0), # *self.trainer.datamodule.val_output_mask[:,idx_f:(idx_f+1)],
-                                                      val_target[:,idx_f:(idx_f+1)].unsqueeze(0)) # *self.trainer.datamodule.val_output_mask[:,idx_f:(idx_f+1)])
+              val_baseline_metric_sf = self.metric_fn(val_baseline_pred[:,idx_f:(idx_f+1)].unsqueeze(0), 
+                                                      val_target[:,idx_f:(idx_f+1)].unsqueeze(0))
               val_prediction_data[symbol][f"{feature}_baseline_{self.metric_fn.name}"] = val_baseline_metric_sf
 
         if test_prediction is not None:
@@ -694,28 +690,102 @@ class StockModule(pl.LightningModule):
           if test_baseline_pred is not None:
             test_prediction_data[symbol][f"{feature}_baseline_prediction"] = test_baseline_pred[:, idx_f]
 
-          test_loss_sf = self.loss_fn(test_prediction[:,idx_f:(idx_f+1)].unsqueeze(0), # *self.tester.datamodule.test_output_mask[:,idx_f:(idx_f+1)],
-                                      test_target[:,idx_f:(idx_f+1)].unsqueeze(0)) # *self.tester.datamodule.test_output_mask[:,idx_f:(idx_f+1)])
+          test_loss_sf = self.loss_fn(test_prediction[:,idx_f:(idx_f+1)].unsqueeze(0), 
+                                      test_target[:,idx_f:(idx_f+1)].unsqueeze(0))
           test_prediction_data[symbol][f"{feature}_{self.loss_fn.name}"] = test_loss_sf
           if test_baseline_pred is not None:
-            test_baseline_loss_sf = self.loss_fn(test_baseline_pred[:,idx_f:(idx_f+1)].unsqueeze(0), # *self.tester.datamodule.test_output_mask[:,idx_f:(idx_f+1)],
-                                                  test_target[:,idx_f:(idx_f+1)].unsqueeze(0)) # *self.tester.datamodule.test_output_mask[:,idx_f:(idx_f+1)])
+            test_baseline_loss_sf = self.loss_fn(test_baseline_pred[:,idx_f:(idx_f+1)].unsqueeze(0), 
+                                                  test_target[:,idx_f:(idx_f+1)].unsqueeze(0)) 
             test_prediction_data[symbol][f"{feature}_baseline_{self.loss_fn.name}"] = test_baseline_loss_sf
 
 
           if self.metric_fn is not None:
-            test_metric_sf = self.metric_fn(test_prediction[:,idx_f:(idx_f+1)].unsqueeze(0), # *self.tester.datamodule.test_output_mask[:,idx_f:(idx_f+1)],
-                                            test_target[:,idx_f:(idx_f+1)].unsqueeze(0)) # *self.tester.datamodule.test_output_mask[:,idx_f:(idx_f+1)])
+            test_metric_sf = self.metric_fn(test_prediction[:,idx_f:(idx_f+1)].unsqueeze(0), 
+                                            test_target[:,idx_f:(idx_f+1)].unsqueeze(0)) 
             test_prediction_data[symbol][f"{feature}_{self.metric_fn.name}"] = test_metric_sf
             if test_baseline_pred is not None:
-              test_baseline_metric_sf = self.metric_fn(test_baseline_pred[:,idx_f:(idx_f+1)].unsqueeze(0), # *self.tester.datamodule.test_output_mask[:,idx_f:(idx_f+1)],
-                                                        test_target[:,idx_f:(idx_f+1)].unsqueeze(0)) # *self.tester.datamodule.test_output_mask[:,idx_f:(idx_f+1)])
+              test_baseline_metric_sf = self.metric_fn(test_baseline_pred[:,idx_f:(idx_f+1)].unsqueeze(0), 
+                                                        test_target[:,idx_f:(idx_f+1)].unsqueeze(0))
               test_prediction_data[symbol][f"{feature}_baseline_{self.metric_fn.name}"] = test_baseline_metric_sf
 
     self.train_prediction_data, self.val_prediction_data, self.test_prediction_data = train_prediction_data, val_prediction_data, test_prediction_data
 
     self.trainer.enable_progress_bar = True
     self.trainer.datamodule.predicting = False
+  ##
+
+  ##
+  def evaluate_model(self,
+                     loss = 'mse', metric = None):
+
+    loss_name, metric_name = loss, metric
+
+    stride = self.trainer.datamodule.stride
+
+    # loss_name = self.loss_fn.name
+    loss_fn = Criterion(loss_name) 
+
+    metric_fn = None
+    
+    if metric_name is not None:
+      # metric_name = self.metric_fn.name
+      metric_fn = Criterion(metric_name, 0 if metric_name == 'fb' else None)
+      
+    if self.test_prediction_data is not None:
+      prediction_data = self.test_prediction_data      
+    elif self.val_prediction_data is not None:
+      prediction_data = self.val_prediction_data
+    else:
+      prediction_data = self.train_prediction_data
+
+    time = prediction_data[self.trainer.datamodule.time_name]
+
+    self.evaluation_data = {}
+    for name in self.trainer.datamodule.output_names:
+      
+      target = prediction_data[f"{name}_actual"]
+      prediction = prediction_data[f"{name}_prediction"]
+
+      # loss
+      step_loss = loss_fn(target, prediction)
+      global_loss = step_loss.mean(0)
+      stride_loss, stride_time = [], []
+
+      self.evaluation_data[f"{name}_step_{loss_name}"] = step_loss
+      self.evaluation_data[f"{name}_global_{loss_name}"] = global_loss
+      
+      for i in range(stride, step_loss.shape[0]+1, stride):
+        stride_time.append(time[(i-stride):i])
+        stride_loss.append(step_loss[(i-stride):i].mean(0))
+
+      self.evaluation_data[f"{name}_stride_{loss_name}"] = torch.cat(stride_loss,0)
+    #
+
+    # metric
+    if metric_fn is not None:
+      if metric_fn.dims is None:
+        step_metric = metric_fn(target, prediction)
+        global_metric = step_metric.mean(0)
+        stride_loss, stride_time = [], []
+        
+        for i in range(stride, step_metric.shape[0]+1, stride):
+          stride_metric.append(step_metric[(i-stride):i].mean(0))
+
+      else:
+        step_metric = None
+        global_metric = metric_fn(target, prediction)
+          
+        stride_metric = []
+        for i in range(stride, target.shape[0]+1, stride):
+          stride_metric.append(metric_fn(target[(i-stride):i], prediction[(i-stride):i]).reshape(-1, target.shape[-1]))
+
+      self.evaluation_data[f"{name}_step_{metric_name}"] = step_metric
+      self.evaluation_data[f"{name}_global_{metric_name}"] = global_metric      
+      self.evaluation_data[f"{name}_stride_{metric_name}"] = torch.cat(stride_metric,0)
+    
+    self.evaluation_data[f"stride_{self.trainer.datamodule.time_name}"] = stride_time
+    #
+  ##
 
   ##
   def plot_predictions(self,
@@ -725,14 +795,16 @@ class StockModule(pl.LightningModule):
 
     symbols = self.trainer.datamodule.symbols
 
+    time_name = self.trainer.datamodule.time_name
+      
     start_step = self.trainer.datamodule.start_step
 
     rows, cols = np.max([len(x) for x in self.trainer.datamodule.output_feature_names.values()]), len(symbols)
     fig, ax = plt.subplots(rows, cols, figsize = (10*len(symbols), 5*self.trainer.datamodule.max_output_size))
 
-    train_time = self.train_prediction_data['date']
-    val_time = self.val_prediction_data['date'] if self.val_prediction_data is not None else None
-    test_time = self.test_prediction_data['date'] if self.test_prediction_data is not None else None
+    train_time = self.train_prediction_data[time_name]
+    val_time = self.val_prediction_data[time_name] if self.val_prediction_data is not None else None
+    test_time = self.test_prediction_data[time_name] if self.test_prediction_data is not None else None
 
     for s,symbol in enumerate(symbols):
       try:
@@ -816,7 +888,7 @@ class StockModule(pl.LightningModule):
         if f == 0:
           ax_sf.set_title(symbol)
         if f == len(self.trainer.datamodule.output_feature_names[symbol]) - 1:
-          ax_sf.set_xlabel(f"Time [{self.trainer.datamodule.datetime_unit}]")
+          ax_sf.set_xlabel(f"Time [{self.trainer.datamodule.time_unit}]")
         ylabel = f"{feature} [{output_feature_units[symbol][f]}]" if output_feature_units is not None else f"{feature}"
 
         ax_sf.set_ylabel(ylabel)
@@ -903,11 +975,12 @@ class StockModule(pl.LightningModule):
 
     file_path = f"{dir}/{current_time}_predictions.csv"
 
+    time_name = self.trainer.datamodule.time_name  
     # Define the column index hierarchy
     metrics =  ["Actual", "Prediction", self.loss_fn.name, self.metric_fn.name] \
                if self.metric_fn.name is not None \
                else ["Actual", "Prediction", self.loss_fn.name]
-    columns = pd.MultiIndex.from_tuples([('date', '', ''),
+    columns = pd.MultiIndex.from_tuples([(time_name, '', ''),
                                         *[(symbol, feature, metric)
                                         for symbol in self.trainer.datamodule.symbols \
                                         for feature in self.trainer.datamodule.output_feature_names[symbol] \
@@ -916,7 +989,7 @@ class StockModule(pl.LightningModule):
 
     df = pd.DataFrame(columns=columns)
 
-    test_time = self.test_prediction_data['date']
+    test_time = self.test_prediction_data[time_name]
 
     j = 0
     for symbol in self.trainer.datamodule.symbols:
@@ -927,7 +1000,7 @@ class StockModule(pl.LightningModule):
         test_loss_sf = np.round(self.test_prediction_data[symbol][f"{feature}_{self.loss_fn.name}"].item(),3)
         test_metric_sf = np.round(self.test_prediction_data[symbol][f"{feature}_{self.metric_fn.name}"].item(),3) if self.metric_fn is not None else None
 
-        df[('date', '', '')] = pd.Series(test_time)
+        df[(time_name, '', '')] = pd.Series(test_time)
         df[(symbol, feature, "Actual")] = pd.Series(test_target_sf.numpy())
         df[(symbol, feature, "Prediction")] = pd.Series(test_prediction_sf.numpy())
         df[(symbol, feature, self.loss_fn.name)] = Criterion(self.loss_fn.name, reduction=None)(test_prediction_sf, test_target_sf)
@@ -1067,9 +1140,10 @@ class StockModule(pl.LightningModule):
     if transforms is not None:
         j = 0
         for i in range(self.model.num_outputs):
-            output_name_i = output_names[i]
-            output_reduced[:, j:(j + self.model.output_size[i])] = transforms[output_name_i].inverse_transform(output_reduced[:, j:(j + self.model.output_size[i])])
-            j += self.model.output_size[i]
+          print('output_names[i]', output_names[i])
+          output_name_i = output_names[i]
+          output_reduced[:, j:(j + self.model.output_size[i])] = transforms[output_name_i].inverse_transform(output_reduced[:, j:(j + self.model.output_size[i])])
+          j += self.model.output_size[i]
 
     # Return the reduced output and unique output steps
     return output_reduced, unique_output_steps
