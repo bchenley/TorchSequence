@@ -46,6 +46,11 @@ class StockDataModule(pl.LightningDataModule):
       self.max_shift = np.max(shift).item()
       self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift)]).item()
 
+      if self.interval == '1h':
+        self.dt = datetime.timedelta(hours = 1)
+      else: # self.interval == '1d:
+        self.dt = datetime.timedelta(days = 1)
+                 
       self.predicting, self.data_prepared = False, False
 
   def prepare_data(self):
