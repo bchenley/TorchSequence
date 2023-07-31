@@ -2,7 +2,7 @@ import torch
 import pytorch_lightning as pl
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from TorchTimeSeries.ts_src.FeatureTransform import FeatureTransform
 from TorchTimeSeries.ts_src.SequenceDataloader import SequenceDataloader
@@ -47,9 +47,9 @@ class StockDataModule(pl.LightningDataModule):
       self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift)]).item()
 
       if self.interval == '1h':
-        self.dt = datetime.timedelta(hours = 1)
+        self.dt = timedelta(hours = 1)
       else: # self.interval == '1d:
-        self.dt = datetime.timedelta(days = 1)
+        self.dt = timedelta(days = 1)
                  
       self.predicting, self.data_prepared = False, False
 
