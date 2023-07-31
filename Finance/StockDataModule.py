@@ -216,8 +216,8 @@ class StockDataModule(pl.LightningDataModule):
       
       if self.train_val_test_periods is not None:
         train_period = [pd.Period(date_str, freq = self.time_unit).to_timestamp() for date_str in self.train_val_test_periods[0]]
-        train_start_time = pd.to_datetime(train_period[0]).tz_localize(stock_datamodule.data['date'].dt.tz) 
-        train_end_time = pd.to_datetime(train_period[1]).tz_localize(stock_datamodule.data['date'].dt.tz) 
+        train_start_time = pd.to_datetime(train_period[0]).tz_localize(self.data['date'].dt.tz) 
+        train_end_time = pd.to_datetime(train_period[1]).tz_localize(self.data['date'].dt.tz) 
         
         train_data = {name: self.data[name][(self.data['date'] >= train_start_time) & (self.data['date'] <= train_end_time)] for name in list(self.data)}
 
@@ -225,8 +225,8 @@ class StockDataModule(pl.LightningDataModule):
 
         if len(self.train_val_test_periods[1]) > 0:
           val_period = [pd.Period(date_str, freq = self.time_unit).to_timestamp() for date_str in self.train_val_test_periods[1]]
-          val_start_time = pd.to_datetime(val_period[0]).tz_localize(stock_datamodule.data['date'].dt.tz) 
-          val_end_time = pd.to_datetime(val_period[1]).tz_localize(stock_datamodule.data['date'].dt.tz) 
+          val_start_time = pd.to_datetime(val_period[0]).tz_localize(self.data['date'].dt.tz) 
+          val_end_time = pd.to_datetime(val_period[1]).tz_localize(self.data['date'].dt.tz) 
           
           val_data = {name: self.data[name][(self.data['date'] >= val_start_time) & (self.data['date'] <= val_end_time)] for name in list(self.data)}
   
@@ -236,8 +236,8 @@ class StockDataModule(pl.LightningDataModule):
 
         if len(self.train_val_test_periods[2]) > 0:
           test_period = [pd.Period(date_str, freq = self.time_unit).to_timestamp() for date_str in self.train_val_test_periods[2]]
-          test_start_time = pd.to_datetime(test_period[0]).tz_localize(stock_datamodule.data['date'].dt.tz) 
-          test_end_time = pd.to_datetime(test_period[1]).tz_localize(stock_datamodule.data['date'].dt.tz) 
+          test_start_time = pd.to_datetime(test_period[0]).tz_localize(self.data['date'].dt.tz) 
+          test_end_time = pd.to_datetime(test_period[1]).tz_localize(self.data['date'].dt.tz) 
           
           test_data = {name: self.data[name][(self.data['date'] >= test_start_time) & (self.data['date'] <= test_end_time)] for name in list(self.data)}
   
