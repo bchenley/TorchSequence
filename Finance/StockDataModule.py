@@ -111,7 +111,7 @@ class StockDataModule(pl.LightningDataModule):
       #
 
       # Convert dataframe to dictionary of tensors. Concatenate features, if desired.
-      data = {self.time_name: df[self.time_name].values}
+      data = {self.time_name: df[self.time_name]}
       for name in self.input_output_names:
         data[name] = torch.tensor(np.array(df[name])).to(device = self.device, dtype = self.dtype)
         
