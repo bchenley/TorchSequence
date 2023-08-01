@@ -1068,7 +1068,7 @@ class SequenceModule(pl.LightningModule):
   ##
 
   ##
-  def evaluate_forecast(self, num_forecast_steps = 1, hiddens = None):
+  def backtest(self, num_forecast_steps = 1, hiddens = None):
 
     if self.accelerator == 'gpu': self.model.to('cuda')
     
@@ -1117,6 +1117,7 @@ class SequenceModule(pl.LightningModule):
     unique_output_window_idx = torch.cat(output_window_idx).unique()
 
     with torch.no_grad():
+      
       hiddens = None
       input, target, steps = [], [], []
       for batch in forecast_dl: 
