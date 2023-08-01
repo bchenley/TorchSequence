@@ -899,9 +899,9 @@ class SequenceModule(pl.LightningModule):
         
       input, target, steps = torch.cat(input), torch.cat(target), torch.cat(steps)
   
-      output_steps = steps[:, unique_output_window_idx]  
+      output_steps = steps[:, unique_output_window_idx]
   
-      self.forecast_time = [[time.iloc[s - start_step]] for s in output_steps]
+      self.forecast_time = [[time.iloc[s - start_step]] for s in output_steps.cpu().numpy()]
   
       num_samples = input.shape[0]
   
@@ -917,13 +917,13 @@ class SequenceModule(pl.LightningModule):
                                                         dtype = torch.long)
   
       output, hiddens = self.forward(input = input,
-                                            steps = steps,
-                                            hiddens = hiddens,
-                                            input_window_idx = input_window_idx,
-                                            output_window_idx = output_window_idx,
-                                            output_mask = output_mask,
-                                            output_input_idx = output_input_idx, 
-                                            input_output_idx = input_output_idx)
+                                      steps = steps,
+                                      hiddens = hiddens,
+                                      input_window_idx = input_window_idx,
+                                      output_window_idx = output_window_idx,
+                                      output_mask = output_mask,
+                                      output_input_idx = output_input_idx, 
+                                      input_output_idx = input_output_idx)
   
       forecast = torch.cat((forecast, output[:, -forecast_len:]), 1)
       forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
