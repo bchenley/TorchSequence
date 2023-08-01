@@ -530,6 +530,8 @@ class SequenceModule(pl.LightningModule):
               reduction = 'mean',
               baseline_model = None):
 
+    self.model.device == 'cuda' if self.accelerator == 'gpu' else 'cpu'
+                
     self.baseline_model = baseline_model
     
     self.trainer.datamodule.predicting = True
@@ -766,7 +768,9 @@ class SequenceModule(pl.LightningModule):
   ##
   def evaluate_model(self,
                      loss = 'mse', metric = None):
-
+                       
+    self.model.device == 'cuda' if self.accelerator == 'gpu' else 'cpu'
+                       
     loss_name, metric_name = loss, metric
 
     stride = self.trainer.datamodule.stride
@@ -838,7 +842,9 @@ class SequenceModule(pl.LightningModule):
 
   ##
   def evaluate_forecast(self, num_forecast_steps = 1, hiddens = None):
-  
+
+    self.model.device == 'cuda' if self.accelerator == 'gpu' else 'cpu'
+    
     if len(self.trainer.datamodule.test_data) > 0:   
       if not hasattr(self.trainer.datamodule, 'test_dl'): 
         self.trainer.datamodule.predicting = True
