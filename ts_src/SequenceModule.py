@@ -527,9 +527,6 @@ class SequenceModule(pl.LightningModule):
   def predict(self,
               reduction = 'mean',
               baseline_model = None):
-  
-    self.model.to(device = self.trainer.datamodule.device,
-                  dtype = self.trainer.datamodule.dtype)
 
     self.baseline_model = baseline_model
     
