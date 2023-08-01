@@ -109,8 +109,9 @@ class SequenceDataloader(torch.utils.data.Dataset):
       self.max_input_len, self.max_output_len = np.max(self.input_len).item(), np.max(self.output_len).item()
       self.unique_output_window_idx = torch.cat(ds.output_window_idx, 0).unique()
 
-      self.output_mask = torch.zeros((self.max_output_len, np.sum(self.output_size)), device=self.device,
-                                      dtype=self.dtype)
+      self.output_mask = torch.zeros((self.max_output_len, np.sum(self.output_size))).to(device = self.device,
+                                                                                         dtype = self.dtype)
+      
       j = 0
       for i in range(len(ds.output_window_idx)):
           output_window_idx_k = [k for k, l in enumerate(self.unique_output_window_idx) if
