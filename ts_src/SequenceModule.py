@@ -25,6 +25,8 @@ class SequenceModule(pl.LightningModule):
 
     self.model = model
 
+    self.accelerator = 'gpu' if self.model.device == 'cuda' else 'cpu'            
+
     self.opt, self.loss_fn, self.metric_fn = opt, loss_fn, metric_fn
 
     self.constrain, self.penalize = constrain, penalize
@@ -1271,7 +1273,7 @@ class SequenceModule(pl.LightningModule):
 
     try:
       self.trainer = pl.Trainer(max_epochs = max_epochs,
-                                accelerator = 'gpu' if self.model.device == 'cuda' else 'cpu',
+                                accelerator = self.accelerator,
                                 callbacks = callbacks)
 
       self.trainer.fit(self,
