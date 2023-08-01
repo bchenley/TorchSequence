@@ -748,8 +748,7 @@ class SequenceModule(pl.LightningModule):
                                       dims=(0,1))(test_baseline_pred_i.unsqueeze(0), test_target_i.unsqueeze(0))
 
           if self.metric_fn is not None:
-            test_baseline_metric_i = Criterion(self.metric_fn.name,
-                                          dims=(0,1))(test_baseline_pred_i.unsqueeze(0), test_target_i.unsqueeze(0))
+            test_baseline_metric_i = Criterion(self.metric_fn.name, dims=(0,1))(test_baseline_pred_i.unsqueeze(0), test_target_i.unsqueeze(0))
 
         test_prediction_data[f"{output_name}_baseline_prediction"] = test_baseline_pred_i
         test_prediction_data[f"{output_name}_baseline_{self.loss_fn.name}"] = test_baseline_loss_i
@@ -853,15 +852,26 @@ class SequenceModule(pl.LightningModule):
     num_outputs = len(output_names)
     output_size = self.trainer.datamodule.output_size
     max_output_size = np.max(output_size)
-
+    
     start_step = self.trainer.datamodule.start_step
-
+  
     rows, cols = max_output_size, num_outputs
     fig, ax = plt.subplots(rows, cols, figsize = figsize if figsize is not None else (10*num_outputs, 5*max_output_size))
 
     train_time = self.train_prediction_data[time_name]
-    val_time = self.val_prediction_data[time_name] if self.val_prediction_data is not None else None
-    test_time = self.test_prediction_data[time_name] if self.test_prediction_data is not None else None
+    if hasattr(train_time, 'dt'): train_time = train_time.dt.tz_localize(None)
+
+    if self.val_prediction_data is not None:
+      val_time = self.val_prediction_data[time_name]
+      if hasattr(val_time, 'dt'): val_time = val_time.dt.tz_localize(None)
+    else:
+      val_time = None
+
+    if self.test_prediction_data is not None:
+      test_time = self.test_prediction_data[time_name]
+      if hasattr(test_time, 'dt'): test_time = test_time.dt.tz_localize(None)
+    else:
+      test_time = None
 
     for i,output_name in enumerate(output_names):
 
@@ -1200,7 +1210,7 @@ class SequenceModule(pl.LightningModule):
   ##
   
   ##
-  def plot_forecast_eval(self):
+  def plot_backtest(self):
     
     if self.forecast_metric is not None:  
       metric = self.forecast_metric.cpu()
@@ -1208,7 +1218,7 @@ class SequenceModule(pl.LightningModule):
     else:
       metric = self.forecast_loss.cpu()
       metric_name = self.loss_fn.name
-
+    
     fig, ax = plt.subplots(self.model.num_outputs, len(self.forecast_time), figsize = (10*len(self.forecast_time), 1*len(self.forecast_time)))
     
     min_target = self.forecast_target.cpu().view(-1, self.model.num_outputs).min(0)[0]
