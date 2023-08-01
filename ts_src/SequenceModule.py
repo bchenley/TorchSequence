@@ -906,7 +906,7 @@ class SequenceModule(pl.LightningModule):
   
       output_steps = steps[:, unique_output_window_idx]
   
-      self.forecast_time = [[time.iloc[s - start_step]] for s in output_steps.cpu().numpy()]
+      self.forecast_time = [time.iloc[s - start_step] for s in output_steps.cpu().numpy()]
   
       num_samples = input.shape[0]
   
