@@ -149,7 +149,7 @@ class StockDataModule(pl.LightningDataModule):
         if 'all' in self.transforms:
           self.transforms[name] = self.transforms['all'].copy()
         elif name not in self.transforms:
-          self.transforms[name] = FeatureTransform(transform_type='identity')}
+          self.transforms[name] = FeatureTransform(transform_type='identity')
         
         self.data[name] = self.transforms[name].fit_transform(self.data[name])
                     
