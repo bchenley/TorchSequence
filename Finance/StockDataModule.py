@@ -109,7 +109,7 @@ class StockDataModule(pl.LightningDataModule):
       # total length of data
       self.data_len = df.shape[0]
       #
-
+      
       # Convert dataframe to dictionary of tensors. Concatenate features, if desired.
       data = {self.time_name: df[self.time_name]}
       for name in self.input_output_names:
@@ -120,11 +120,11 @@ class StockDataModule(pl.LightningDataModule):
       self.data = data.copy()
       
       mask = torch.ones((self.data[self.time_name].shape[0]), dtype = bool)
-
+      
       # Shift data
       if self.time_shifts is not None:
         for name in self.time_shifts:
-  
+        
           s = self.time_shifts[name]
   
           self.data[name] = torch.roll(self.data[name], shifts = s, dims = 0)
@@ -144,11 +144,12 @@ class StockDataModule(pl.LightningDataModule):
           self.data[name] = self.data[name][mask]
       #
 
+      self.transforms = {'all': FeatureTransform(transform_type='identity')}} if self.transforms is not None else self.transforms      
       for name in self.input_output_names:
         if 'all' in self.transforms:
           self.transforms[name] = self.transforms['all']
         elif name not in self.transforms:
-          self.transforms = {name: FeatureTransform(transform_type='identity')}
+          self.transforms[name] = FeatureTransform(transform_type='identity')}
         
         self.data[name] = self.transforms[name].fit_transform(self.data[name])
                     
