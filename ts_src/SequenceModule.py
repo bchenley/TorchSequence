@@ -1197,43 +1197,62 @@ class SequenceModule(pl.LightningModule):
     if self.metric_fn.name is not None:
       self.forecast_metric = Criterion(self.metric_fn.name, dims = 1)(forecast, target)    
   ##
-
+  
   ##
   def plot_forecast_eval(self):
+    
+    if self.forecast_metric is not None:  
+      metric = self.forecast_metric.cpu()
+      metric_name = self.metric_fn.name
+    else:
+      metric = self.forecast_loss.cpu()
+      metric_name = self.loss_fn.name
 
-    fig, ax = plt.subplots(1, len(self.forecast_time), figsize = (10*len(self.forecast_time), 1*len(self.forecast_time)))
+    fig, ax = plt.subplots(self.model.num_outputs, len(self.forecast_time), figsize = (10*len(self.forecast_time), 1*len(self.forecast_time)))
+    
+    min_target = self.forecast_target.cpu().view(-1, self.model.num_outputs).min(0)[0]
+    max_target = self.forecast_target.cpu().view(-1, self.model.num_outputs).max(0)[0]
 
-    # times = []
+    min_forecast = self.forecast.cpu().view(-1, self.model.num_outputs).min(0)[0]
+    max_forecast = self.forecast.cpu().view(-1, self.model.num_outputs).max(0)[0]
+
+    min_, max_ = torch.cat((min_target, min_forecast), 0).min(0, keepdims = True)[0].numpy(), torch.cat((max_target, max_forecast), 0).max(0, keepdims = True)[0].numpy()
+    
+    margin_ = 0.10*(max_ - min_)
+
     for i, (time_i, target_i, prediction_i) in enumerate(zip(self.forecast_time, self.forecast_target, self.forecast)):
 
-      if hasattr(time_i, 'dt'):
-        time_i_ = time_i.dt.tz_localize(None)
+      f = 0  
+      for j in range(self.model.num_outputs):
 
-      ax[i].plot(time_i_, target_i.cpu(), 'k')
-      ax[i].plot(time_i_, prediction_i.cpu(), 'r')
-      ax[i].set_xticks(time_i_)
-      ax[i].grid()
+        ax_ji = ax[j,i] if self.model.num_outputs > 1 else ax[i] 
 
-      if hasattr(time_i, 'dt'):
-        if '%H' in self.trainer.datamodule.date_format:
-          date_format = "%H:%M"
-          xlabel = time_i.dt.strftime("%Y-%m-%d").iloc[0]
-          interval = 30
+        if hasattr(time_i, 'dt'):
+          time_i_ = time_i.dt.tz_localize(None)
+
+        ax_ji.plot(time_i_, target_i[:, f:(f+self.model.output_size[j])].cpu(), 'k')
+        ax_ji.plot(time_i_, prediction_i[:, f:(f+self.model.output_size[j])].cpu(), 'r')      
+        ax_ji.set_ylim([min_[j]-margin_[j], max_[j]+margin_[j]])
+        ax_ji.grid()
+
+        if hasattr(time_i, 'dt'):
+          if '%H' in self.trainer.datamodule.date_format:
+            date_format = "%H:%M"
+            xlabel = time_i.dt.strftime("%Y-%m-%d").iloc[0]
+            interval = 30
+          else:
+            date_format = "%m-%d"
+            xlabel = time_i.dt.strftime("%Y").iloc[0]
+            interval = 1
+          
+          ax_ji.xaxis.set_major_formatter(mdates.DateFormatter(date_format))
+          ax_ji.xaxis.set_major_locator(mdates.MinuteLocator(interval = interval))
         else:
-          date_format = "%m-%d"
-          xlabel = time_i.dt.strftime("%Y").iloc[0]
-          interval = 1
-
-        ax[i].xaxis.set_major_formatter(mdates.DateFormatter(date_format))
-        ax[i].xaxis.set_major_locator(mdates.MinuteLocator(interval = interval))
-      else:
-        xlabel = self.trainer.datamodule.time_unit
-      
-      ax[i].set_xlabel(xlabel)
-
-      # times.append(time_i_)
-
-    # times = np.concatenate(times)
+          xlabel = self.trainer.datamodule.time_unit
+        
+        ax_ji.set_xticks(time_i_)
+        ax_ji.set_xlabel(xlabel) 
+        ax_ji.set_title(f"{metric_name.upper()} = {np.round(metric[i][j].item(), 2)}")
 
     plt.tight_layout()
   ##
