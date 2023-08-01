@@ -144,7 +144,7 @@ class StockDataModule(pl.LightningDataModule):
           self.data[name] = self.data[name][mask]
       #
 
-      self.transforms = {'all': FeatureTransform(transform_type='identity')} if self.transforms is not None else self.transforms
+      self.transforms = {'all': FeatureTransform(transform_type='identity')} if self.transforms is None else self.transforms
       for name in self.input_output_names:
         if 'all' in self.transforms:
           self.transforms[name] = self.transforms['all']
