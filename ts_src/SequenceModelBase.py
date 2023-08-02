@@ -342,7 +342,8 @@ class SequenceModelBase(torch.nn.Module):
                                                       dtype = self.dtype)
     encoder_output = torch.empty((1,self.input_len,encoder_output_size)).to(device = self.device,
                                                                            dtype = self.dtype) if encoder_output_size is not None else None
-    self.output_len = self.forward(X, encoder_output = encoder_output)
+    
+    self.output_len = self.forward(X, encoder_output = encoder_output)[0].shape[1]
                 
   def init_hiddens(self, num_samples):
     '''
