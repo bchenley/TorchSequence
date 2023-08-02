@@ -98,7 +98,7 @@ class SequenceModelBase(torch.nn.Module):
   '''
 
   def __init__(self,
-              input_size, hidden_size, input_len=None,
+              input_size, hidden_size, input_len,
               base_type='gru', num_layers=1,
               stateful = False,
               encoder_bias=False, decoder_bias=False,
@@ -338,10 +338,10 @@ class SequenceModelBase(torch.nn.Module):
                                          bias = self.decoder_bias,
                                          device = self.device, dtype = self.dtype)
 
-    X = torch.empty((1,self.input_len,input_size)).to(device = self.device,
-                                                      dtype = self.dtype)
+    X = torch.empty((1, self.input_len, input_size)).to(device = self.device,
+                                                        dtype = self.dtype)
     encoder_output = torch.empty((1,self.input_len,encoder_output_size)).to(device = self.device,
-                                                                           dtype = self.dtype) if encoder_output_size is not None else None
+                                                                            dtype = self.dtype) if encoder_output_size is not None else None
     
     self.output_len = self.forward(X, encoder_output = encoder_output)[0].shape[1]
                 
