@@ -36,7 +36,7 @@ class CNN1D(torch.nn.Module):
         output = model(X)
     """
     def __init__(self, 
-                 in_channels, out_channels, seq_len = 1,
+                 in_channels, out_channels, input_len = 1,
                  kernel_size=[(1,)], kernel_stride=[(1,)], padding=[(0,)], 
                  dilation=[(1,)], groups=[1], bias=[False], 
                  pool_type=[None], pool_size=[(2,)], pool_stride = [(1,)],
@@ -106,7 +106,7 @@ class CNN1D(torch.nn.Module):
 
             self.cnn[-1].append(pool_i)
 
-        X = torch.zeros((1,self.seq_len, in_channels)).to(device = self.device, dtype = self.dtype)
+        X = torch.zeros((1,self.input_len, in_channels)).to(device = self.device, dtype = self.dtype)
                      
         self.out_features = self.forward(X).shape[-1]
 
