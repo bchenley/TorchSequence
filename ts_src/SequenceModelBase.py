@@ -340,7 +340,7 @@ class SequenceModelBase(torch.nn.Module):
 
     X = torch.empty((1,self.input_len,input_size)).to(device = self.device,
                                                       dtype = self.dtype)
-    encoder_output = torch.empty((1,self.input_len,encoder_output_size).to(device = self.device,
+    encoder_output = torch.empty((1,self.input_len,encoder_output_size)).to(device = self.device,
                                                                            dtype = self.dtype) if encoder_output_size is not None else None
     self.output_len = self.forward(X, encoder_output = encoder_output)
                 
