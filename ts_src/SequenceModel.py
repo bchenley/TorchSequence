@@ -128,7 +128,7 @@ class SequenceModel(torch.nn.Module):
       
       seq_base_i = SequenceModelBase(input_size = self.input_size[i],
                                     hidden_size = self.base_hidden_size[i],
-                                    seq_len = self.input_len[i],
+                                    input_len = self.input_len[i],
                                     stateful = self.base_stateful[i],
                                     # type
                                     base_type = self.base_type[i], num_layers = self.base_num_layers[i],
