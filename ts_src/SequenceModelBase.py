@@ -16,7 +16,8 @@ class SequenceModelBase(torch.nn.Module):
   Args:
     input_size (int): The number of expected features in the input.
     hidden_size (int): The number of features in the hidden state/output.
-    seq_len (int, optional): The length of the input sequence. Default is None.
+    input_len (int, optional): The length of the input sequence. Default is None.
+    output_len (int, optional): The length of the output sequence.
     base_type (str): The type of the base model. Options: 'gru', 'lstm', 'lru', 'cnn', 'transformer'.
     num_layers (int, optional): Number of recurrent layers. Default is 1.
     encoder_bias (bool, optional): Whether to include a bias term in the encoder block. Default is False.
@@ -97,7 +98,7 @@ class SequenceModelBase(torch.nn.Module):
   '''
 
   def __init__(self,
-              input_size, hidden_size, seq_len=None,
+              input_size, hidden_size, input_len=None,
               base_type='gru', num_layers=1,
               stateful = False,
               encoder_bias=False, decoder_bias=False,
@@ -183,7 +184,7 @@ class SequenceModelBase(torch.nn.Module):
     elif self.base_type == 'cnn':
       self.base = CNN1D(in_channels = self.input_size, 
                         out_channels = self.cnn_out_channels, 
-                        seq_len = seq_len,
+                        input_len = input_len,
                         kernel_size = self.cnn_kernel_size, 
                         kernel_stride = self.cnn_kernel_stride, 
                         padding = self.cnn_padding, 
@@ -206,7 +207,7 @@ class SequenceModelBase(torch.nn.Module):
                             dropout_p = self.transformer_embedding_dropout_p,
                             device = self.device, dtype = self.dtype)
 
-      positional_encoding = PositionalEncoding(dim = self.hidden_size, seq_len = self.seq_len,
+      positional_encoding = PositionalEncoding(dim = self.hidden_size, input_len = self.input_len,
                                                 encoding_type = self.transformer_positional_encoding_type,
                                                 device = self.device, dtype = self.dtype)
 
@@ -336,7 +337,13 @@ class SequenceModelBase(torch.nn.Module):
                                          activation = 'identity',
                                          bias = self.decoder_bias,
                                          device = self.device, dtype = self.dtype)
-       
+
+    X = torch.empty((1,self.input_len,input_size)).to(device = self.device,
+                                                      dtype = self.dtype)
+    encoder_output = torch.empty((1,self.input_len,encoder_output_size).to(device = self.device,
+                                                                           dtype = self.dtype) if encoder_output_size is not None else None
+    self.output_len = self.forward(X, encoder_output = encoder_output)
+                
   def init_hiddens(self, num_samples):
     '''
     Initialize hidden states for the base model.
