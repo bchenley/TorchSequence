@@ -209,6 +209,8 @@ class SequenceModel(torch.nn.Module):
       self.hidden_layer.append(hidden_layer_i)
       #
     
+    self.max_base_seq_len = np.max([base.output_len for base in self.seq_base])
+
     # interaction layer
     if self.interaction_out_features > 0:
       if np.sum(self.hidden_out_features) > 0:
@@ -305,7 +307,7 @@ class SequenceModel(torch.nn.Module):
         output_out_features_i = self.output_size[i] * self.max_output_len
       else:
         output_out_features_i = self.output_size[i]
-  
+        
       if self.output_size[i] > 0:
         output_layer_i = HiddenLayer(# linear transformation
                                      in_features = output_in_features_i, 
@@ -388,12 +390,11 @@ class SequenceModel(torch.nn.Module):
       if self.hidden_out_features[i] > 0:
         hidden_out_features_i = self.hidden_out_features[i]
       else:
-        hidden_out_features_i = self.base_hidden_size[i]
-
+        hidden_out_features_i = (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
+      
       hidden_output_i = torch.zeros((num_samples, input_len, hidden_out_features_i)).to(input)
-        
-
-      # Generate output and hiddens of sequence base for the ith input 
+      
+      # Generate output and hiddens of sequence base for the ith input
       base_output_i, hiddens[i] = self.seq_base[i](input = input_i[:, -1:] \
                                                    if (self.seq_base[i].base_type in ['gru','lstm','lru']) \
                                                     & (self.seq_base[i].seq_type == 'decoder') \
@@ -402,14 +403,14 @@ class SequenceModel(torch.nn.Module):
                                                    hiddens = hiddens[i],
                                                    encoder_output = encoder_output)
       
-      base_output_i = torch.nn.functional.pad(base_output_i,
-                                              (0, 0, np.max([0, base_output_i.shape[1]-input_len]), 0),
-                                              "constant", 0)
+      # base_output_i = torch.nn.functional.pad(base_output_i,
+      #                                         (0, 0, np.max([0, input_len - base_output_i.shape[1]]), 0),
+      #                                         "constant", 0)
       
       if self.store_layer_outputs: self.base_layer_output[i].append(base_output_i)
       
       # Generate hidden layer outputs for ith input, append result to previous hidden layer output of previous inputs
-      hidden_output_i[:, input_window_idx[i]] = self.hidden_layer[i](base_output_i)
+      hidden_output_i[:, -base_output_i.shape[1]:] = self.hidden_layer[i](base_output_i)
       hidden_output.append(hidden_output_i)
       
       if self.store_layer_outputs: self.hidden_layer_output[i].append(hidden_output_i)
@@ -479,7 +480,7 @@ class SequenceModel(torch.nn.Module):
     
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
-
+    
     input_window_idx = [torch.arange(input_len).to(device = self.device, dtype = torch.long) for i in range(self.num_inputs)] \
                        if input_window_idx is None else input_window_idx
                 
@@ -495,7 +496,7 @@ class SequenceModel(torch.nn.Module):
 
     # Initiate hiddens if None
     hiddens = hiddens if hiddens is not None else self.init_hiddens()
-
+    
     # Process output and updated hiddens
 
     if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder
@@ -579,7 +580,7 @@ class SequenceModel(torch.nn.Module):
     for i in range(self.num_inputs):
       if self.base_penalize[i]:
         loss += self.seq_base[i].penalize()
-
+    
     if self.hidden_penalize[i]:
       loss += self.hidden_layer[i].penalize()
 
