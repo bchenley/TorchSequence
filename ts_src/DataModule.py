@@ -100,7 +100,7 @@ class DataModule(pl.LightningDataModule):
       
       self.data = data.copy()
       
-      mask = torch.ones((self.data[self.time_name].shape[0]), dtype = bool)
+      mask = np.ones((self.data[self.time_name].shape[0]), dtype = bool)
       
       # Shift data
       if self.time_shifts is not None:
@@ -110,14 +110,15 @@ class DataModule(pl.LightningDataModule):
   
           self.data[name] = torch.roll(self.data[name], shifts = s, dims = 0)
           
-          nan_idx = (torch.arange(s) if s >= 0 else torch.arange(self.data[name].shape[0]+s, self.data[name].shape[0])).to(device = self.device)
+          nan_idx = (torch.arange(s) if s >= 0 else torch.arange(self.data[name].shape[0]+s, self.data[name].shape[0])).to(device = self.device, 
+                                                                                                                           dtype = torch.long)
           
-          mask[nan_idx] = False
+          mask[nan_idx.cpu()] = False
   
           self.data[name].index_fill_(0, nan_idx, float('nan'))
   
         if isinstance(self.data[self.time_name], pd.core.series.Series):      
-          self.data[self.time_name] = self.data[self.time_name].values[mask] 
+          self.data[self.time_name] = self.data[self.time_name][mask] 
         else:
           self.data[self.time_name] = self.data[self.time_name][mask] 
   
