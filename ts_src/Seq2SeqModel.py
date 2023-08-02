@@ -84,6 +84,7 @@ class Seq2SeqModel(torch.nn.Module):
               output_input_idx=[], input_output_idx=[],
               encoder_output=None,
               target=None,
+              input_window_idx=None,
               output_window_idx=None):
 
     '''
@@ -115,7 +116,7 @@ class Seq2SeqModel(torch.nn.Module):
                                                    steps=encoder_steps,
                                                    hiddens=hiddens,
                                                    input_mask=input_mask)
-
+    
     hiddens = encoder_hiddens
     
     decoder_hiddens = [None for _ in range(self.decoder.num_inputs)]
