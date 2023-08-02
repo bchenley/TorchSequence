@@ -1250,11 +1250,11 @@ class SequenceModule(pl.LightningModule):
           if self.trainer.datamodule.time_unit in ['h','m']: # '%H' in self.trainer.datamodule.date_format:
             date_format = "%H:%M"
             xlabel = time_i.dt.strftime("%Y-%m-%d").iloc[0]
-            interval = datamodule_1.dt.components.hours if self.trainer.datamodule.time_unit == 'h' else datamodule_1.dt.components.minutes
+            interval = self.dt.components.hours if self.trainer.datamodule.time_unit == 'h' else self.dt.components.minutes
           else: # assumes Day
             date_format = "%m-%d"
             xlabel = time_i.dt.strftime("%Y").iloc[0]
-            interval = datamodule_1.dt.components.days
+            interval = self.dt.components.days
           
           ax_ji.xaxis.set_major_formatter(mdates.DateFormatter(date_format))
           ax_ji.xaxis.set_major_locator(mdates.MinuteLocator(interval = interval))
