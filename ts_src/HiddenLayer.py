@@ -88,6 +88,13 @@ class HiddenLayer(torch.nn.Module):
 
     self.dropout = torch.nn.Dropout(self.dropout_p)
 
+    if self.batch_norm:            
+      self.batch_norm_layer = torch.nn.BatchNorm1d(out_features, 
+                                                   affine = self.batch_norm_learn,
+                                                   device = self.device, dtype = self.dtype)
+    else:
+      self.batch_norm_layer = torch.nn.Identity()
+
   def forward(self, input):
     '''
     Perform a forward pass through the hidden layer.
@@ -99,7 +106,9 @@ class HiddenLayer(torch.nn.Module):
         torch.Tensor: Output tensor.
 
     '''
-    y = self.dropout(self.F(input))
+    
+    y = self.batch_norm_layer(self.dropout(self.F(input)))
+    
     return y
 
   def constrain(self):
