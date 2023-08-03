@@ -196,7 +196,7 @@ class SequenceModelBase(torch.nn.Module):
                         pool_size = self.cnn_pool_size,
                         pool_stride = self.cnn_pool_stride,
                         batch_norm = cnn_batch_norm, 
-                        batch_norm_learn = cnn_batch_norm_learn
+                        batch_norm_learn = cnn_batch_norm_learn,
                         device = self.device, dtype = self.dtype)
 
     elif self.base_type == 'transformer':
