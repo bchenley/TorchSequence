@@ -31,7 +31,7 @@ class FeatureTransform():
 
     if self.transform_type == 'identity':
         self.transform_fn = self.identity
-        self.inverse_transform_fn = self.identity
+        self.inverse_transform_fn = self.inverse_identity
     elif self.transform_type == 'minmax':
         self.transform_fn = self.normalize
         self.inverse_transform_fn = self.inverse_normalize
@@ -39,7 +39,7 @@ class FeatureTransform():
         self.transform_fn = self.standardize
         self.inverse_transform_fn = self.inverse_standardize
       
-  def identity(self, X):
+  def identity(self, X, fit = False):
     '''
     Returns the input data as it is without any scaling.
 
@@ -49,23 +49,29 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The input data unchanged.
     '''
-    self.min_, self.max_ = X.min(self.dim).values, X.max(self.dim).values
+    X = self.difference(X) if self.diff_order > 0 else X
+    if fit: self.min_, self.max_ = X.min(self.dim).values, X.max(self.dim).values
     return X
+  
+  def inverse_identity(self, X):
+    return self.cumsum(X) if self.diff_order > 0 else X
 
   def difference(self, X, fit = False):
     y = X.clone()
     self.X0 = []
-    for _ in range(self.diff_order):
+    for i in range(self.diff_order):
       self.X0.append(y[:1])
       y = y.diff(1, self.dim)
     y = torch.nn.functional.pad(y, (0, 0, self.diff_order, 0), mode = 'constant', value = 0)
+  
     return y
 
   def cumsum(self, X):
     y = X.clone()
     y = y[self.diff_order:]
-    for i in range(self.diff_order): 
-      y = torch.cat((self.X0[-i,:], y), 0).cumsum(self.dim)
+    for i in range(self.diff_order):
+      y = torch.cat((self.X0[-(i+1)], y), self.dim).cumsum(self.dim)
+
     return y
   
   def standardize(self, X, fit = False):
