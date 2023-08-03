@@ -35,6 +35,7 @@ class ModulationLayer(torch.nn.Module):
                dt=1, num_freqs=None, freq_init=None, freq_train=True, phase_init=None, phase_train=True,
                num_sigmoids=None, slope_init=None, slope_train=True, shift_init=None, shift_train=True,
                weight_reg=[0.001, 1.], weight_norm=2, zero_order=True, bias=True, pure=False,
+               batch_norm = False, batch_norm_learn = False,
                device='cpu', dtype=torch.float32):
 
     super(ModulationLayer, self).__init__()
@@ -108,6 +109,13 @@ class ModulationLayer(torch.nn.Module):
                                  weight_norm = self.weight_norm,
                                  device = self.device, dtype = self.dtype)
 
+    if self.batch_norm:            
+        self.batch_norm_layer = torch.nn.BatchNorm1d(self.num_modulators, 
+                                                     affine=self.batch_norm_learn,
+                                                     device=self.device, dtype=self.dtype)
+    else:
+        self.batch_norm_layer = torch.nn.Identity()
+          
   def forward(self, input, steps):
     '''
     Perform a forward pass through the modulation layer.
@@ -127,7 +135,7 @@ class ModulationLayer(torch.nn.Module):
     else:
       input_ = input
 
-    output = self.F[steps] * self.linear_fn(input_)
+    output = self.batch_norm_layer(self.F[steps] * self.linear_fn(input_))
 
     return output
 
