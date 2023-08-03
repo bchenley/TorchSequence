@@ -58,7 +58,7 @@ class FeatureTransform():
     for _ in range(self.diff_order):
       self.X0.append(y[:1])
       y = y.diff(1, self.dim)
-    y = torch.nn.functional.pad(train_data[name], (0, 0, self.diff_order, 0), mode = 'constant', value = 0)
+    y = torch.nn.functional.pad(y, (0, 0, self.diff_order, 0), mode = 'constant', value = 0)
     return y
 
   def cumsum(self, X):
