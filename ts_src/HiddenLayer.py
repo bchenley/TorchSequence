@@ -27,10 +27,11 @@ class HiddenLayer(torch.nn.Module):
   
   def __init__(self, in_features, out_features=None, 
                bias=True, activation='identity',
-                weights_to_1 = False, weight_reg=[0.001, 1], weight_norm=2, 
-                degree=1, coef_init=None, coef_train=True,
-                coef_reg=[0.001, 1], zero_order=False, softmax_dim=-1, dropout_p=0.0,
-                device='cpu', dtype=torch.float32):
+               weights_to_1 = False, weight_reg=[0.001, 1], weight_norm=2, 
+               degree=1, coef_init=None, coef_train=True,
+               coef_reg=[0.001, 1], zero_order=False, softmax_dim=-1, dropout_p=0.0,
+               batch_norm = False, batch_norm_learn = False,
+               device='cpu', dtype=torch.float32):
     super(HiddenLayer, self).__init__()
 
     locals_ = locals().copy()
