@@ -14,6 +14,7 @@ class SequenceModel(torch.nn.Module):
                output_size = [1], output_len = [1],
                base_stateful = [False], process_by_step = False, joint_prediction = False,
                dt = 1,
+               batch_norm = False,
                flatten = None,
                store_layer_outputs = False,
                ## Sequence base parameters
@@ -35,6 +36,8 @@ class SequenceModel(torch.nn.Module):
                base_cnn_out_channels = [None],
                base_cnn_kernel_size = [[(1,)]], base_cnn_kernel_stride = [[(1,)]], base_cnn_padding = [[(0,)]], base_cnn_dilation = [[(1,)]], base_cnn_groups = [[1]], base_cnn_bias = [[False]],
                base_cnn_pool_type = [[None]], base_cnn_pool_size = [[(2,)]], base_cnn_pool_stride = [[(1,)]],
+               base_cnn_batch_norm = [False], base_cnn_batch_norm_learn = [False],
+               base_cnn_pad_front = [False],
                # Transformer parameters
                base_seq_type = ['encoder'],
                base_transformer_embedding_type = ['time'], base_transformer_embedding_bias = [False], base_transformer_embedding_activation = ['identity'],
@@ -143,8 +146,10 @@ class SequenceModel(torch.nn.Module):
                                     relax_init = self.base_relax_init[i], relax_train = self.base_relax_train[i], relax_minmax = self.base_relax_minmax[i], num_filterbanks = self.base_num_filterbanks[i],
                                     # CNN parameters
                                     cnn_out_channels = self.base_cnn_out_channels[i],
+                                    cnn_pad_front = self.base_cnn_pad_front[i],
                                     cnn_kernel_size = self.base_cnn_kernel_size[i], cnn_kernel_stride = self.base_cnn_kernel_stride[i], cnn_padding = self.base_cnn_padding[i], cnn_dilation = self.base_cnn_dilation[i], cnn_groups = self.base_cnn_groups[i], cnn_bias = self.base_cnn_bias[i],
                                     cnn_pool_type = self.base_cnn_pool_type[i], cnn_pool_size = self.base_cnn_pool_size[i], cnn_pool_stride = self.base_cnn_pool_stride[i],
+                                    cnn_batch_norm = self.base_cnn_batch_norm, cnn_batch_norm_learn = self.base_cnn_batch_norm_learn,
                                     # Transformer parameters
                                     encoder_output_size = self.encoder_output_size, seq_type = self.base_seq_type[i],
                                     transformer_embedding_type = self.base_transformer_embedding_type[i], transformer_embedding_bias = self.base_transformer_embedding_bias[i], transformer_embedding_activation = self.base_transformer_embedding_activation[i],
@@ -174,7 +179,7 @@ class SequenceModel(torch.nn.Module):
                                     average_attn_weights = self.base_average_attn_weights[i],
                                     # always batch first
                                     batch_first = True,
-                                    #
+                                    # 
                                     device = self.device, dtype = self.dtype)
 
       self.seq_base.append(seq_base_i)
@@ -202,6 +207,7 @@ class SequenceModel(torch.nn.Module):
                                      # softmax parameter
                                      softmax_dim = self.hidden_softmax_dim[i],
                                      dropout_p = self.hidden_dropout_p[i],
+                                     batch_norm = self.batch_norm,
                                      device = self.device, dtype = self.dtype)
       else:
         hidden_layer_i = torch.nn.Identity()
@@ -218,10 +224,16 @@ class SequenceModel(torch.nn.Module):
       else:
         interaction_in_features = 0
         for i in range(self.num_inputs):
-          interaction_in_features += (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
-        else:
-          interaction_in_features += self.base_transformer_dim_feedforward[i]
+          if self.base_type[i] in ['lstm','gru']:
+            interaction_in_features += (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
+          elif self.base_type[i] == 'lru':
 
+            interaction_in_features += self.base_num_filterbanks[i]*self.base_hidden_size[i]
+          elif self.base_type[i] == 'transformer':
+            interaction_in_features += self.base_transformer_dim_feedforward[i]
+          else:
+            interaction_in_features += self.base_hidden_size[i]
+            
       self.interaction_layer = HiddenLayer(# linear transformation
                                           in_features = interaction_in_features, out_features = self.interaction_out_features,
                                           bias = self.interaction_bias,
@@ -234,12 +246,13 @@ class SequenceModel(torch.nn.Module):
                                           # softmax parameter
                                           softmax_dim = self.interaction_softmax_dim,
                                           dropout_p = self.interaction_dropout_p,
+                                          batch_norm = self.batch_norm,
                                           device = self.device, dtype = self.dtype)
     else:
       self.interaction_layer = torch.nn.Identity()
 
     # modulation layer
-    self.modulation_layer = None
+    self.modulation_layer, self.modulation_out_features = None, 0
     if self.modulation_window_len is not None:
       if self.interaction_out_features > 0:
         modulation_in_features = self.interaction_out_features
@@ -267,7 +280,9 @@ class SequenceModel(torch.nn.Module):
                                               weight_reg = self.modulation_weight_reg, weight_norm = self.modulation_weight_norm,
                                               zero_order = self.modulation_zero_order,
                                               bias = self.modulation_bias, pure = self.modulation_pure,
+                                              batch_norm = self.batch_norm,
                                               device = self.device, dtype = self.dtype)
+      self.modulation_out_features = self.modulation_layer.num_modulators
     #
 
     if self.flatten:
@@ -339,14 +354,14 @@ class SequenceModel(torch.nn.Module):
         self.output_size = (np.array(self.output_size) * self.max_output_len).tolist() if self.flatten else self.output_size
 
       self.output_layer.append(output_layer_i)
-
+    
     with torch.no_grad():            
       X = torch.empty((1, self.max_input_len, np.sum(self.input_size))).to(device = self.device,
                                                                            dtype = self.dtype)
       encoder_output = torch.empty((1, self.max_input_len, encoder_output_size)).to(X) if encoder_output_size is not None else None
       
       self.max_output_len = self.forward(X, encoder_output = encoder_output)[0].shape[1]
-    
+      
     # if self.flatten == 'time':
     #   self.flatten = [self.max_output_len]*self.num_outputs
      
@@ -405,14 +420,14 @@ class SequenceModel(torch.nn.Module):
                                                    hiddens = hiddens[i],
                                                    encoder_output = encoder_output)
       
-      # base_output_i = torch.nn.functional.pad(base_output_i,
-      #                                         (0, 0, np.max([0, input_len - base_output_i.shape[1]]), 0),
-      #                                         "constant", 0)
+      base_output_i = torch.nn.functional.pad(base_output_i,
+                                              (0, 0, np.max([0, input_len - base_output_i.shape[1]]), 0),
+                                              "constant", 0)
       
       if self.store_layer_outputs: self.base_layer_output[i].append(base_output_i)
       
       # Generate hidden layer outputs for ith input, append result to previous hidden layer output of previous inputs
-      hidden_output_i[:, -base_output_i.shape[1]:] = self.hidden_layer[i](base_output_i)
+      hidden_output_i[:, input_window_idx[i]] = self.hidden_layer[i](base_output_i)
       hidden_output.append(hidden_output_i)
       
       if self.store_layer_outputs: self.hidden_layer_output[i].append(hidden_output_i)
@@ -442,13 +457,14 @@ class SequenceModel(torch.nn.Module):
       # flatten input to output layer if desired
       if self.flatten == 'time':
         output_input_i = self.flatten_layer(output_input_i).unsqueeze(2)
+
       if self.flatten == 'feature':
         output_input_i = self.flatten_layer(output_input_i).unsqueeze(1)
-
+        
       # Generate output of ith output layer, append result to previous outputs      
       output_i = self.output_layer[i](output_input_i)
       
-      if self.flatten == 'feature':
+      if (self.flatten == 'feature'):
         output_i = output_i.reshape(num_samples, self.max_output_len, self.output_size[i])
 
       output.append(output_i)
@@ -457,6 +473,9 @@ class SequenceModel(torch.nn.Module):
 
     # Concatenate outputs into single tensor
     output = torch.cat(output, -1)
+
+    if (self.flatten is not None) & (self.max_output_len != output.shape[1]):
+      self.max_output_len = output.shape[1]
 
     return output, hiddens
   
@@ -538,8 +557,9 @@ class SequenceModel(torch.nn.Module):
                                        hiddens = hiddens,
                                        encoder_output = encoder_output)
         
-    # Only keep the outputs for the maximum output sequence length
+    # Only keep the outputs for the maximum output sequence length    
     output = output[:, -self.max_output_len:]
+    
 
     # Apply the output mask if specified
     if output_mask is not None: output = output*output_mask
