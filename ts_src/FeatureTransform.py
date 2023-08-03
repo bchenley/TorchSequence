@@ -6,8 +6,9 @@ class FeatureTransform():
   '''
 
   def __init__(self,
-                transform_type = 'minmax', minmax = [0., 1.], dim = 0,
-                device = 'cpu', dtype = torch.float32):
+               transform_type = 'minmax', minmax = [0., 1.], dim = 0,
+               diff_order = 0,  
+               device = 'cpu', dtype = torch.float32):
     '''
     Initializes the FeatureTransform instance.
 
@@ -20,7 +21,7 @@ class FeatureTransform():
     '''
 
     locals_ = locals().copy()
-
+    
     for arg in locals_:
       if arg != 'self':
         setattr(self, arg, locals_[arg])
@@ -28,6 +29,16 @@ class FeatureTransform():
     if self.transform_type not in ['identity', 'minmax', 'standard']:
         raise ValueError(f"transform_type ({self.transform_type}) is not set to 'identity', 'minmax', or 'standard'.")
 
+    if self.transform_type == 'identity':
+        self.transform_fn = self.identity
+        self.inverse_transform_fn = self.identity
+    elif self.transform_type == 'minmax':
+        self.transform_fn = self.normalize
+        self.inverse_transform_fn = self.inverse_normalize
+    elif self.transform_type == 'standard':
+        self.transform_fn = self.standardize
+        self.inverse_transform_fn = self.inverse_standardize
+      
   def identity(self, X):
     '''
     Returns the input data as it is without any scaling.
@@ -41,7 +52,14 @@ class FeatureTransform():
     self.min_, self.max_ = X.min(self.dim).values, X.max(self.dim).values
     return X
 
-  def standardize(self, X):
+  def difference(self, X, fit = False):
+    return X.diff(self.diff_order, self.dim)
+
+  def cumsum(self, X):
+    for _ in range(self.diff_order): X.cumsum_(self.dim)
+    return X
+  
+  def standardize(self, X, fit = False):
     '''
     Performs standardization on the input data.
 
@@ -51,7 +69,11 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The standardized input data.
     '''
-    self.mean_, self.std_ = X.mean(self.dim), X.std(self.dim)
+    
+    X = self.difference(X) if self.diff_order > 0 else X
+    
+    if fit: self.mean_, self.std_ = X.mean(self.dim), X.std(self.dim)
+    
     return (X - self.mean_) / self.std_
 
   def inverse_standardize(self, X):
@@ -64,9 +86,11 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The inversely standardized input data.
     '''
-    return X * self.std_ + self.mean_
+    y = X * self.std_ + self.mean_
+    y = self.cumsum(X) if self.diff_order > 0 else y
+    return y
 
-  def normalize(self, X):
+  def normalize(self, X, fit = False):
     '''
     Performs normalization on the input data.
 
@@ -76,7 +100,10 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The normalized input data.
     '''
-    self.min_, self.max_ = X.min(self.dim).values, X.max(self.dim).values
+    X = self.difference(X) if self.diff_order > 0 else X
+    
+    if fit: self.min_, self.max_ = X.min(self.dim).values, X.max(self.dim).values
+      
     return (X - self.min_) / (self.max_ - self.min_) * (self.minmax[1] - self.minmax[0]) + self.minmax[0]
 
   def inverse_normalize(self, X):
@@ -89,7 +116,10 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The inversely normalized input data.
     '''
-    return (X - self.minmax[0]) * (self.max_ - self.min_) / (self.minmax[1] - self.minmax[0]) + self.min_
+    y = (X - self.minmax[0]) * (self.max_ - self.min_) / (self.minmax[1] - self.minmax[0]) + self.min_
+    y = self.cumsum(X) if self.diff_order > 0 else y
+    
+    return y
 
   def fit_transform(self, X):
     '''
@@ -100,15 +130,8 @@ class FeatureTransform():
 
     Returns:
         torch.Tensor: The transformed input data.
-    '''
-    if self.transform_type == 'identity':
-        X_transformed = self.identity(X)
-    elif self.transform_type == 'minmax':
-        X_transformed = self.normalize(X)
-    elif self.transform_type == 'standard':
-        X_transformed = self.standardize(X)
-
-    return X_transformed
+    '''    
+    return self.transform_fn(X, True)
 
   def transform(self, X):
     '''
@@ -120,14 +143,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The transformed input data.
     '''
-    if self.transform_type == 'identity':
-        X_transformed = X
-    elif self.transform_type == 'minmax':
-        X_transformed = (X - self.min_) / (self.max_ - self.min_) * (self.minmax[1] - self.minmax[0]) + self.minmax[0]
-    elif self.transform_type == 'standard':
-        X_transformed = (X - self.mean_) / self.std_
-
-    return X_transformed
+    return self.transform_fn(X)
 
   def inverse_transform(self, X):
     '''
@@ -139,11 +155,4 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The inversely transformed input data.
     '''
-    if self.transform_type == 'identity':
-        X_inverse_transformed = X
-    elif self.transform_type == 'minmax':
-        X_inverse_transformed = self.inverse_normalize(X)
-    elif self.transform_type == 'standard':
-        X_inverse_transformed = self.inverse_standardize(X)
-
-    return X_inverse_transformed
+    return self.inverse_transform_fn(X)
