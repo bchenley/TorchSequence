@@ -111,8 +111,8 @@ class HiddenLayer(torch.nn.Module):
 
         if self.batch_norm:            
             self.batch_norm_layer = torch.nn.BatchNorm1d(out_features, 
-                                                         affine=self.batch_norm_learn,
-                                                         device=self.device, dtype=self.dtype)
+                                                        affine=self.batch_norm_learn,
+                                                        device=self.device, dtype=self.dtype)
         else:
             self.batch_norm_layer = torch.nn.Identity()
 
