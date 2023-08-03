@@ -340,11 +340,13 @@ class SequenceModel(torch.nn.Module):
 
       self.output_layer.append(output_layer_i)
 
-    X = torch.empty((1, self.max_input_len, np.sum(self.input_size))).to(device = self.device,
-                                                                         dtype = self.dtype)
-    encoder_output = torch.empty((1, self.max_input_len, encoder_output_size)).to(X) if encoder_output_size is not None else None
+    with torch.no_grad():            
+      X = torch.empty((1, self.max_input_len, np.sum(self.input_size))).to(device = self.device,
+                                                                           dtype = self.dtype)
+      encoder_output = torch.empty((1, self.max_input_len, encoder_output_size)).to(X) if encoder_output_size is not None else None
+      
+      self.max_output_len = self.forward(X, encoder_output = encoder_output)[0].shape[1]
     
-    self.max_output_len = self.forward(X, encoder_output = encoder_output)[0].shape[1]
     # if self.flatten == 'time':
     #   self.flatten = [self.max_output_len]*self.num_outputs
      
