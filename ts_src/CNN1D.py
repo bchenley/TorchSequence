@@ -111,7 +111,9 @@ class CNN1D(torch.nn.Module):
 
             # Add batch normalization layer if specified
             if self.batch_norm:
-                batch_norm_i = torch.nn.BatchNorm1d(self.out_channels[i], affine=self.batch_norm_learn)
+                batch_norm_i = torch.nn.BatchNorm1d(self.out_channels[i], 
+                                                    affine=self.batch_norm_learn,
+                                                    device = self.device, dtype = self.dtype)
             else:
                 batch_norm_i = torch.nn.Identity()
 
