@@ -130,10 +130,11 @@ class CNN1D(torch.nn.Module):
                                             stride=self.pool_stride[i])     
 
             self.cnn[-1].append(pool_i)
-
+        
         # Determine the number of output features after passing through the layers
-        X = torch.zeros((1, self.input_len, in_channels)).to(device=self.device, dtype=self.dtype)
-        self.out_features = self.forward(X).shape[-1]
+        with torch.no_grad():             
+            X = torch.zeros((1, self.input_len, in_channels)).to(device=self.device, dtype=self.dtype)
+            self.out_features = self.forward(X).shape[-1]
 
     def forward(self, input):
         """ 
