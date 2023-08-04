@@ -211,10 +211,10 @@ class SequenceModel(torch.nn.Module):
                                      device = self.device, dtype = self.dtype)
       else:
         hidden_layer_i = torch.nn.Identity()
-
+      
       self.hidden_layer.append(hidden_layer_i)
       #
-    
+
     self.max_base_seq_len = np.max([base.output_len for base in self.seq_base])
 
     # interaction layer
@@ -409,7 +409,7 @@ class SequenceModel(torch.nn.Module):
       else:
         hidden_out_features_i = (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
       
-      hidden_output_i = torch.zeros((num_samples, input_len, hidden_out_features_i)).to(input)
+      hidden_output_i = torch.zeros((num_samples, self.max_base_seq_len, hidden_out_features_i)).to(input)
       
       # Generate output and hiddens of sequence base for the ith input
       base_output_i, hiddens[i] = self.seq_base[i](input = input_i[:, -1:] \
@@ -420,14 +420,14 @@ class SequenceModel(torch.nn.Module):
                                                    hiddens = hiddens[i],
                                                    encoder_output = encoder_output)
       
-      base_output_i = torch.nn.functional.pad(base_output_i,
-                                              (0, 0, np.max([0, input_len - base_output_i.shape[1]]), 0),
-                                              "constant", 0)
+      # base_output_i = torch.nn.functional.pad(base_output_i,
+      #                                         (0, 0, np.max([0, input_len - base_output_i.shape[1]]), 0),
+      #                                         "constant", 0)
       
       if self.store_layer_outputs: self.base_layer_output[i].append(base_output_i)
       
-      # Generate hidden layer outputs for ith input, append result to previous hidden layer output of previous inputs
-      hidden_output_i[:, input_window_idx[i]] = self.hidden_layer[i](base_output_i)
+      # Generate hidden layer outputs for ith input, append result to previous hidden layer output of previous inputs      
+      hidden_output_i[:, -base_output_i.shape[1]:] = self.hidden_layer[i](base_output_i)
       hidden_output.append(hidden_output_i)
       
       if self.store_layer_outputs: self.hidden_layer_output[i].append(hidden_output_i)
@@ -457,13 +457,13 @@ class SequenceModel(torch.nn.Module):
       # flatten input to output layer if desired
       if self.flatten == 'time':
         output_input_i = self.flatten_layer(output_input_i).unsqueeze(2)
-      
+        
       if self.flatten == 'feature':
         output_input_i = self.flatten_layer(output_input_i).unsqueeze(1)
-       
+        
       # Generate output of ith output layer, append result to previous outputs      
       output_i = self.output_layer[i](output_input_i)
-      
+    
       if (self.flatten == 'feature'):
         output_i = output_i.reshape(num_samples, self.max_output_len, self.output_size[i])
         
