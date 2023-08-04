@@ -541,6 +541,10 @@ class SequenceModule(pl.LightningModule):
 
     start_step = self.trainer.datamodule.start_step if self.trainer.datamodule.pad_data else 0
 
+    time = self.trainer.datamodule.data[self.trainer.datamodule.time_name]
+    if hasattr(time, 'dt'):
+      time = time.dt.tz_localize(None).values 
+
     self.hiddens = None
 
     with torch.no_grad():
@@ -565,9 +569,8 @@ class SequenceModule(pl.LightningModule):
       #                           train_target.unsqueeze(0))
 
       # train_loss = torch.stack([l.sum() for l in train_loss.split(self.model.output_size, -1)], 0)
-
-      # train_time = self.trainer.datamodule.train_data[self.trainer.datamodule.time_name]
-      train_time =  self.trainer.datamodule.data[self.trainer.datamodule.time_name][(train_output_steps.cpu() - start_step).numpy()]
+       
+      train_time = time[(train_output_steps.cpu() - start_step).numpy()]
 
       train_baseline_pred, train_baseline_loss = None, None
       if self.baseline_model is not None:
@@ -594,12 +597,8 @@ class SequenceModule(pl.LightningModule):
         # val_loss = self.loss_fn(val_prediction.unsqueeze(0),
         #                         val_target.unsqueeze(0))
         # val_loss = torch.stack([l.sum() for l in val_loss.split(self.model.output_size, -1)], 0)
-
-        # val_time = self.trainer.datamodule.val_data[self.trainer.datamodule.time_name]
-        val_time =  self.trainer.datamodule.data[self.trainer.datamodule.time_name][(val_output_steps.cpu() - start_step).numpy()]
-
-        if not self.trainer.datamodule.pad_data:
-          val_time = val_time[start_step:]
+          
+        val_time = time[(val_output_steps.cpu() - start_step).numpy()]
 
         val_baseline_pred, val_baseline_loss = None, None
         if self.baseline_model is not None:
@@ -628,12 +627,8 @@ class SequenceModule(pl.LightningModule):
         # test_loss = self.loss_fn(test_prediction.unsqueeze(0),
         #                         test_target.unsqueeze(0))
         # test_loss = torch.stack([l.sum() for l in test_loss.split(self.model.output_size, -1)], 0)
-
-        # test_time = self.trainer.datamodule.test_data[self.trainer.datamodule.time_name]
-        test_time =  self.trainer.datamodule.data[self.trainer.datamodule.time_name][(test_output_steps.cpu() - start_step).numpy()]
-
-        if not self.trainer.datamodule.pad_data:
-          test_time = test_time[start_step:]
+         
+        test_time = time[(test_output_steps.cpu() - start_step).numpy()]
 
         test_baseline_pred, test_baseline_loss = None, None
         if self.baseline_model is not None:
@@ -1345,7 +1340,7 @@ class SequenceModule(pl.LightningModule):
       self.trainer = pl.Trainer(max_epochs = max_epochs,
                                 accelerator = self.accelerator,
                                 callbacks = callbacks)
-
+      
       self.trainer.fit(self,
                        datamodule = datamodule)
 
