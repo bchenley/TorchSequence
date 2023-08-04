@@ -102,7 +102,9 @@ class FeatureTransform():
         torch.Tensor: The inversely standardized input data.
     '''
     y = X * self.std_ + self.mean_
-    y = self.cumsum(X) if self.diff_order > 0 else y
+    
+    y = self.cumsum(y) if self.diff_order > 0 else y
+    
     return y
 
   def normalize(self, X, fit = False):
@@ -127,12 +129,13 @@ class FeatureTransform():
 
     Args:
         X (torch.Tensor): The input data.
-
+    
     Returns:
         torch.Tensor: The inversely normalized input data.
     '''
     y = (X - self.minmax[0]) * (self.max_ - self.min_) / (self.minmax[1] - self.minmax[0]) + self.min_
-    y = self.cumsum(X) if self.diff_order > 0 else y
+    
+    y = self.cumsum(y) if self.diff_order > 0 else y
     
     return y
 
