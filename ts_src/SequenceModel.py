@@ -359,7 +359,7 @@ class SequenceModel(torch.nn.Module):
       X = torch.empty((2, self.max_input_len, np.sum(self.input_size))).to(device = self.device,
                                                                            dtype = self.dtype)
       encoder_output = torch.empty((2, self.max_input_len, encoder_output_size)).to(X) if encoder_output_size is not None else None
-      
+
       self.max_output_len = self.forward(X, encoder_output = encoder_output)[0].shape[1]
       
     # if self.flatten == 'time':
@@ -457,16 +457,16 @@ class SequenceModel(torch.nn.Module):
       # flatten input to output layer if desired
       if self.flatten == 'time':
         output_input_i = self.flatten_layer(output_input_i).unsqueeze(2)
-
+      
       if self.flatten == 'feature':
         output_input_i = self.flatten_layer(output_input_i).unsqueeze(1)
-        
+       
       # Generate output of ith output layer, append result to previous outputs      
       output_i = self.output_layer[i](output_input_i)
       
       if (self.flatten == 'feature'):
         output_i = output_i.reshape(num_samples, self.max_output_len, self.output_size[i])
-
+        
       output.append(output_i)
 
       if self.store_layer_outputs: self.output_layer_output[i].append(output_i)
@@ -474,7 +474,7 @@ class SequenceModel(torch.nn.Module):
     # Concatenate outputs into single tensor
     output = torch.cat(output, -1)
 
-    if (self.flatten is not None) & (self.max_output_len != output.shape[1]):
+    if (self.flatten is None) & (self.max_output_len != output.shape[1]):
       self.max_output_len = output.shape[1]
 
     return output, hiddens
