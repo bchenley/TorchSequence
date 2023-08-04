@@ -474,7 +474,7 @@ class SequenceModel(torch.nn.Module):
     # Concatenate outputs into single tensor
     output = torch.cat(output, -1)
 
-    if (self.flatten is None) & (self.max_output_len != output.shape[1]):
+    if (self.flatten is not None) & (self.max_output_len != output.shape[1]):
       self.max_output_len = output.shape[1]
 
     return output, hiddens
