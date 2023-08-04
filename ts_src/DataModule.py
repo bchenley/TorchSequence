@@ -9,6 +9,8 @@ from ts_src.FeatureTransform import FeatureTransform
 
 from datetime import datetime, timedelta
 
+import copy 
+
 class DataModule(pl.LightningDataModule):
   def __init__(self,
                 data,
@@ -129,7 +131,7 @@ class DataModule(pl.LightningDataModule):
       self.transforms = {'all': FeatureTransform(transform_type='identity')} if self.transforms is None else self.transforms
       for name in self.input_output_names:
         if 'all' in self.transforms:
-          self.transforms[name] = FeatureTransform(transform_type = self.transforms['all'].transform_type)
+          self.transforms[name] = copy.deepcopy(self.transforms['all']) # FeatureTransform(transform_type = self.transforms['all'].transform_type)
         elif name not in self.transforms:
           self.transforms[name] = FeatureTransform(transform_type = 'identity')
         
