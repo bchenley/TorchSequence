@@ -20,7 +20,7 @@ class HiddenLayer(torch.nn.Module):
         softmax_dim (int): Dimension along which to apply softmax activation.
         dropout_p (float): Dropout probability.
         batch_norm (bool): If True, applies batch normalization to the output of the hidden layer.
-        batch_norm_learn (bool): If True, allows batch normalization to learn affine parameters (scale and shift).
+        affine_norm (bool): If True, allows batch normalization to learn affine parameters (scale and shift).
         device (str): Device to use for computation ('cpu' or 'cuda').
         dtype (torch.dtype): Data type of the model parameters.
 
@@ -30,7 +30,7 @@ class HiddenLayer(torch.nn.Module):
                  weights_to_1=False, weight_reg=[0.001, 1], weight_norm=2, 
                  degree=1, coef_init=None, coef_train=True,
                  coef_reg=[0.001, 1], zero_order=False, softmax_dim=-1, dropout_p=0.0,
-                 batch_norm=False, batch_norm_learn=False,
+                 norm_type = None, affine_norm = False,
                  device='cpu', dtype=torch.float32):
         '''
         Constructor method for initializing the HiddenLayer module and its attributes.
@@ -50,8 +50,8 @@ class HiddenLayer(torch.nn.Module):
             zero_order (bool): Whether to include the zeroth-order term (constant) in the polynomial activation function.
             softmax_dim (int): Dimension along which to apply softmax activation.
             dropout_p (float): Dropout probability.
-            batch_norm (bool): If True, applies batch normalization to the output of the hidden layer.
-            batch_norm_learn (bool): If True, allows batch normalization to learn affine parameters (scale and shift).
+            norm_type (bool): If True, applies batch normalization to the output of the hidden layer.
+            affine_norm (bool): If True, allows batch normalization to learn affine parameters (scale and shift).
             device (str): Device to use for computation ('cpu' or 'cuda').
             dtype (torch.dtype): Data type of the model parameters.
         '''
@@ -109,12 +109,16 @@ class HiddenLayer(torch.nn.Module):
 
         self.dropout = torch.nn.Dropout(self.dropout_p)
 
-        if self.batch_norm:            
-            self.batch_norm_layer = torch.nn.BatchNorm1d(out_features, 
-                                                        affine=self.batch_norm_learn,
-                                                        device=self.device, dtype=self.dtype)
+        if self.norm_type == 'batch':            
+            self.norm_layer = torch.nn.BatchNorm1d(out_features, 
+                                                   affine = self.affine_norm,
+                                                   device = self.device, dtype = self.dtype)
+        elif self.norm_type == 'layer':
+            self.norm_layer = torch.nn.LayerNorm(out_features, 
+                                                 elementwise_affine = self.affine_norm,
+                                                 device = self.device, dtype = self.dtype)
         else:
-            self.batch_norm_layer = torch.nn.Identity()
+            self.norm_layer = torch.nn.Identity()
 
     def forward(self, input):
         '''
@@ -127,7 +131,7 @@ class HiddenLayer(torch.nn.Module):
             torch.Tensor: Output tensor.
 
         '''
-        y = self.batch_norm_layer(self.dropout(self.F(input)))
+        y = self.norm_layer(self.dropout(self.F(input)))
         return y
 
     def constrain(self):
