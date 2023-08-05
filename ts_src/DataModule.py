@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pickle
 
-from ts_src.SequenceDataloader import SequenceDataloader
+# from ts_src.SequenceDataloader import SequenceDataloader
 from ts_src.FeatureTransform import FeatureTransform
 
 from datetime import datetime, timedelta
@@ -23,6 +23,7 @@ class DataModule(pl.LightningDataModule):
                 dt = None,
                 time_unit = 's',
                 pad_data = False,
+                shuffle_train_batch = False,
                 print_summary = True,
                 device = 'cpu', dtype = torch.float32):
 
@@ -351,6 +352,7 @@ class DataModule(pl.LightningDataModule):
                                           shift=self.shift,
                                           stride=self.stride,
                                           init_input=self.train_init_input,
+                                          shuffle_batch = self.shuffle_train_batch
                                           print_summary=self.print_summary,
                                           device=self.device,
                                           dtype=self.dtype)
@@ -430,6 +432,7 @@ class DataModule(pl.LightningDataModule):
                                         shift=self.shift,
                                         stride=self.stride,
                                         init_input=self.test_init_input,
+                                        shuffle_batch = self.shuffle_train_batch,
                                         print_summary=self.print_summary,
                                         device=self.device,
                                         dtype=self.dtype)
