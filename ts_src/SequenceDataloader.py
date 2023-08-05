@@ -98,7 +98,8 @@ class SequenceDataloader(torch.utils.data.Dataset):
                             device=self.device, dtype=self.dtype)
       
       self.batch_size = len(ds) if self.batch_size == -1 else self.batch_size
-
+      
+      self.batch_shuffle_idx = ds.batch_shuffle_idx
       self.input_size, self.output_size = ds.input_size, ds.output_size
       self.num_inputs, self.num_outputs = ds.num_inputs, ds.num_outputs
       self.input_size, self.output_size = ds.input_size, ds.output_size
