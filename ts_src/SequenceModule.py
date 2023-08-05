@@ -33,6 +33,8 @@ class SequenceModule(pl.LightningModule):
 
     self.constrain, self.penalize = constrain, penalize
 
+    self.teach = teach
+                 
     input_size, output_size = self.model.input_size, self.model.output_size
 
     self.train_history, self.val_history = None, None
