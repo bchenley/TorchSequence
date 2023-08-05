@@ -6,7 +6,7 @@ class ModulationLayer(torch.nn.Module):
                  dt=1, num_freqs=None, freq_init=None, freq_train=True, phase_init=None, phase_train=True,
                  num_sigmoids=None, slope_init=None, slope_train=True, shift_init=None, shift_train=True,
                  weight_reg=[0.001, 1.], weight_norm=2, zero_order=True, bias=True, pure=False,
-                 batch_norm=False, batch_norm_learn=False,
+                 norm_type=False, affine_norm=False,
                  device='cpu', dtype=torch.float32):
         '''
         Constructor method for initializing the ModulationLayer module and its attributes.
@@ -33,8 +33,6 @@ class ModulationLayer(torch.nn.Module):
             zero_order (bool): Whether to include the zeroth-order term (constant) in the modulation functions.
             bias (bool): If True, adds a learnable bias to the linear function.
             pure (bool): If True, concatenates a constant term to the input.
-            batch_norm (bool): If True, applies batch normalization to the output of the modulation layer.
-            batch_norm_learn (bool): If True, allows batch normalization to learn affine parameters (scale and shift).
             device (str): Device to use for computation ('cpu' or 'cuda').
             dtype (torch.dtype): Data type of the model parameters.
         '''
@@ -113,13 +111,16 @@ class ModulationLayer(torch.nn.Module):
                                      weight_norm=self.weight_norm,
                                      device=self.device, dtype=self.dtype)
 
-        if self.batch_norm:            
-            # Create batch normalization layer
-            self.batch_norm_layer = torch.nn.BatchNorm1d(self.num_modulators, 
-                                                         affine=self.batch_norm_learn,
-                                                         device=self.device, dtype=self.dtype)
+        if self.norm_type == 'batch':            
+            self.norm_layer = torch.nn.BatchNorm1d(self.num_modulators, 
+                                                   affine = self.affine_norm,
+                                                   device = self.device, dtype = self.dtype)
+        elif self.norm_type == 'layer':
+            self.norm_layer = torch.nn.LayerNorm(self.num_modulators, 
+                                                 elementwise_affine = self.affine_norm,
+                                                 device = self.device, dtype = self.dtype)
         else:
-            self.batch_norm_layer = torch.nn.Identity()
+            self.norm_layer = torch.nn.Identity()
           
     def forward(self, input, steps):
         '''
@@ -141,7 +142,7 @@ class ModulationLayer(torch.nn.Module):
             input_ = input
 
         # Calculate the output using modulation and linear function
-        output = self.batch_norm_layer(self.F[steps] * self.linear_fn(input_))
+        output = self.norm_layer(self.F[steps] * self.linear_fn(input_))
 
         return output
 
