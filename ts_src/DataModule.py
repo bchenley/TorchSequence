@@ -357,7 +357,7 @@ class DataModule(pl.LightningDataModule):
                                           device=self.device,
                                           dtype=self.dtype)
       self.num_train_batches = self.train_dl.num_batches
-      self.train_batch_shuffle_idx = self.batch_shuffle_idx
+      self.train_batch_shuffle_idx = self.train_dl.batch_shuffle_idx
       
       self.train_output_mask = self.train_dl.output_mask
       self.train_input_window_idx, self.train_output_window_idx = self.train_dl.input_window_idx, self.train_dl.output_window_idx
