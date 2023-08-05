@@ -107,8 +107,8 @@ class DataModule(pl.LightningDataModule):
       
       # Shift data
       if self.time_shifts is not None:
-        for name in self.time_shifts:
-        
+        for name in self.input_output_names if name in self.time_shifts:
+          
           s = self.time_shifts[name]
   
           self.data[name] = torch.roll(self.data[name], shifts = s, dims = 0)
