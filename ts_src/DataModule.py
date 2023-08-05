@@ -352,7 +352,7 @@ class DataModule(pl.LightningDataModule):
                                           shift=self.shift,
                                           stride=self.stride,
                                           init_input=self.train_init_input,
-                                          shuffle_batch = self.shuffle_train_batch
+                                          shuffle_batch = self.shuffle_train_batch,
                                           print_summary=self.print_summary,
                                           device=self.device,
                                           dtype=self.dtype)
