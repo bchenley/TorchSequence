@@ -121,7 +121,7 @@ class Seq2SeqModel(torch.nn.Module):
                                                    steps=encoder_steps,
                                                    hiddens=hiddens,
                                                    input_mask=input_mask)
-    
+
     hiddens = encoder_hiddens
     
     decoder_hiddens = [None for _ in range(self.decoder.num_inputs)]
@@ -131,21 +131,22 @@ class Seq2SeqModel(torch.nn.Module):
         enc2dec_hiddens_input = []
         for i in range(self.encoder.num_inputs):
           if self.encoder.base_type[i] == 'lstm':
-            enc2dec_hiddens_input.append(encoder_hiddens[i][0][-1:])
+            enc2dec_hiddens_input.append(encoder_hiddens[i][0][-1:].reshape(num_samples, -1))
           elif self.encoder.base_type[i] == 'gru':
-            enc2dec_hiddens_input.append(encoder_hiddens[i][0][-1:])
+            enc2dec_hiddens_input.append(encoder_hiddens[i][-1:].reshape(num_samples, -1))
           elif self.encoder.base_type[i] == 'lru':
             enc2dec_hiddens_input.append(encoder_hiddens[i][0].reshape(num_samples, -1))
           
         enc2dec_hiddens_input = torch.cat(enc2dec_hiddens_input, -1)
       else:
-        enc2dec_hiddens_input = encoder_output
+        enc2dec_hiddens_input = encoder_output.reshape(num_samples, -1)
 
       enc2dec_hiddens_output = self.enc2dec_hiddens_block(enc2dec_hiddens_input)
-      
+
       j = 0
       for i in range(self.decoder.num_inputs):
         if self.decoder.base_type[i] == 'lstm':
+
           decoder_hiddens[i] = [enc2dec_hiddens_output[:, j:(j + self.decoder_hidden_size[i])].reshape(-1, num_samples, self.decoder.base_hidden_size[i])]
           decoder_hiddens[i].append(torch.zeros_like(decoder_hiddens[i][0]))
         if self.decoder.base_type[i] == 'gru':
@@ -162,7 +163,7 @@ class Seq2SeqModel(torch.nn.Module):
 
     if self.enc_out_as_dec_in:
       decoder_input = encoder_output
-      encoder_output = None
+      # encoder_output = None
     else:
       decoder_input = self.enc2dec_input_block(input[:, -1:]) if self.enc2dec_input_block is not None else input[:, -1:]      
       decoder_input = torch.nn.functional.pad(decoder_input, (0, 0, 0, self.decoder.max_output_len - 1), "constant", 0)
