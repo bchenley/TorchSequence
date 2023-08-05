@@ -183,12 +183,12 @@ class SequenceDataset(torch.utils.data.Dataset):
       output_samples = output_samples[-1:]
       steps_samples = steps_samples[-1:]
       num_samples = 1
-
+    
     self.num_samples = num_samples
 
     if self.shuffle_batch:
-      self.shuffle_idx = torch.randperm(self.num_samples)
-      input_samples, output_samples, steps_samples = input_samples[self.shuffle_idx], output_samples[self.shuffle_idx], steps_samples[self.shuffle_idx]
+      self.batch_shuffle_idx = torch.randperm(self.num_samples)
+      input_samples, output_samples, steps_samples = input_samples[self.batch_shuffle_idx], output_samples[self.batch_shuffle_idx], steps_samples[self.batch_shuffle_idx]
 
     return input_samples, output_samples, steps_samples
     
