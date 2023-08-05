@@ -17,6 +17,7 @@ class SequenceModule(pl.LightningModule):
                model,
                opt, loss_fn, metric_fn = None,
                constrain = False, penalize = False,
+               teach = False,
                track_performance = False, track_params = False,
                model_dir = None):
 
@@ -113,7 +114,7 @@ class SequenceModule(pl.LightningModule):
     output_pred_batch, self.hiddens = self.forward(input = input_batch,
                                                    steps = steps_batch,
                                                    hiddens = self.hiddens,
-                                                   target = output_batch,
+                                                   target = output_batch if self.teach else None,
                                                    input_window_idx = self.trainer.datamodule.train_input_window_idx,
                                                    output_window_idx = self.trainer.datamodule.train_output_window_idx,
                                                    output_input_idx = self.trainer.datamodule.output_input_idx,
@@ -1333,7 +1334,7 @@ class SequenceModule(pl.LightningModule):
 
   def fit(self,
           datamodule,
-          max_epochs = 20,
+          max_epochs = 20,          
           callbacks = [None]):
 
     try:
