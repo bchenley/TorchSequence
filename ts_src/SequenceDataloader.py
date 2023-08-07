@@ -42,6 +42,9 @@ class SequenceDataloader(torch.utils.data.Dataset):
       if arg != 'self':
         setattr(self, arg, locals_[arg].copy() if arg == 'data' else locals_[arg])
 
+    if step_name not in data: self.data[step_name] = torch.arange(self.data[self.output_names[0]].shape[0]).to(device = self.device,
+                                                                                                               dtype = torch.long) 
+      
     self.dl = self.get_dataloader
 
   def collate_fn(self, batch):
