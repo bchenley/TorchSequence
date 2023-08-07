@@ -40,9 +40,9 @@ class SequenceDataset(torch.utils.data.Dataset):
           setattr(self, arg, locals_[arg].copy())  
         else:
           setattr(self, arg, locals_[arg])
-      
+             
     self.num_inputs, self.num_outputs = len(self.input_names), len(self.output_names)
-
+    
     if len(self.input_len) == 1:
         self.input_len = self.input_len * self.num_inputs
 
@@ -52,6 +52,9 @@ class SequenceDataset(torch.utils.data.Dataset):
         self.shift = self.shift * self.num_outputs
 
     self.data_len = self.data[self.input_names[0]].shape[0]
+
+    if steps_name not in data: data[steps_name] = torch.arange(self.data_len).to(device = self.device,
+                                                                                 dtype = torch.long)
      
     self.input_len = [self.data_len if len == -1 else len for len in self.input_len]
     self.output_len = [np.max(self.input_len) if len == -1 else len for len in self.output_len]
