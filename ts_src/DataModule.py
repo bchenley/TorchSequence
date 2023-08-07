@@ -4,14 +4,14 @@ import numpy as np
 import pandas as pd
 import pickle
 
-from ts_src.SequenceDataloader import SequenceDataloader
+from ts_src.TimeSeriesDataloader import TimeSeriesDataloader
 from ts_src.FeatureTransform import FeatureTransform
 
 from datetime import datetime, timedelta
 
 import copy 
 
-class DataModule(pl.LightningDataModule):
+class TimeSeriesDataModule(pl.LightningDataModule):
   def __init__(self,
                 data,
                 time_name, input_names, output_names,
@@ -28,7 +28,7 @@ class DataModule(pl.LightningDataModule):
                 device = 'cpu', dtype = torch.float32):
 
       '''
-      Initializes a DataModule object.
+      Initializes a TimeSeriesDataModule object.
 
       Args:
           data (str or pd.DataFrame): Path to structured data or a pandas DataFrame containing the data.
@@ -310,7 +310,7 @@ class DataModule(pl.LightningDataModule):
       output_len = self.train_max_output_len
       self.last_time = self.train_data[self.time_name].max()
     
-    self.forecast_dl = SequenceDataloader(input_names = self.input_names, 
+    self.forecast_dl = TimeSeriesDataloader(input_names = self.input_names, 
                                           output_names = self.output_names,
                                           step_name = 'steps',
                                           data = data,
@@ -342,7 +342,7 @@ class DataModule(pl.LightningDataModule):
     if not self.predicting:
       self.train_batch_size = len(self.train_data['steps']) if self.batch_size == -1 else self.batch_size
 
-      self.train_dl = SequenceDataloader(input_names=self.input_names,
+      self.train_dl = TimeSeriesDataloader(input_names=self.input_names,
                                           output_names=self.output_names,
                                           step_name='steps',
                                           data=self.train_data,
@@ -384,7 +384,7 @@ class DataModule(pl.LightningDataModule):
       else:
         self.val_batch_size = 1
 
-      self.val_dl = SequenceDataloader(input_names=self.input_names,
+      self.val_dl = TimeSeriesDataloader(input_names=self.input_names,
                                       output_names=self.output_names,
                                       step_name='steps',
                                       data=self.val_data,
@@ -423,7 +423,7 @@ class DataModule(pl.LightningDataModule):
       else:
         self.test_batch_size = 1
 
-      self.test_dl = SequenceDataloader(input_names=self.input_names,
+      self.test_dl = TimeSeriesDataloader(input_names=self.input_names,
                                         output_names=self.output_names,
                                         step_name='steps',
                                         data=self.test_data,
