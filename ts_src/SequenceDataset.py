@@ -53,8 +53,8 @@ class SequenceDataset(torch.utils.data.Dataset):
 
     self.data_len = self.data[self.input_names[0]].shape[0]
 
-    if step_name not in data: data[step_name] = torch.arange(self.data_len).to(device = self.device,
-                                                                               dtype = torch.long)
+    if step_name not in data: self.data[step_name] = torch.arange(self.data_len).to(device = self.device,
+                                                                                    dtype = torch.long)
      
     self.input_len = [self.data_len if len == -1 else len for len in self.input_len]
     self.output_len = [np.max(self.input_len) if len == -1 else len for len in self.output_len]
