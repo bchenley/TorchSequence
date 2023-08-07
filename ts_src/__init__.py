@@ -32,7 +32,7 @@ __all__ = ['ExploratoryTimeSeriesAnalysis',
            'PositionalEncoding', 
            'SequenceDataset',                        
            'SequenceDataloader',
-           'DataModule',
+           'TimeSeriesDataModule',
            'SequenceModule']
 
 for module_name in __all__:
