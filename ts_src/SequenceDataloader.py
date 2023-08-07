@@ -24,7 +24,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
   '''
 
   def __init__(self,
-                input_names, output_names, step_name,
+                input_names, output_names, step_name = 'steps',
                 data: dict,
                 batch_size=1,
                 input_len=[1], output_len=[1], shift=[0], stride=1,
