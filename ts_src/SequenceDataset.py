@@ -51,6 +51,11 @@ class SequenceDataset(torch.utils.data.Dataset):
     if len(self.shift) == 1:
         self.shift = self.shift * self.num_outputs
 
+    for name in self.input_names + self.output_names:
+      if not isinstance(self.data[name], torch.Tensor):
+        self.data[name] = torch.tensor(self.data[name]).to(device = self.device, 
+                                                           dtype = self.dtype)
+        
     self.data_len = self.data[self.input_names[0]].shape[0]
 
     if step_name not in data: self.data[step_name] = torch.arange(self.data_len).to(device = self.device,
