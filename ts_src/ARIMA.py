@@ -1,4 +1,4 @@
-import statsmodels as sm
+import statsmodels as sm 
 import numpy as np
 
 from ts_src.Criterion import Criterion 
@@ -97,7 +97,7 @@ class ARIMA():
     num_samples = input_.shape[0]
 
     arparams = self.results.arparams.reshape(1, p, 1).repeat(num_samples, axis = 0)
-
+    
     forecast = []
     for n in range(num_forecast_steps):
       
