@@ -1,7 +1,7 @@
 import statsmodels as sm
 import numpy as np
 
-from ts_src.Criterion import Criterion
+from ts_src.Criterion import Criterion 
 
 class ARIMA():
   def __init__(self,
