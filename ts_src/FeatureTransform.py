@@ -49,7 +49,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The input data unchanged.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
     
     X = self.difference(X) if self.diff_order > 0 else X
     if fit: self.min_, self.max_ = X.min(self.dim).values, X.max(self.dim).values
@@ -57,7 +57,7 @@ class FeatureTransform():
   
   def inverse_identity(self, X):
     
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
     
     return self.cumsum(X) if self.diff_order > 0 else X
 
