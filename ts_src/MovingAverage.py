@@ -60,7 +60,7 @@ class MovingAverage():
       
       input_n = input_n * self.window / self.window.sum() if self.window is not None else input_n
       
-      df.loc[n, f"{self.endog_name}_prediction"] = input_n.mean(0)
+      df.loc[n, f"{self.endog_name}_prediction"] = input_n.mean(0).numpy()
 
     if transforms is not None:
       if self.endog_name in transforms:
