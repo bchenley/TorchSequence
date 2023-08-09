@@ -56,12 +56,13 @@ class FeatureTransform():
     return X
   
   def inverse_identity(self, X):
+    
     X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
     
     return self.cumsum(X) if self.diff_order > 0 else X
 
   def difference(self, X, fit = False):
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
     
     y = X.clone()
     self.X0 = []
@@ -73,7 +74,7 @@ class FeatureTransform():
     return y
 
   def cumsum(self, X):
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
     
     y = X.clone()
     y = y[self.diff_order:]
@@ -92,7 +93,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The standardized input data.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
     
     X = self.difference(X) if self.diff_order > 0 else X
     
@@ -110,7 +111,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The inversely standardized input data.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
     
     y = X * self.std_ + self.mean_
     
@@ -128,7 +129,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The normalized input data.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
     
     X = self.difference(X) if self.diff_order > 0 else X
     
@@ -146,7 +147,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The inversely normalized input data.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
     
     y = (X - self.minmax[0]) * (self.max_ - self.min_) / (self.minmax[1] - self.minmax[0]) + self.min_
     
@@ -164,7 +165,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The transformed input data.
     '''    
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
     
     return self.transform_fn(X, True)
 
@@ -178,7 +179,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The transformed input data.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
     
     return self.transform_fn(X)
 
@@ -192,6 +193,6 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The inversely transformed input data.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
     
     return self.inverse_transform_fn(X)
