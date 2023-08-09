@@ -50,7 +50,7 @@ class SequenceDataset(torch.utils.data.Dataset):
         self.output_len = self.output_len * self.num_outputs
     if len(self.shift) == 1:
         self.shift = self.shift * self.num_outputs
-
+    
     for name in self.input_names + self.output_names:
       if not isinstance(self.data[name], torch.Tensor):
         self.data[name] = torch.tensor(self.data[name]).to(device = self.device, 
@@ -75,17 +75,17 @@ class SequenceDataset(torch.utils.data.Dataset):
 
     self.input_window_idx = []
     for i in range(self.num_inputs):
-      self.input_window_idx.append(torch.arange(self.max_input_len - self.input_len[i], self.max_input_len).to(device = self.device,
+      self.input_window_idx.append(torch.arange(self.max_input_len - self.input_len[i], self.max_input_len).to(device = 'cpu',
                                                                                                                dtype = torch.long))
     
     self.output_window_idx = []
     for i in range(self.num_outputs):
-      output_window_idx_i = torch.arange(self.max_input_len - self.output_len[i], self.max_input_len).to(device = self.device,
+      output_window_idx_i = torch.arange(self.max_input_len - self.output_len[i], self.max_input_len).to(device = 'cpu',
                                                                                                          dtype = torch.long) + self.shift[i]
       self.output_window_idx.append(output_window_idx_i)
 
     self.total_window_size = torch.cat(self.output_window_idx).max().item() + 1
-    self.total_window_idx = torch.arange(self.total_window_size).to(device = self.device, 
+    self.total_window_idx = torch.arange(self.total_window_size).to(device = 'cpu', 
                                                                     dtype = torch.long)
     
     # self.start_step = self.max_input_len - self.max_output_len + self.max_shift + int(self.has_ar)    
@@ -147,8 +147,8 @@ class SequenceDataset(torch.utils.data.Dataset):
         
         j = 0
         for i in range(self.num_inputs):
-          input_window_idx_i = self.input_window_idx[i].to(device = self.data[self.input_names[i]].device, dtype = torch.long)
-           
+          input_window_idx_i = self.input_window_idx[i]
+            
           input_samples_window_idx_i = window_idx_n[input_window_idx_i] - int(self.input_names[i] in self.output_names)
           
           if (input_samples_window_idx_i[0] == -1) & (self.init_input is not None):
@@ -169,7 +169,7 @@ class SequenceDataset(torch.utils.data.Dataset):
         
         j = 0
         for i in range(self.num_outputs):
-          output_window_idx_i = self.output_window_idx[i].to(device = self.data[self.output_names[i]].device, dtype = torch.long)
+          output_window_idx_i = self.output_window_idx[i]
           
           output_samples_window_idx_i = window_idx_n[output_window_idx_i]
           
