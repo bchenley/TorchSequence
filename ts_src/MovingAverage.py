@@ -49,28 +49,32 @@ class MovingAverage():
     - None
     """
 
-    self.df[f"{self.endog_name}_prediction"] = torch.full((self.df.shape[0], ), torch.nan)
+    df = self.df.copy()
 
-    for n in range(self.window_len, self.df.shape[0]):      
-      input_n = self.df[self.endog_name].values[(n - self.window_len):n]
-      
+    df[f"{self.endog_name}_prediction"] = torch.full((self.df.shape[0], ), torch.nan)
+
+    for n in range(self.window_len, df.shape[0]):      
+      input_n = df[self.endog_name].values[(n - self.window_len):n]
+
       input_n = input_n * self.window / self.window.sum() if self.window is not None else input_n
       
-      self.df.loc[n, f"{self.endog_name}_prediction"] = input_n.mean(0)
-      
+      df.loc[n, f"{self.endog_name}_prediction"] = input_n.mean(0)
+
     if transforms is not None:
       if self.endog_name in transforms:
-        self.df[self.endog_name] = transforms[self.endog_name].inverse_transform(self.df[self.endog_name].values).cpu().numpy()
-        self.df[f"{self.endog_name}_prediction"] = transforms[self.endog_name].inverse_transform(self.df[f"{self.endog_name}_prediction"].values).cpu().numpy()
-
+        df[self.endog_name] = transforms[self.endog_name].inverse_transform(df[self.endog_name].values).cpu().numpy()        
+        df[f"{self.endog_name}_prediction"] = transforms[self.endog_name].inverse_transform(df[f"{self.endog_name}_prediction"].values).cpu().numpy()
+        
     if self.loss_fn is not None:
-      self.df[f"{self.endog_name}_{self.loss_fn.name}"] = self.loss_fn(torch.tensor(self.df[f"{self.endog_name}_prediction"].values),
-                                                                       torch.tensor(self.df[self.endog_name].values)).numpy()
+      df[f"{self.endog_name}_{self.loss_fn.name}"] = self.loss_fn(torch.tensor(df[f"{self.endog_name}_prediction"].values),
+                                                                  torch.tensor(df[self.endog_name].values)).numpy()
       
     if self.metric_fn is not None:
-      self.df[f"{self.endog_name}_{self.metric_fn.name}"] = self.metric_fn(torch.tensor(self.df[f"{self.endog_name}_prediction"].values),
-                                                                           torch.tensor(self.df[self.endog_name].values)).numpy()
-      
+      df[f"{self.endog_name}_{self.metric_fn.name}"] = self.metric_fn(torch.tensor(df[f"{self.endog_name}_prediction"].values),
+                                                                      torch.tensor(df[self.endog_name].values)).numpy()
+    
+    return df
+
   def forecast(self, 
                num_forecast_steps = 1,
                input = None,
@@ -87,9 +91,9 @@ class MovingAverage():
     - forecast (torch.Tensor): Forecasted values.
     """
     if input is not None:
-      input_ = input.copy()[:, -self.window_len:, :1]
+      input_ = input.clone()[:, -self.window_len:] if isinstance(input, torch.Tensor) else input.copy()[:, -self.window_len:]
     else:
-      input_ = self.df[self.endog_name][-self.window_len:].values.reshape(1, self.window_len, 1)
+      input_ = self.df[self.endog_name].copy()[-self.window_len:].values.reshape(1, self.window_len, 1)
 
     if not isinstance(input_, torch.Tensor): input_ = torch.tensor(input_)
 
@@ -111,6 +115,7 @@ class MovingAverage():
 
     if transforms is not None:
       if self.endog_name in transforms:
-        forecast = transforms[self.endog_name].inverse_transform(forecast).cpu()
+        for i, batch in enumerate(forecast):
+          forecast[i] = transforms[self.endog_name].inverse_transform(batch)
 
     return forecast
