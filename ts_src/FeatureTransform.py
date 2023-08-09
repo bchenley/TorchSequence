@@ -49,7 +49,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The input data unchanged.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
 
     ndim = X.ndim
 
@@ -64,7 +64,7 @@ class FeatureTransform():
   
   def inverse_identity(self, X):
     
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
     
     ndim = X.ndim
 
@@ -77,7 +77,7 @@ class FeatureTransform():
     return X
 
   def difference(self, X, fit = False):
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
 
     ndim = X.ndim
 
@@ -95,7 +95,7 @@ class FeatureTransform():
     return y
 
   def cumsum(self, X):
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
     
     ndim = X.ndim
 
@@ -120,7 +120,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The standardized input data.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
 
     ndim = X.ndim
 
@@ -146,7 +146,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The inversely standardized input data.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
 
     ndim = X.ndim
 
@@ -170,7 +170,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The normalized input data.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
 
     ndim = X.ndim
 
@@ -196,7 +196,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The inversely normalized input data.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
 
     ndim = X.ndim
 
@@ -220,7 +220,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The transformed input data.
     '''    
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
 
     ndim = X.ndim
 
@@ -242,7 +242,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The transformed input data.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
 
     ndim = X.ndim
 
@@ -264,7 +264,7 @@ class FeatureTransform():
     Returns:
         torch.Tensor: The inversely transformed input data.
     '''
-    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
+    X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X
 
     ndim = X.ndim
 
