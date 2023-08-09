@@ -50,9 +50,7 @@ class FeatureTransform():
         torch.Tensor: The input data unchanged.
     '''
     X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
-    
-    X = X.unsqueeze(1) if X.ndim == 1 else X
-      
+
     X = self.difference(X) if self.diff_order > 0 else X
     if fit: self.min_, self.max_ = X.min(self.dim).values, X.max(self.dim).values
     return X
@@ -66,8 +64,6 @@ class FeatureTransform():
   def difference(self, X, fit = False):
     X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
 
-    X = X.unsqueeze(1) if X.ndim == 1 else X
-    
     y = X.clone()
     self.X0 = []
     for i in range(self.diff_order):
@@ -80,8 +76,6 @@ class FeatureTransform():
   def cumsum(self, X):
     X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
 
-    X = X.unsqueeze(1) if X.ndim == 1 else X
-    
     y = X.clone()
     y = y[self.diff_order:]
     for i in range(self.diff_order):
@@ -101,8 +95,6 @@ class FeatureTransform():
     '''
     X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
 
-    X = X.unsqueeze(1) if X.ndim == 1 else X
-    
     X = self.difference(X) if self.diff_order > 0 else X
     
     if fit: self.mean_, self.std_ = X.mean(self.dim), X.std(self.dim)
@@ -121,8 +113,6 @@ class FeatureTransform():
     '''
     X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
 
-    X = X.unsqueeze(1) if X.ndim == 1 else X
-    
     y = X * self.std_ + self.mean_
     
     y = self.cumsum(y) if self.diff_order > 0 else y
@@ -141,8 +131,6 @@ class FeatureTransform():
     '''
     X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
 
-    X = X.unsqueeze(1) if X.ndim == 1 else X
-    
     X = self.difference(X) if self.diff_order > 0 else X
     
     if fit: self.min_, self.max_ = X.min(self.dim).values, X.max(self.dim).values
@@ -161,8 +149,6 @@ class FeatureTransform():
     '''
     X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
 
-    X = X.unsqueeze(1) if X.ndim == 1 else X
-    
     y = (X - self.minmax[0]) * (self.max_ - self.min_) / (self.minmax[1] - self.minmax[0]) + self.min_
     
     y = self.cumsum(y) if self.diff_order > 0 else y
@@ -181,8 +167,6 @@ class FeatureTransform():
     '''    
     X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
 
-    X = X.unsqueeze(1) if X.ndim == 1 else X
-    
     return self.transform_fn(X, True)
 
   def transform(self, X):
@@ -197,8 +181,6 @@ class FeatureTransform():
     '''
     X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
 
-    X = X.unsqueeze(1) if X.ndim == 1 else X
-    
     return self.transform_fn(X)
 
   def inverse_transform(self, X):
@@ -213,6 +195,4 @@ class FeatureTransform():
     '''
     X = torch.tensor(X).to(device = self.device, dtype = self.dtype) if not isinstance(X, torch.Tensor) else X.to(device = self.device, dtype = self.dtype)
 
-    X = X.unsqueeze(1) if X.ndim == 1 else X
-    
     return self.inverse_transform_fn(X)
