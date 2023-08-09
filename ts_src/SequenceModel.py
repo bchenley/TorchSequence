@@ -519,11 +519,7 @@ class SequenceModel(torch.nn.Module):
     # Get the total output size
     total_output_size = np.sum(self.output_size)
 
-    # Initiate hiddens if None
-    hiddens = hiddens if hiddens is not None else self.init_hiddens()
-
-    # Process output and updated hiddens
-
+    # Process output and updated hiddens    
     if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder
       output, hiddens = self.process(input = input,
                                      input_window_idx = input_window_idx,
