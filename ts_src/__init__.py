@@ -35,7 +35,8 @@ __all__ = ['ExploratoryTimeSeriesAnalysis',
            'TimeSeriesDataModule',
            'SequenceModule',
            'ARIMA',
-           'Naive']
+           'Naive',
+           'MovingAverage']
 
 for module_name in __all__:
     module = importlib.import_module(f'.{module_name}', __name__)
