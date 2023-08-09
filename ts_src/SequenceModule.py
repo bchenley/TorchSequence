@@ -652,7 +652,7 @@ class SequenceModule(pl.LightningModule):
       train_target_i = train_target[:, j:(j+self.trainer.datamodule.output_size[i])]
       train_prediction_i = train_prediction[:, j:(j+self.trainer.datamodule.output_size[i])]
 
-      train_prediction_data[f"{output_name}_actual"] = train_target_i
+      train_prediction_data[f"{output_name}_target"] = train_target_i
       train_prediction_data[f"{output_name}_prediction"] = train_prediction_i
 
       train_loss_i = Criterion(self.loss_fn.name,
@@ -689,7 +689,7 @@ class SequenceModule(pl.LightningModule):
         val_target_i = val_target[:, j:(j+self.trainer.datamodule.output_size[i])]
         val_prediction_i = val_prediction[:, j:(j+self.trainer.datamodule.output_size[i])]
 
-        val_prediction_data[f"{output_name}_actual"] = val_target_i
+        val_prediction_data[f"{output_name}_target"] = val_target_i
         val_prediction_data[f"{output_name}_prediction"] = val_prediction_i
 
         val_loss_i = Criterion(self.loss_fn.name,
@@ -726,7 +726,7 @@ class SequenceModule(pl.LightningModule):
         test_target_i = test_target[:, j:(j+self.trainer.datamodule.output_size[i])]
         test_prediction_i = test_prediction[:, j:(j+self.trainer.datamodule.output_size[i])]
 
-        test_prediction_data[f"{output_name}_actual"] = test_target_i
+        test_prediction_data[f"{output_name}_target"] = test_target_i
         test_prediction_data[f"{output_name}_prediction"] = test_prediction_i
 
         test_loss_i = Criterion(self.loss_fn.name,
@@ -794,7 +794,7 @@ class SequenceModule(pl.LightningModule):
     self.evaluation_data = {}
     for name in self.trainer.datamodule.output_names:
 
-      target = prediction_data[f"{name}_actual"]
+      target = prediction_data[f"{name}_target"]
       prediction = prediction_data[f"{name}_prediction"]
 
       # loss
@@ -903,7 +903,7 @@ class SequenceModule(pl.LightningModule):
           except:
             ax_if = ax
 
-        train_target_if = self.train_prediction_data[f"{output_name}_actual"][:, f].cpu()
+        train_target_if = self.train_prediction_data[f"{output_name}_target"][:, f].cpu()
         train_prediction_if = self.train_prediction_data[f"{output_name}_prediction"][:, f].cpu()
         train_loss_if = np.round(self.train_prediction_data[f"{output_name}_{self.loss_fn.name}"][f].item(),2)
         train_metric_if = np.round(self.train_prediction_data[f"{output_name}_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
@@ -924,7 +924,7 @@ class SequenceModule(pl.LightningModule):
         ax_if.axvspan(train_time.min(), train_time.max(), facecolor='gray', alpha=0.2, label = train_label)
 
         if val_time is not None:
-          val_target_if = self.val_prediction_data[f"{output_name}_actual"][:, f].cpu()
+          val_target_if = self.val_prediction_data[f"{output_name}_target"][:, f].cpu()
           val_prediction_if = self.val_prediction_data[f"{output_name}_prediction"][:, f].cpu()
           val_loss_if = np.round(self.val_prediction_data[f"{output_name}_{self.loss_fn.name}"][f].item(),2)
           val_metric_if = np.round(self.val_prediction_data[f"{output_name}_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
@@ -945,7 +945,7 @@ class SequenceModule(pl.LightningModule):
           ax_if.axvspan(val_time.min(), val_time.max(), facecolor='blue', alpha=0.2, label = val_label)
 
         if test_time is not None:
-          test_target_if = self.test_prediction_data[f"{output_name}_actual"][:, f].cpu()
+          test_target_if = self.test_prediction_data[f"{output_name}_target"][:, f].cpu()
           test_prediction_if = self.test_prediction_data[f"{output_name}_prediction"][:, f].cpu()
           test_loss_if = np.round(self.test_prediction_data[f"{output_name}_{self.loss_fn.name}"][f].item(),2)
           test_metric_if = np.round(self.test_prediction_data[f"{output_name}_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
@@ -1070,8 +1070,6 @@ class SequenceModule(pl.LightningModule):
       forecast_reduced, forecast_steps_reduced = self.generate_reduced_output(forecast, forecast_steps,
                                                                           transforms=self.trainer.datamodule.transforms)
 
-      # self.forecast_data = {"warmup_time": }
-
     return forecast_reduced, forecast_time
   ##
 
@@ -1127,6 +1125,7 @@ class SequenceModule(pl.LightningModule):
 
     unique_output_window_idx = torch.cat(output_window_idx).unique()
 
+    self.backtest_data = {}
     with torch.no_grad():
 
       hiddens = None
@@ -1144,16 +1143,16 @@ class SequenceModule(pl.LightningModule):
 
       output_steps = steps[:, unique_output_window_idx]
 
-      self.forecast_time, self.forecast_target = [], []
+      forecast_time, forecast_target = [], []
       for s in output_steps.cpu().numpy():
         idx = np.arange(num_forecast_steps) + s.min() - start_step
         if idx.max() < len(time):
-          self.forecast_time.append(time.iloc[idx])
-          self.forecast_target.append(target[idx, :])
+          forecast_time.append(time.iloc[idx])
+          forecast_target.append(target[idx, :])
 
-      self.forecast_target = torch.stack(self.forecast_target, 0)
+      forecast_target = torch.stack(forecast_target, 0)
 
-      num_samples = len(self.forecast_time)
+      num_samples = len(forecast_time)
 
       input, target, steps = input[:num_samples], target[:num_samples], steps[:num_samples]
 
@@ -1167,7 +1166,7 @@ class SequenceModule(pl.LightningModule):
                                                                   dtype = self.model.dtype)
       forecast_steps = torch.empty((num_samples, 0)).to(device = self.model.device,
                                                         dtype = torch.long)
-
+      
       output, hiddens = self.forward(input = input,
                                       steps = steps,
                                       hiddens = hiddens,
@@ -1205,64 +1204,89 @@ class SequenceModule(pl.LightningModule):
 
         steps += forecast_len
 
-      j = 0
-      for i,name in enumerate(self.trainer.datamodule.output_names):
-        forecast[..., j:(j+self.model.output_size[i])] = self.trainer.datamodule.transforms[name].inverse_transform(forecast[..., j:(j+self.model.output_size[i])])
-        self.forecast_target[..., j:(j+self.model.output_size[i])] = self.trainer.datamodule.transforms[name].inverse_transform(self.forecast_target[..., j:(j+self.model.output_size[i])])
+    self.backtest_data[self.trainer.datamodule.time_name] = forecast_time
+    j = 0
+    for i, name in enumerate(self.trainer.datamodule.output_names):
+      forecast[..., j:(j+self.model.output_size[i])] = self.trainer.datamodule.transforms[name].inverse_transform(forecast[..., j:(j+self.model.output_size[i])])
+      forecast_target[..., j:(j+self.model.output_size[i])] = self.trainer.datamodule.transforms[name].inverse_transform(forecast_target[..., j:(j+self.model.output_size[i])])
 
-    self.forecast = forecast
+      self.backtest_data[f"{name}_target"] = forecast_target[..., j:(j+self.trainer.datamodule.output_size[i])]
+      self.backtest_data[f"{name}_prediction"] = forecast[..., j:(j+self.trainer.datamodule.output_size[i])]
+      self.backtest_data[f"{name}_{self.loss_fn.name}"] = Criterion(self.loss_fn.name, dims = 1)(self.backtest_data[f"{name}_prediction"], 
+                                                                                                 self.backtest_data[f"{name}_target"])
+      
+      if self.metric_fn.name is not None:
+        self.backtest_data[f"{name}_{self.metric_fn.name}"] = Criterion(self.metric_fn.name, dims = 1)(self.backtest_data[f"{name}_prediction"], 
+                                                                                                       self.backtest_data[f"{name}_target"])        
+      else:
+        self.backtest_data[f"{name}_{self.metric_fn.name}"] = None
 
-    self.forecast_loss = Criterion(self.loss_fn.name, dims = 1)(forecast, self.forecast_target)
-    self.forecast_metric = None
-    if self.metric_fn.name is not None:
-      self.forecast_metric = Criterion(self.metric_fn.name, dims = 1)(forecast, self.forecast_target)
+      j += self.trainer.datamodule.output_size[i]
   ##
 
   ##
   def plot_backtest(self,
                     num_backtests = 1):
+    
+    output_names = self.trainer.datamodule.output_names
 
-    if self.forecast_metric is not None:
-      metric = self.forecast_metric.cpu()
-      metric_name = self.metric_fn.name
-    else:
-      metric = self.forecast_loss.cpu()
-      metric_name = self.loss_fn.name
+    forecast_time = self.backtest_data[self.trainer.datamodule.time_name]
 
-    forecast_time, forecast_target, forecast = self.forecast_time[-num_backtests:], self.forecast_target[-num_backtests:], self.forecast[-num_backtests:]
+    fig, ax = plt.subplots(self.trainer.datamodule.num_outputs, num_backtests, figsize = (10*num_backtests, 10*self.model.num_outputs))
 
-    fig, ax = plt.subplots(self.model.num_outputs, len(forecast_time), figsize = (10*len(forecast_time), 5*self.model.num_outputs))
+    for i in range(self.trainer.datamodule.num_outputs):
+      
+      forecast_target = self.backtest_data[f"{output_names[i]}_target"][-num_backtests:].cpu()
+      forecast_prediction = self.backtest_data[f"{output_names[i]}_prediction"][-num_backtests:].cpu()
+      
+      forecast_loss = self.backtest_data[f"{output_names[i]}_{self.loss_fn.name}"].cpu()
+      forecast_metric = self.backtest_data[f"{output_names[i]}_{self.metric_fn.name}"].cpu() if self.backtest_data[f"{output_names[i]}_{self.metric_fn.name}"] is not None else None
 
-    min_target = forecast_target.cpu().view(-1, self.model.num_outputs).min(0)[0]
-    max_target = forecast_target.cpu().view(-1, self.model.num_outputs).max(0)[0]
+      forecast_time = forecast_time[-num_backtests:]
+      forecast_target = forecast_target[-num_backtests:]
+      forecast_prediction = forecast_prediction[-num_backtests:]
 
-    min_forecast = forecast.cpu().view(-1, self.model.num_outputs).min(0)[0]
-    max_forecast = forecast.cpu().view(-1, self.model.num_outputs).max(0)[0]
+      if forecast_metric is not None:
+        metric = forecast_metric[-num_backtests:]
+        metric_name = self.metric_fn.name
+      else:
+        metric = forecast_loss[-num_backtests:]
+        metric_name = self.loss_fn.name
 
-    min_, max_ = torch.cat((min_target, min_forecast), 0).min(0, keepdims = True)[0].numpy(), torch.cat((max_target, max_forecast), 0).max(0, keepdims = True)[0].numpy()
+      min_target = forecast_target.cpu().view(-1, 1).min(0)[0]
+      max_target = forecast_target.cpu().view(-1, 1).max(0)[0]
 
-    margin_ = 0.10*(max_ - min_)
+      min_forecast_prediction = forecast_prediction.cpu().view(-1, 1).min(0)[0]
+      max_forecast_prediction = forecast_prediction.cpu().view(-1, 1).max(0)[0]
 
-    for i, (time_i, target_i, prediction_i) in enumerate(zip(forecast_time, forecast_target, forecast)):
+      min_ = torch.cat((min_target, min_forecast_prediction), 0).min(0, keepdims = True)[0].numpy()
+      max_ = torch.cat((max_target, max_forecast_prediction), 0).max(0, keepdims = True)[0].numpy()
+      
+      margin_ = 0.10*(max_ - min_)
 
-      f = 0
-      for j in range(self.model.num_outputs):
+      for j, (time_i, target_i, prediction_i) in enumerate(zip(forecast_time, forecast_target, forecast_prediction)):
 
-        ax_ji = ax[j,i] if self.model.num_outputs > 1 else ax[i]
+        ax_ji = ax[i,j] if self.model.num_outputs > 1 else ax[j]
 
         if hasattr(time_i, 'dt'):
           time_i_ = time_i.dt.tz_localize(None)
 
-        ax_ji.plot(time_i_, target_i[:, f:(f+self.model.output_size[j])].cpu(), 'k')
-        ax_ji.plot(time_i_, prediction_i[:, f:(f+self.model.output_size[j])].cpu(), 'r')
-        ax_ji.set_ylim([min_[j]-margin_[j], max_[j]+margin_[j]])
+        ax_ji.plot(time_i_, target_i.cpu(), 'k')
+        ax_ji.plot(time_i_, prediction_i.cpu(), 'r')
+        ax_ji.set_ylim([min_-margin_, max_+margin_])
         ax_ji.grid()
 
         if hasattr(time_i, 'dt'):
-          if self.trainer.datamodule.time_unit in ['h','m']: # '%H' in self.trainer.datamodule.date_format:
+          if self.trainer.datamodule.time_unit in ['h','m']:
             date_format = "%H:%M"
             xlabel = time_i.dt.strftime("%Y-%m-%d").iloc[0]
-            interval = self.trainer.datamodule.dt.components.hours if self.trainer.datamodule.time_unit == 'h' else self.trainer.datamodule.dt.components.minutes
+            if self.trainer.datamodule.time_unit == 'h':
+              interval = int(self.trainer.datamodule.dt.seconds/3600)
+            elif self.trainer.datamodule.time_unit == 'm':
+              interval = int(self.trainer.datamodule.dt.seconds/60)
+            else:
+              interval = int(self.trainer.datamodule.dt.seconds)
+
           else: # assumes Day
             date_format = "%m-%d"
             xlabel = time_i.dt.strftime("%Y").iloc[0]
@@ -1275,7 +1299,7 @@ class SequenceModule(pl.LightningModule):
 
         ax_ji.set_xticks(time_i_)
         ax_ji.set_xlabel(xlabel)
-        ax_ji.set_title(f"{metric_name.upper()} = {np.round(metric[i][j].item(), 2)}")
+        ax_ji.set_title(f"{metric_name.upper()} = {np.round(metric[i].item(), 2)}")
 
     plt.tight_layout()
   ##
@@ -1333,6 +1357,8 @@ class SequenceModule(pl.LightningModule):
 
     # Return the reduced output and unique output steps
     return output_reduced, unique_output_steps
+
+  # def error_analysis(self, baseline_prediction_data = None):
 
   def fit(self,
           datamodule,
