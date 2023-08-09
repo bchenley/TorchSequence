@@ -147,7 +147,7 @@ class SequenceDataset(torch.utils.data.Dataset):
         
         j = 0
         for i in range(self.num_inputs):
-          input_window_idx_i = self.input_window_idx[i]
+          input_window_idx_i = self.input_window_idx[i].to(device = self.data[self.input_names[i]].device, dtype = torch.long)
            
           input_samples_window_idx_i = window_idx_n[input_window_idx_i] - int(self.input_names[i] in self.output_names)
           
@@ -169,7 +169,8 @@ class SequenceDataset(torch.utils.data.Dataset):
         
         j = 0
         for i in range(self.num_outputs):
-          output_window_idx_i = self.output_window_idx[i]
+          output_window_idx_i = self.output_window_idx[i].to(device = self.data[self.output_names[i]].device, dtype = torch.long)
+          
           output_samples_window_idx_i = window_idx_n[output_window_idx_i]
           
           output_window_idx_j = output_window_idx_i - min_output_idx
