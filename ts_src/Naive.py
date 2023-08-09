@@ -1,5 +1,5 @@
 
-import numpy as np
+import torch
 import pandas as pd
 
 from ts_src.Criterion import Criterion 
@@ -20,7 +20,7 @@ class Naive():
   
   def predict(self, transforms = None):
     
-    self.df[f"{self.endog_name}_prediction"] = np.full((self.df.shape[0], ), np.nan)
+    self.df[f"{self.endog_name}_prediction"] = torch.full((self.df.shape[0], ), torch.nan)
     
     for n in range(self.naive_steps, self.df.shape[0]):
       self.df.loc[n, f"{self.endog_name}_prediction"] = self.df.loc[n - self.naive_steps, self.endog_name]
@@ -31,12 +31,12 @@ class Naive():
         self.df[f"{self.endog_name}_prediction"] = transforms[self.endog_name].inverse_transform(self.df[f"{self.endog_name}_prediction"].values).cpu().numpy()
 
     if self.loss_fn is not None:
-      self.df[f"{self.endog_name}_{self.loss_fn.name}"] = self.loss_fn(self.df[f"{self.endog_name}_prediction"].values,
-                                                                       self.df[self.endog_name].values)
+      self.df[f"{self.endog_name}_{self.loss_fn.name}"] = self.loss_fn(torch.tensor(self.df[f"{self.endog_name}_prediction"].values),
+                                                                       torch.tensor(self.df[self.endog_name].values)).numpy()
       
     if self.metric_fn is not None:
-      self.df[f"{self.endog_name}_{self.metric_fn.name}"] = self.metric_fn(self.df[f"{self.endog_name}_prediction"].values,
-                                                                           self.df[self.endog_name].values)
+      self.df[f"{self.endog_name}_{self.metric_fn.name}"] = self.metric_fn(torch.tensor(self.df[f"{self.endog_name}_prediction"].values),
+                                                                           torch.tensor(self.df[self.endog_name].values)).numpy()
        
   def forecast(self, 
                num_forecast_steps = 1, 
@@ -48,6 +48,8 @@ class Naive():
     else:
       input_ = self.df[self.endog_name][-num_forecast_steps:].values.reshape(1, num_forecast_steps, 1)
 
+    if not isinstance(input_, torch.Tensor): input_ = torch.tensor(input_)
+    
     num_samples = input_.shape[0]
 
     forecast = []
@@ -57,12 +59,12 @@ class Naive():
       
       forecast.append(forecast_n)
 
-      input_ = np.concatenate((input_[:, 1:], forecast_n), 1)
+      input_ = torch.cat((input_[:, 1:], forecast_n), 1)
 
-    forecast = np.concatenate(forecast, 1)
+    forecast = torch.cat(forecast, 1)
 
     if transforms is not None:
       if self.endog_name in transforms:
-        forecast = transforms[self.endog_name].inverse_transform(forecast).cpu().numpy()
+        forecast = transforms[self.endog_name].inverse_transform(forecast).cpu()
 
     return forecast
