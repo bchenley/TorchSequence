@@ -53,9 +53,11 @@ class MovingAverage():
 
     df[f"{self.endog_name}_prediction"] = torch.full((self.df.shape[0], ), torch.nan)
 
+    endog = torch.tensor(df[self.endog_name].values)
+    
     for n in range(self.window_len, df.shape[0]):      
-      input_n = df[self.endog_name].values[(n - self.window_len):n]
-
+      input_n = endog[(n - self.window_len):n]
+      
       input_n = input_n * self.window / self.window.sum() if self.window is not None else input_n
       
       df.loc[n, f"{self.endog_name}_prediction"] = input_n.mean(0)
