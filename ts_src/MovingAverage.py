@@ -28,9 +28,9 @@ class MovingAverage():
     self.window_len = window_len
 
     if self.window_type == 'hanning':
-      self.window = torch.hanning(self.window_len)
+      self.window = torch.hann_window(self.window_len)
     elif self.window_type == 'hamming':
-      self.window = torch.hamming(self.window_len)
+      self.window = torch.hamming_window(self.window_len)
     else:
       self.window = None
     
