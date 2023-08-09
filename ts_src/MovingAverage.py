@@ -58,9 +58,9 @@ class MovingAverage():
     for n in range(self.window_len, df.shape[0]):      
       input_n = endog[(n - self.window_len):n]
       
-      input_n = input_n * self.window / self.window.sum() if self.window is not None else input_n
+      input_n = input_n * self.window / self.window.sum() if self.window is not None else input_n/self.window_len
       
-      df.loc[n, f"{self.endog_name}_prediction"] = input_n.mean(0).numpy()
+      df.loc[n, f"{self.endog_name}_prediction"] = input_n.sum(0).numpy()
 
     if transforms is not None:
       if self.endog_name in transforms:
@@ -104,14 +104,16 @@ class MovingAverage():
     forecast = []
     for n in range(self.window_len, num_forecast_steps + self.window_len):
       
-      input_n = input_[:, (n - self.window_len):n]
-      input_n = input_n * self.window / self.window.sum() if self.window is not None else input_n
+      input_n = input_[:, -self.window_len:]
       
-      forecast_n = input_n.mean(1).reshape(num_samples, 1, -1)
+      input_n = input_n * (self.window / self.window.sum())[None, :, None] if self.window is not None else input_n/self.window_len
+      
+      forecast_n = input_n.sum(1).reshape(num_samples, 1, -1)
       
       forecast.append(forecast_n)
-
+      
       input_ = torch.cat((input_[:, 1:], forecast_n), 1)
+      
 
     forecast = torch.cat(forecast, 1)
 
