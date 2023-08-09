@@ -399,7 +399,8 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                                       dtype=self.dtype)
 
       self.num_val_batches = self.val_dl.num_batches
-
+      self.val_batch_shuffle_idx = self.val_dl.batch_shuffle_idx
+      
       self.val_output_mask = self.val_dl.output_mask
       self.val_input_window_idx, self.val_output_window_idx = self.val_dl.input_window_idx, self.val_dl.output_window_idx
       self.val_max_input_len, self.val_max_output_len = self.val_dl.max_input_len, self.val_dl.max_output_len
@@ -439,7 +440,8 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                                         dtype=self.dtype)
 
       self.num_test_batches = self.test_dl.num_batches
-
+      self.test_batch_shuffle_idx = self.test_dl.batch_shuffle_idx
+      
       self.test_output_mask = self.test_dl.output_mask
       self.test_input_window_idx, self.test_output_window_idx = self.test_dl.input_window_idx, self.test_dl.output_window_idx
       self.test_max_input_len, self.test_max_output_len = self.test_dl.max_input_len, self.test_dl.max_output_len
