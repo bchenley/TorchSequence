@@ -131,8 +131,14 @@ class HiddenLayer(torch.nn.Module):
             torch.Tensor: Output tensor.
 
         '''
-        y = self.norm_layer(self.dropout(self.F(input)))
-        return y
+        output = self.dropout(self.F(input))
+
+        if self.norm_type == 'batch':
+            output = self.norm_layer(output.permute(0, 2, 1)).permute(0, 2, 1)
+        if self.norm_type == 'layer':
+            output = self.norm_layer(output)
+        
+        return output
 
     def constrain(self):
         '''
