@@ -101,6 +101,7 @@ class SequenceModelBase(torch.nn.Module):
               input_size, hidden_size, input_len,
               base_type='gru', num_layers=1,
               stateful = False,
+              use_last_step = False,
               encoder_bias=False, decoder_bias=False,
               rnn_bias = True,
               rnn_dropout_p = 0,
@@ -424,6 +425,8 @@ class SequenceModelBase(torch.nn.Module):
         output = self.base[1](tgt=input_embedding_pe, memory=encoder_output) if self.seq_type == 'decoder' \
             else self.base[1](src=input_embedding_pe, mask=mask)
 
+    if self.use_last_step: output = outout[:, -1:]
+      
     return output, hiddens
 
   def constrain(self):
