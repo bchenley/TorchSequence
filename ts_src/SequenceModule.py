@@ -573,7 +573,7 @@ class SequenceModule(pl.LightningModule):
 
       # train_loss = torch.stack([l.sum() for l in train_loss.split(self.model.output_size, -1)], 0)
        
-      train_time = time[(train_output_steps.cpu() - start_step).numpy()]
+      train_time = time[(train_output_steps.cpu().numpy()] # time[(train_output_steps.cpu() - start_step).numpy()]
 
       train_baseline_pred, train_baseline_loss = None, None
       if self.baseline_model is not None:
