@@ -112,7 +112,7 @@ class ModulationLayer(torch.nn.Module):
                                      device=self.device, dtype=self.dtype)
 
         if self.norm_type == 'batch':            
-            self.norm_layer = torch.nn.BatchNorm2d(self.num_modulators, 
+            self.norm_layer = torch.nn.BatchNorm1d(self.num_modulators, 
                                                    affine = self.affine_norm,
                                                    device = self.device, dtype = self.dtype)
         elif self.norm_type == 'layer':
