@@ -233,11 +233,11 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
         pad_dim = self.start_step
         
-        train_data['steps'] = torch.cat((train_data['steps'],
-                                         torch.arange(1, 1 + pad_dim).to(device=self.device, dtype=torch.long) + train_data['steps'][-1]),0)
+        # train_data['steps'] = torch.cat((train_data['steps'],
+        #                                  torch.arange(1, 1 + pad_dim).to(device=self.device, dtype=torch.long) + train_data['steps'][-1]),0)
 
-        for name in self.input_output_names:
-          train_data[name] = torch.nn.functional.pad(train_data[name], (0, 0, pad_dim, 0), mode='constant', value=0)
+        # for name in self.input_output_names:
+        #   train_data[name] = torch.nn.functional.pad(train_data[name], (0, 0, pad_dim, 0), mode='constant', value=0)
 
         if len(val_data) > 0:
           val_data['steps'] = torch.cat((train_data['steps'][-pad_dim:], torch.arange(1, 1 + len(val_data['steps'])).to(train_data['steps']) + train_data['steps'][-1]))
