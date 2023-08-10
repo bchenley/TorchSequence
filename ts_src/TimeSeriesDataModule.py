@@ -142,16 +142,16 @@ class TimeSeriesDataModule(pl.LightningDataModule):
       self.input_feature_size, self.output_feature_size = None, None
       if self.combine_features:
         self.input_names_original = self.input_names
+        self.input_feature_size = [self.data[name].shape[-1] for name in self.input_names]
         self.data['X'] = torch.cat([self.data[name] for name in self.input_names_original],-1)        
         self.input_names, self.num_inputs = ['X'], 1
         self.input_feature_names = self.input_names_original
-        self.input_feature_size = self.input_size
         
         self.output_names_original = self.output_names
+        self.output_feature_size = [self.data[name].shape[-1] for name in self.output_names]
         self.data['y'] = torch.cat([self.data[name] for name in self.output_names_original],-1)        
         self.output_names, self.num_outputs = ['y'], 1
         self.output_feature_names = self.output_names_original
-        self.output_feature_size = self.output_size
         
         # for name in list(np.unique(self.input_names_original + self.output_names_original)): 
         #   del self.data[name]
