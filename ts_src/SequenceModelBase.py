@@ -425,7 +425,7 @@ class SequenceModelBase(torch.nn.Module):
         output = self.base[1](tgt=input_embedding_pe, memory=encoder_output) if self.seq_type == 'decoder' \
             else self.base[1](src=input_embedding_pe, mask=mask)
 
-    if self.use_last_step: output = outout[:, -1:]
+    if self.use_last_step: output = output[:, -1:]
       
     return output, hiddens
 
