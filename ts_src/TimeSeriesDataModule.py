@@ -15,7 +15,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
   def __init__(self,
                 data,
                 time_name, input_names, output_names,
-                time_shifts = None,
+                step_shifts = None,
                 combine_features = None, transforms = {'all': FeatureTransform('identity')},
                 pct_train_val_test = [1., 0., 0.],
                 batch_size = -1,
@@ -106,10 +106,10 @@ class TimeSeriesDataModule(pl.LightningDataModule):
       mask = np.ones((self.data[self.time_name].shape[0]), dtype = bool)
       
       # Shift data
-      if self.time_shifts is not None:
+      if self.step_shifts is not None:
         for name in self.input_output_names:
-          if name in self.time_shifts:
-            s = self.time_shifts[name]
+          if name in self.step_shifts:
+            s = self.step_shifts[name]
     
             self.data[name] = torch.roll(self.data[name], shifts = s, dims = 0)
             
