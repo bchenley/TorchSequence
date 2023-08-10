@@ -135,14 +135,19 @@ class ModulationLayer(torch.nn.Module):
 
         '''
         num_samples, seq_len, input_size = input.shape
-
+        
         if self.pure:
             input_ = torch.cat((torch.ones((num_samples, seq_len, 1)).to(device=self.device, dtype=self.dtype), input), -1).to(input)
         else:
             input_ = input
 
         # Calculate the output using modulation and linear function
-        output = self.norm_layer(self.F[steps] * self.linear_fn(input_))
+        output = self.F[steps] * self.linear_fn(input_)
+
+        if self.norm_type == 'batch':
+            output = self.norm_layer(output.permute(0, 2, 1)).permute(0, 2, 1)
+        if self.norm_type == 'layer:
+            output = self.norm_layer(output)
 
         return output
 
