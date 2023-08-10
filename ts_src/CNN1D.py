@@ -77,7 +77,7 @@ class CNN1D(torch.nn.Module):
             if arg != 'self':
                 setattr(self, arg, locals_[arg])
 
-        self.num_layers = len(out_channels)
+        self.num_layers = len(self.out_channels)
 
         # Replicate single-value parameters to match the number of layers
         if len(self.kernel_size) == 1: self.kernel_size = self.kernel_size * self.num_layers
