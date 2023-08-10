@@ -110,7 +110,7 @@ class HiddenLayer(torch.nn.Module):
         self.dropout = torch.nn.Dropout(self.dropout_p)
 
         if self.norm_type == 'batch':            
-            self.norm_layer = torch.nn.BatchNorm2d(out_features, 
+            self.norm_layer = torch.nn.BatchNorm1d(out_features, 
                                                    affine = self.affine_norm,
                                                    device = self.device, dtype = self.dtype)
         elif self.norm_type == 'layer':
