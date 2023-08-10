@@ -28,27 +28,31 @@ class Criterion():
     
     if self.name == 'mae':
         # Mean Absolute Error (L1 loss)
-        criterion = (y_true - y_pred).abs()
+        if self.dims is not None: criterion = (y_true - y_pred).abs().nanmean(dim = self.dims)
+        else: criterion = (y_true - y_pred).abs()
     elif self.name == 'mse':
         # Mean Squared Error
-        criterion = (y_true - y_pred).pow(2)
+        if self.dims is not None: criterion = (y_true - y_pred).pow(2).nanmean(dim = self.dims)
+        else: criterion = (y_true - y_pred).pow(2)
     elif self.name == 'mase':
         # Mean Absolute Scaled Error
-        criterion = (y_true - y_pred).abs() / (y_true.diff(n=1, dim=self.dims).abs().nanmean(dim=self.dims))
+        if self.dims is not None: criterion = (y_true - y_pred).abs().nanmean(dim=self.dims) / (y_true.diff(n=1, dim=self.dims).abs().nanmean(dim=self.dims))
+        else: criterion = (y_true - y_pred).abs() / y_true.diff(n=1, dim=self.dims).abs()
     elif self.name == 'rmse':
         # Root Mean Squared Error
-        criterion = (y_true - y_pred).pow(2).sqrt()
+        if self.dims is not None: criterion = (y_true - y_pred).pow(2).nanmean(dim = self.dims).sqrt()
+        else: criterion = (y_true - y_pred).pow(2).sqrt()
     elif self.name == 'nmse':
         # Normalized Mean Squared Error
-        criterion = (y_true - y_pred).pow(2) / y_true.pow(2).nanmean(dim=self.dims)
+        if self.dims is not None: criterion = (y_true - y_pred).pow(2).nansum(dim = self.dims) / y_true.pow(2).nansum(dim=self.dims)
+        else: criterion = (y_true - y_pred).abs() / y_true.pow(2)
     elif self.name == 'mape':
         # Mean Absolute Percentage Error
-        criterion = (((y_true - y_pred) / y_true).abs() * 100)
+        if self.dims is not None: criterion = (((y_true - y_pred) / y_true).abs() * 100).nanmean(dim = self.dims)
+        else: criterion = (((y_true - y_pred) / y_true).abs() * 100)
     elif self.name == 'fb':
         # Fractional Bias
-        criterion = (y_pred.nansum(dim=self.dims) - y_true.nansum(dim=self.dims)) / y_true.nansum(dim=self.dims) * 100
-
-    if self.dims is not None:
-      criterion = criterion.nanmean(dim=self.dims)
-      
+        if self.dims is not None: criterion = (y_pred.nansum(dim=self.dims) - y_true.nansum(dim=self.dims)) / y_true.nansum(dim=self.dims) * 100
+        else: criterion = 2*(y_pred - y_true)/(y_pred + y_true) # (y_pred - y_true) / y_true * 100
+          
     return criterion
