@@ -146,7 +146,7 @@ class ModulationLayer(torch.nn.Module):
 
         if self.norm_type == 'batch':
             output = self.norm_layer(output.permute(0, 2, 1)).permute(0, 2, 1)
-        if self.norm_type == 'layer:
+        if self.norm_type == 'layer':
             output = self.norm_layer(output)
 
         return output
