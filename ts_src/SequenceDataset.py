@@ -222,4 +222,4 @@ class SequenceDataset(torch.utils.data.Dataset):
         tuple: A tuple containing the input, output, and steps for the sample.
     '''
     
-    return self.input_samples[idx], self.output_samples[idx], self.steps_samples[idx], [self.data['id']]*len(idx)
+    return self.input_samples[idx], self.output_samples[idx], self.steps_samples[idx], self.data['id']
