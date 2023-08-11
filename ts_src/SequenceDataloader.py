@@ -4,6 +4,7 @@ import numpy as np
 from ts_src.SequenceDataset import SequenceDataset
 
 class SequenceDataloader(torch.utils.data.Dataset):
+  
   '''
   Dataloader class for sequence data.
 
@@ -24,16 +25,16 @@ class SequenceDataloader(torch.utils.data.Dataset):
   '''
 
   def __init__(self,
-                input_names, output_names,
-                data: dict,
-                step_name = 'steps', 
-                batch_size=1,
-                input_len=[1], output_len=[1], shift=[0], stride=1,
-                init_input=None,
-                forecast = False,
-                shuffle_batch = False,
-                print_summary=False,
-                device='cpu', dtype=torch.float32):
+               input_names, output_names,
+               data: dict,
+               step_name = 'steps', 
+               batch_size=1,
+               input_len=[1], output_len=[1], shift=[0], stride=1,
+               init_input=None,
+               forecast = False,
+               shuffle_batch = False,
+               print_summary=False,
+               device='cpu', dtype=torch.float32):
     
     super(SequenceDataloader, self).__init__()
 
@@ -42,12 +43,23 @@ class SequenceDataloader(torch.utils.data.Dataset):
       if arg != 'self':
         setattr(self, arg, locals_[arg].copy() if arg == 'data' else locals_[arg])
 
-    if step_name not in data: self.data[step_name] = torch.arange(self.data[self.output_names[0]].shape[0]).to(device = self.device,
-                                                                                                               dtype = torch.long) 
-      
-    self.dl = self.get_dataloader
+    if isinstance(self.data, list):
+      for i in range(len(self.data)):
+        if step_name not in self.data[i]: 
+          self.data[i][step_name] = torch.arange(self.data[i][self.output_names[0]].shape[0]).to(device = self.device, dtype = torch.long) 
+        if 'id' not in self.data[i]:
+          self.data[i]['id'] = '0'
 
+    else:
+      if step_name not in data: 
+        self.data[step_name] = torch.arange(self.data[self.output_names[0]].shape[0]).to(device = self.device, dtype = torch.long) 
+      if 'id' not in self.data:
+        self.data['id'] = '0'
+
+    self.dl = self.get_dataloader
+    
   def collate_fn(self, batch):
+    
     '''
     Collate function for the dataloader.
 
@@ -58,7 +70,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
         tuple: A tuple containing input, output, steps, and batch size.
     '''
 
-    input_samples, output_samples, steps_samples = zip(*batch)
+    input_samples, output_samples, steps_samples, id = zip(*batch)
 
     batch_size = len(input_samples)
 
@@ -77,8 +89,8 @@ class SequenceDataloader(torch.utils.data.Dataset):
     input = torch.stack(input_samples)
     output = torch.stack(output_samples)
     steps = torch.stack(steps_samples)
-
-    return input, output, steps, batch_size
+    
+    return input, output, steps, batch_size, id
 
   @property
   def get_dataloader(self):
@@ -89,43 +101,40 @@ class SequenceDataloader(torch.utils.data.Dataset):
         torch.utils.data.DataLoader: DataLoader for the sequence dataset.
     '''
 
-    if len(self.data) > 0:
+    if isinstance(self.data, list):
+      ds = []
+      for i in range(len(self.data)):
+        ds_i = SequenceDataset(data=self.data[i],
+                               input_names=self.input_names, output_names=self.output_names,
+                               step_name=self.step_name,
+                               input_len=self.input_len, output_len=self.output_len,
+                               shift=self.shift, stride=self.stride,
+                               init_input=self.init_input,
+                               forecast = self.forecast,
+                              #  shuffle_batch = self.shuffle_batch,
+                               print_summary=self.print_summary,
+                               device=self.device, dtype=self.dtype)
+        
+        if i == 0: ds_0 = ds_i
+
+        ds.append(ds_i)
+
+      ds = torch.utils.data.ConcatDataset(ds)
+
+    elif len(self.data) > 0:
+
       ds = SequenceDataset(data=self.data,
-                            input_names=self.input_names, output_names=self.output_names,
-                            step_name=self.step_name,
-                            input_len=self.input_len, output_len=self.output_len,
-                            shift=self.shift, stride=self.stride,
-                            init_input=self.init_input,
-                            forecast = self.forecast,
-                            shuffle_batch = self.shuffle_batch,
-                            print_summary=self.print_summary,
-                            device=self.device, dtype=self.dtype)
+                           input_names=self.input_names, output_names=self.output_names,
+                           step_name=self.step_name,
+                           input_len=self.input_len, output_len=self.output_len,
+                           shift=self.shift, stride=self.stride,
+                           init_input=self.init_input,
+                           forecast = self.forecast,
+                           # shuffle_batch = self.shuffle_batch,
+                           print_summary=self.print_summary,
+                           device=self.device, dtype=self.dtype)
       
-      self.batch_size = len(ds) if self.batch_size == -1 else self.batch_size
-      
-      self.batch_shuffle_idx = ds.batch_shuffle_idx
-      self.input_size, self.output_size = ds.input_size, ds.output_size
-      self.num_inputs, self.num_outputs = ds.num_inputs, ds.num_outputs
-      self.input_size, self.output_size = ds.input_size, ds.output_size
-      self.data_len, self.num_samples = ds.data_len, ds.num_samples
-      self.total_window_size, self.total_window_idx = ds.total_window_size, ds.total_window_idx
-      self.shift, self.stride = ds.shift, ds.stride
-      self.input_len, self.input_window_idx = ds.input_len, ds.input_window_idx
-      self.output_len, self.output_window_idx = ds.output_len, ds.output_window_idx
-
-      self.max_input_len, self.max_output_len = np.max(self.input_len).item(), np.max(self.output_len).item()
-      self.unique_output_window_idx = torch.cat(ds.output_window_idx, 0).unique()
-
-      self.output_mask = torch.zeros((self.max_output_len, np.sum(self.output_size))).to(device = self.device,
-                                                                                         dtype = self.dtype)
-      
-      j = 0
-      for i in range(len(ds.output_window_idx)):
-          output_window_idx_k = [k for k, l in enumerate(self.unique_output_window_idx) if
-                                  l in ds.output_window_idx[i]]
-          self.output_mask[output_window_idx_k, j:(j + self.output_size[i])] = 1
-
-          j += self.output_size[i]
+      ds_0 = ds
 
     else:
       class NoDataset(torch.utils.data.Dataset):
@@ -154,11 +163,43 @@ class SequenceDataloader(torch.utils.data.Dataset):
 
       ds = NoDataset()
 
+    self.batch_shuffle_idx, sampler = None, None
+    if self.shuffle_batch:
+      self.batch_shuffle_idx = torch.randperm(len(ds))    
+      sampler = torch.utils.data.SubsetRandomSampler(self.batch_shuffle_idx)
+      # input_samples, output_samples, steps_samples = input_samples[self.batch_shuffle_idx], output_samples[self.batch_shuffle_idx], steps_samples[self.batch_shuffle_idx]
+
     dl = torch.utils.data.DataLoader(ds,
-                                      batch_size=self.batch_size,
-                                      shuffle=False,
-                                      collate_fn=self.collate_fn)
+                                     batch_size=self.batch_size,
+                                     sampler = sampler,
+                                     collate_fn=self.collate_fn)
 
     self.num_batches = len(dl)
+
+    if len(ds) > 0:
+      self.batch_size = len(ds) if self.batch_size == -1 else self.batch_size
+      
+      # self.batch_shuffle_idx = ds_0.batch_shuffle_idx
+      self.input_size, self.output_size = ds_0.input_size, ds_0.output_size
+      self.num_inputs, self.num_outputs = ds_0.num_inputs, ds_0.num_outputs
+      self.input_size, self.output_size = ds_0.input_size, ds_0.output_size
+      self.data_len, self.num_samples = ds_0.data_len, ds_0.num_samples
+      self.total_window_size, self.total_window_idx = ds_0.total_window_size, ds_0.total_window_idx
+      self.shift, self.stride = ds_0.shift, ds_0.stride
+      self.input_len, self.input_window_idx = ds_0.input_len, ds_0.input_window_idx
+      self.output_len, self.output_window_idx = ds_0.output_len, ds_0.output_window_idx
+
+      self.max_input_len, self.max_output_len = np.max(self.input_len).item(), np.max(self.output_len).item()
+      self.unique_output_window_idx = torch.cat(ds_0.output_window_idx, 0).unique()
+
+      self.output_mask = torch.zeros((self.max_output_len, np.sum(self.output_size))).to(device = self.device,
+                                                                                         dtype = self.dtype)
+      
+      j = 0
+      for i in range(len(ds_0.output_window_idx)):
+          output_window_idx_k = [k for k, l in enumerate(self.unique_output_window_idx) if l in ds_0.output_window_idx[i]]
+          self.output_mask[output_window_idx_k, j:(j + self.output_size[i])] = 1
+
+          j += self.output_size[i]
 
     return dl
