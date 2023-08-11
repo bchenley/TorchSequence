@@ -30,7 +30,6 @@ class SequenceDataset(torch.utils.data.Dataset):
               #  shuffle_batch = False,
                forecast = False,
                print_summary=False,
-               id = '0',
                device='cpu', dtype=torch.float32):
     
     locals_ = locals().copy()
@@ -41,9 +40,6 @@ class SequenceDataset(torch.utils.data.Dataset):
           setattr(self, arg, locals_[arg].copy())  
         else:
           setattr(self, arg, locals_[arg])
-
-    if 'id' not in self.data:
-      self.data['id'] = '0'         
 
     self.num_inputs, self.num_outputs = len(self.input_names), len(self.output_names)
     
@@ -226,4 +222,4 @@ class SequenceDataset(torch.utils.data.Dataset):
         tuple: A tuple containing the input, output, and steps for the sample.
     '''
     
-    return self.input_samples[idx], self.output_samples[idx], self.steps_samples[idx], self.id[idx]
+    return self.input_samples[idx], self.output_samples[idx], self.steps_samples[idx], [self.data['id']]*len(idx)
