@@ -27,9 +27,10 @@ class SequenceDataset(torch.utils.data.Dataset):
                input_names, output_names, step_name='steps',
                input_len=[1], output_len=[1], shift=[0], stride=1,
                init_input=None,
-               shuffle_batch = False,
+              #  shuffle_batch = False,
                forecast = False,
                print_summary=False,
+               id = '0',
                device='cpu', dtype=torch.float32):
     
     locals_ = locals().copy()
@@ -40,7 +41,10 @@ class SequenceDataset(torch.utils.data.Dataset):
           setattr(self, arg, locals_[arg].copy())  
         else:
           setattr(self, arg, locals_[arg])
-             
+
+    if 'id' not in self.data:
+      self.data['id'] = '0'         
+
     self.num_inputs, self.num_outputs = len(self.input_names), len(self.output_names)
     
     if len(self.input_len) == 1:
@@ -113,7 +117,7 @@ class SequenceDataset(torch.utils.data.Dataset):
         
       self.data_len = len(self.data[self.step_name])
       
-    self.input_samples, self.output_samples, self.steps_samples = self.get_samples()
+    self.input_samples, self.output_samples, self.steps_samples, self.id = self.get_samples()
 
   def get_samples(self):
     
@@ -130,7 +134,7 @@ class SequenceDataset(torch.utils.data.Dataset):
     unique_output_window_idx = torch.cat(self.output_window_idx).unique()
 
     max_input_len, max_output_len = np.max(self.input_len), np.max(self.output_len + self.shift)
-
+    
     min_output_idx = torch.cat(self.output_window_idx).min().item()
     
     window_idx_n = self.total_window_idx
@@ -195,12 +199,12 @@ class SequenceDataset(torch.utils.data.Dataset):
     
     self.num_samples = num_samples
   
-    self.batch_shuffle_idx = None
-    if self.shuffle_batch:
-      self.batch_shuffle_idx = torch.randperm(self.num_samples)    
-      input_samples, output_samples, steps_samples = input_samples[self.batch_shuffle_idx], output_samples[self.batch_shuffle_idx], steps_samples[self.batch_shuffle_idx]
+    # self.batch_shuffle_idx = None
+    # if self.shuffle_batch:
+    #   self.batch_shuffle_idx = torch.randperm(self.num_samples)    
+    #   input_samples, output_samples, steps_samples = input_samples[self.batch_shuffle_idx], output_samples[self.batch_shuffle_idx], steps_samples[self.batch_shuffle_idx]
     
-    return input_samples, output_samples, steps_samples
+    return input_samples, output_samples, steps_samples, [self.data['id']]*self.num_samples
     
   def __len__(self):
     '''
@@ -221,4 +225,5 @@ class SequenceDataset(torch.utils.data.Dataset):
     Returns:
         tuple: A tuple containing the input, output, and steps for the sample.
     '''
-    return self.input_samples[idx], self.output_samples[idx], self.steps_samples[idx]
+    
+    return self.input_samples[idx], self.output_samples[idx], self.steps_samples[idx], self.id[idx]
