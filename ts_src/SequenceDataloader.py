@@ -47,15 +47,11 @@ class SequenceDataloader(torch.utils.data.Dataset):
       for i in range(len(self.data)):
         if step_name not in self.data[i]: 
           self.data[i][step_name] = torch.arange(self.data[i][self.output_names[0]].shape[0]).to(device = self.device, dtype = torch.long) 
-        if 'id' not in self.data[i]:
-          self.data[i]['id'] = '0'
-
+        
     else:
       if step_name not in data: 
         self.data[step_name] = torch.arange(self.data[self.output_names[0]].shape[0]).to(device = self.device, dtype = torch.long) 
-      if 'id' not in self.data:
-        self.data['id'] = '0'
-
+      
     self.dl = self.get_dataloader
     
   def collate_fn(self, batch):
