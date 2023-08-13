@@ -73,6 +73,8 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         elif name not in self.transforms:
           self.transforms[name] = FeatureTransform(transform_type = 'identity')
 
+      del self.transforms['all']           
+
       self.max_input_len = np.max(input_len).item()
       self.max_output_len = np.max(output_len).item()
       self.max_shift = np.max(shift).item()
