@@ -17,12 +17,13 @@ class SequenceModel(torch.nn.Module):
                norm_type = None, affine_norm = False,
                flatten = None,
                store_layer_outputs = False,
+               encoder_output_size = None,
                ## Sequence base parameters
                # type
                base_hidden_size = [1],
                base_type = ['gru'], base_num_layers = [1],
                base_enc2dec_bias = [False],
-               encoder_output_size = None,
+               base_use_last_step = [False],
                # GRU/LSTM parameters
                base_rnn_bias = [True],
                base_rnn_dropout_p = [0],
@@ -74,7 +75,7 @@ class SequenceModel(torch.nn.Module):
                hidden_dropout_p = [0.],
                # interaction layer
                interaction_out_features = 0, interaction_bias = False, interaction_activation = 'identity',
-               interaction_degree = 1, interaction_coef_init = True, interaction_coef_train = True,
+               interaction_degree = 1, interaction_coef_init = None, interaction_coef_train = True,
                interaction_coef_reg = [0.001, 1], interaction_zero_order = False, interaction_softmax_dim = -1,
                interaction_constrain = False, interaction_penalize = False,
                interaction_dropout_p = 0.,
@@ -131,57 +132,58 @@ class SequenceModel(torch.nn.Module):
         self.base_transformer_dim_feedforward[i] = self.base_hidden_size[i]
 
       seq_base_i = SequenceModelBase(input_size = self.input_size[i],
-                                    hidden_size = self.base_hidden_size[i],
-                                    input_len = self.input_len[i],
-                                    stateful = self.base_stateful[i],
-                                    # type
-                                    base_type = self.base_type[i], num_layers = self.base_num_layers[i],
-                                    encoder_bias = self.base_encoder_bias[i], decoder_bias = self.base_decoder_bias[i],
-                                    # GRU/LSTM parameters
-                                    rnn_bias = self.base_rnn_bias[i],
-                                    rnn_dropout_p = self.base_rnn_dropout_p[i],
-                                    rnn_bidirectional = self.base_rnn_bidirectional[i],
-                                    rnn_attn = self.base_rnn_attn[i],
-                                    rnn_weight_reg = self.base_rnn_weight_reg[i], rnn_weight_norm = self.base_rnn_weight_norm[i],
-                                    # LRU parameters
-                                    relax_init = self.base_relax_init[i], relax_train = self.base_relax_train[i], relax_minmax = self.base_relax_minmax[i], num_filterbanks = self.base_num_filterbanks[i],
-                                    # CNN parameters
-                                    cnn_out_channels = self.base_cnn_out_channels[i],
-                                    cnn_pad_front = self.base_cnn_pad_front[i],
-                                    cnn_kernel_size = self.base_cnn_kernel_size[i], cnn_kernel_stride = self.base_cnn_kernel_stride[i], cnn_padding = self.base_cnn_padding[i], cnn_dilation = self.base_cnn_dilation[i], cnn_groups = self.base_cnn_groups[i], cnn_bias = self.base_cnn_bias[i],
-                                    cnn_pool_type = self.base_cnn_pool_type[i], cnn_pool_size = self.base_cnn_pool_size[i], cnn_pool_stride = self.base_cnn_pool_stride[i],
-                                    cnn_batch_norm = self.base_cnn_batch_norm, cnn_batch_norm_learn = self.base_cnn_batch_norm_learn,
-                                    # Transformer parameters
-                                    encoder_output_size = self.encoder_output_size, seq_type = self.base_seq_type[i],
-                                    transformer_embedding_type = self.base_transformer_embedding_type[i], transformer_embedding_bias = self.base_transformer_embedding_bias[i], transformer_embedding_activation = self.base_transformer_embedding_activation[i],
-                                    transformer_embedding_weight_reg = self.base_transformer_embedding_weight_reg[i], transformer_embedding_weight_norm = self.base_transformer_embedding_weight_norm[i], transformer_embedding_dropout_p = self.base_transformer_embedding_dropout_p[i],
-                                    transformer_positional_encoding_type = self.base_transformer_positional_encoding_type[i],
-                                    transformer_dropout1_p = self.base_transformer_dropout1_p[i], transformer_dropout2_p = self.base_transformer_dropout2_p[i], transformer_dropout3_p = self.base_transformer_dropout3_p[i],
-                                    transformer_linear1_bias = self.base_transformer_linear1_bias[i], transformer_linear2_bias = self.base_transformer_linear2_bias[i],
-                                    transformer_linear1_weight_reg = self.base_transformer_linear1_weight_reg[i], transformer_linear1_weight_norm = self.base_transformer_linear1_weight_norm[i],
-                                    transformer_linear2_weight_reg = self.base_transformer_linear2_weight_reg[i], transformer_linear2_weight_norm = self.base_transformer_linear2_weight_norm[i],
-                                    transformer_feedforward_activation = self.base_transformer_feedforward_activation[i],
-                                    transformer_feedforward_degree = self.base_transformer_feedforward_degree[i], transformer_coef_init = self.base_transformer_coef_init[i], transformer_coef_train = self.base_transformer_coef_train[i], transformer_coef_reg = self.base_transformer_coef_reg[i], transformer_zero_order = self.base_transformer_zero_order[i],
-                                    transformer_scale_self_attn_residual_connection = self.base_transformer_scale_self_attn_residual_connection[i],
-                                    transformer_scale_cross_attn_residual_connection = self.base_transformer_scale_cross_attn_residual_connection[i],
-                                    transformer_scale_feedforward_residual_connection = self.base_transformer_scale_feedforward_residual_connection[i],
-                                    transformer_layer_norm = self.base_transformer_layer_norm[i],
-                                    # attention parameters
-                                    num_heads = self.base_num_heads[i], transformer_dim_feedforward = self.base_transformer_dim_feedforward[i],
-                                    self_attn_type = self.base_self_attn_type[i], multihead_attn_type = self.base_multihead_attn_type[i],
-                                    memory_is_causal = self.base_memory_is_causal[i], tgt_is_causal = self.base_tgt_is_causal[i],
-                                    query_dim = self.base_query_dim[i], key_dim = self.base_key_dim[i], value_dim = self.base_value_dim[i],
-                                    query_weight_reg = self.base_query_weight_reg[i], query_weight_norm = self.base_query_weight_norm[i], query_bias = self.base_query_bias[i],
-                                    key_weight_reg = self.base_key_weight_reg[i], key_weight_norm = self.base_key_weight_norm[i], key_bias = self.base_key_bias[i],
-                                    value_weight_reg = self.base_value_weight_reg[i], value_weight_norm = self.base_value_weight_norm[i], value_bias = self.base_value_bias[i],
-                                    gen_weight_reg = self.base_gen_weight_reg[i], gen_weight_norm = self.base_gen_weight_norm[i], gen_bias = self.base_gen_bias[i],
-                                    concat_weight_reg = self.base_concat_weight_reg[i], concat_weight_norm = self.base_concat_weight_norm[i], concat_bias = self.base_concat_bias[i],
-                                    attn_dropout_p = self.base_attn_dropout_p[i],
-                                    average_attn_weights = self.base_average_attn_weights[i],
-                                    # always batch first
-                                    batch_first = True,
-                                    #
-                                    device = self.device, dtype = self.dtype)
+                                     hidden_size = self.base_hidden_size[i],
+                                     input_len = self.input_len[i],
+                                     stateful = self.base_stateful[i],
+                                     use_last_step = self.base_use_last_step[i],
+                                     # type
+                                     base_type = self.base_type[i], num_layers = self.base_num_layers[i],
+                                     encoder_bias = self.base_encoder_bias[i], decoder_bias = self.base_decoder_bias[i],
+                                     # GRU/LSTM parameters
+                                     rnn_bias = self.base_rnn_bias[i],
+                                     rnn_dropout_p = self.base_rnn_dropout_p[i],
+                                     rnn_bidirectional = self.base_rnn_bidirectional[i],
+                                     rnn_attn = self.base_rnn_attn[i],
+                                     rnn_weight_reg = self.base_rnn_weight_reg[i], rnn_weight_norm = self.base_rnn_weight_norm[i],
+                                     # LRU parameters
+                                     relax_init = self.base_relax_init[i], relax_train = self.base_relax_train[i], relax_minmax = self.base_relax_minmax[i], num_filterbanks = self.base_num_filterbanks[i],
+                                     # CNN parameters
+                                     cnn_out_channels = self.base_cnn_out_channels[i],
+                                     cnn_pad_front = self.base_cnn_pad_front[i],
+                                     cnn_kernel_size = self.base_cnn_kernel_size[i], cnn_kernel_stride = self.base_cnn_kernel_stride[i], cnn_padding = self.base_cnn_padding[i], cnn_dilation = self.base_cnn_dilation[i], cnn_groups = self.base_cnn_groups[i], cnn_bias = self.base_cnn_bias[i],
+                                     cnn_pool_type = self.base_cnn_pool_type[i], cnn_pool_size = self.base_cnn_pool_size[i], cnn_pool_stride = self.base_cnn_pool_stride[i],
+                                     cnn_batch_norm = self.base_cnn_batch_norm, cnn_batch_norm_learn = self.base_cnn_batch_norm_learn,
+                                     # Transformer parameters
+                                     encoder_output_size = self.encoder_output_size, seq_type = self.base_seq_type[i],
+                                     transformer_embedding_type = self.base_transformer_embedding_type[i], transformer_embedding_bias = self.base_transformer_embedding_bias[i], transformer_embedding_activation = self.base_transformer_embedding_activation[i],
+                                     transformer_embedding_weight_reg = self.base_transformer_embedding_weight_reg[i], transformer_embedding_weight_norm = self.base_transformer_embedding_weight_norm[i], transformer_embedding_dropout_p = self.base_transformer_embedding_dropout_p[i],
+                                     transformer_positional_encoding_type = self.base_transformer_positional_encoding_type[i],
+                                     transformer_dropout1_p = self.base_transformer_dropout1_p[i], transformer_dropout2_p = self.base_transformer_dropout2_p[i], transformer_dropout3_p = self.base_transformer_dropout3_p[i],
+                                     transformer_linear1_bias = self.base_transformer_linear1_bias[i], transformer_linear2_bias = self.base_transformer_linear2_bias[i],
+                                     transformer_linear1_weight_reg = self.base_transformer_linear1_weight_reg[i], transformer_linear1_weight_norm = self.base_transformer_linear1_weight_norm[i],
+                                     transformer_linear2_weight_reg = self.base_transformer_linear2_weight_reg[i], transformer_linear2_weight_norm = self.base_transformer_linear2_weight_norm[i],
+                                     transformer_feedforward_activation = self.base_transformer_feedforward_activation[i],
+                                     transformer_feedforward_degree = self.base_transformer_feedforward_degree[i], transformer_coef_init = self.base_transformer_coef_init[i], transformer_coef_train = self.base_transformer_coef_train[i], transformer_coef_reg = self.base_transformer_coef_reg[i], transformer_zero_order = self.base_transformer_zero_order[i],
+                                     transformer_scale_self_attn_residual_connection = self.base_transformer_scale_self_attn_residual_connection[i],
+                                     transformer_scale_cross_attn_residual_connection = self.base_transformer_scale_cross_attn_residual_connection[i],
+                                     transformer_scale_feedforward_residual_connection = self.base_transformer_scale_feedforward_residual_connection[i],
+                                     transformer_layer_norm = self.base_transformer_layer_norm[i],
+                                     # attention parameters
+                                     num_heads = self.base_num_heads[i], transformer_dim_feedforward = self.base_transformer_dim_feedforward[i],
+                                     self_attn_type = self.base_self_attn_type[i], multihead_attn_type = self.base_multihead_attn_type[i],
+                                     memory_is_causal = self.base_memory_is_causal[i], tgt_is_causal = self.base_tgt_is_causal[i],
+                                     query_dim = self.base_query_dim[i], key_dim = self.base_key_dim[i], value_dim = self.base_value_dim[i],
+                                     query_weight_reg = self.base_query_weight_reg[i], query_weight_norm = self.base_query_weight_norm[i], query_bias = self.base_query_bias[i],
+                                     key_weight_reg = self.base_key_weight_reg[i], key_weight_norm = self.base_key_weight_norm[i], key_bias = self.base_key_bias[i],
+                                     value_weight_reg = self.base_value_weight_reg[i], value_weight_norm = self.base_value_weight_norm[i], value_bias = self.base_value_bias[i],
+                                     gen_weight_reg = self.base_gen_weight_reg[i], gen_weight_norm = self.base_gen_weight_norm[i], gen_bias = self.base_gen_bias[i],
+                                     concat_weight_reg = self.base_concat_weight_reg[i], concat_weight_norm = self.base_concat_weight_norm[i], concat_bias = self.base_concat_bias[i],
+                                     attn_dropout_p = self.base_attn_dropout_p[i],
+                                     average_attn_weights = self.base_average_attn_weights[i],
+                                     # always batch first
+                                     batch_first = True,
+                                     #
+                                     device = self.device, dtype = self.dtype)
 
       self.seq_base.append(seq_base_i)
       #
@@ -322,8 +324,9 @@ class SequenceModel(torch.nn.Module):
         output_in_features_i = 1 # output_in_features_i * self.max_input_len
         output_out_features_i = 1 # self.output_size[i] * self.max_output_len
       elif self.flatten == 'feature':
-        output_in_features_i = output_in_features_i * self.max_input_len
+        output_in_features_i = output_in_features_i * self.max_base_seq_len # self.max_input_len
         output_out_features_i = self.output_size[i] * self.max_output_len
+
       else:
         output_out_features_i = self.output_size[i]
 
@@ -366,9 +369,6 @@ class SequenceModel(torch.nn.Module):
 
       self.max_output_len = self.forward(X, encoder_output = encoder_output)[0].shape[1]
 
-    # if self.flatten == 'time':
-    #   self.flatten = [self.max_output_len]*self.num_outputs
-
   def __repr__(self):
     total_num_params = 0
     total_num_trainable_params = 0
@@ -398,7 +398,7 @@ class SequenceModel(torch.nn.Module):
     num_samples, input_len, input_size = input.shape
 
     input_window_idx = [torch.arange(input_len).to(device = self.device, dtype = torch.long) for i in range(self.num_inputs)] \
-                       if input_window_idx is None else input_window_idx
+                        if input_window_idx is None else input_window_idx
 
     hiddens = hiddens if hiddens is not None else self.init_hiddens()
 
@@ -424,17 +424,15 @@ class SequenceModel(torch.nn.Module):
                                                    hiddens = hiddens[i],
                                                    encoder_output = encoder_output)
 
-      # base_output_i = torch.nn.functional.pad(base_output_i,
-      #                                         (0, 0, np.max([0, input_len - base_output_i.shape[1]]), 0),
-      #                                         "constant", 0)
-
       if self.store_layer_outputs: self.base_layer_output[i].append(base_output_i)
 
       # Generate hidden layer outputs for ith input, append result to previous hidden layer output of previous inputs
+
       hidden_output_i[:, -base_output_i.shape[1]:] = self.hidden_layer[i](base_output_i)
+
       hidden_output.append(hidden_output_i)
 
-      if self.store_layer_outputs: self.hidden_layer_output[i].append(hidden_output_i[:, -base_output_i.shape[1]:])
+      if self.store_layer_outputs: self.hidden_layer_output[i].append(hidden_output_i)
 
     output_ = torch.cat(hidden_output,-1)
 
@@ -519,7 +517,11 @@ class SequenceModel(torch.nn.Module):
     # Get the total output size
     total_output_size = np.sum(self.output_size)
 
-    # Process output and updated hiddens    
+    # Initiate hiddens if None
+    hiddens = hiddens if hiddens is not None else self.init_hiddens()
+
+    # Process output and updated hiddens
+
     if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder
       output, hiddens = self.process(input = input,
                                      input_window_idx = input_window_idx,
