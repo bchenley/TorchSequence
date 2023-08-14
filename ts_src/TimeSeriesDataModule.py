@@ -66,7 +66,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
       self.input_output_names = np.unique(self.input_names + self.output_names).tolist()
       self.input_output_names_original = self.input_output_names
 
-      self.transforms = {'all': FeatureTransform(transform_type='identity')} if self.transforms is None else self.transforms
+      self.transforms = {'all': FeatureTransform(transform_type='identity', device = self.device, dtype = self.dtype)} if self.transforms is None else self.transforms
       for name in self.input_output_names:
         if 'all' in self.transforms:
           self.transforms[name] = copy.deepcopy(self.transforms['all'])
