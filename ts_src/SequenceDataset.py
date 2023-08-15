@@ -77,12 +77,17 @@ class SequenceDataset(torch.utils.data.Dataset):
     for i in range(self.num_inputs):
       self.input_window_idx.append(torch.arange(self.max_input_len - self.input_len[i], self.max_input_len).to(device = 'cpu',
                                                                                                                dtype = torch.long))
+      if self.has_ar and (self.input_names[i] not in self.output_names):
+        self.input_window_idx[i] += 1 
     
     self.output_window_idx = []
     for i in range(self.num_outputs):
       output_window_idx_i = torch.arange(self.max_input_len - self.output_len[i], self.max_input_len).to(device = 'cpu',
                                                                                                          dtype = torch.long) + self.shift[i]
       self.output_window_idx.append(output_window_idx_i)
+      
+      if self.has_ar:
+        self.output_window_idx[i] += 1
 
     self.total_window_size = torch.cat(self.output_window_idx).max().item() + 1
     self.total_window_idx = torch.arange(self.total_window_size).to(device = 'cpu', 
@@ -99,7 +104,7 @@ class SequenceDataset(torch.utils.data.Dataset):
                        '\n'.join([f'Output indices for {self.output_names[i]}: {self.output_window_idx[i].tolist()}' for i in range(self.num_outputs)])]))
         
     if self.forecast:
-      pad_size = self.total_window_size - self.max_input_len + int(self.has_ar)
+      pad_size = self.total_window_size - self.max_input_len # + int(self.has_ar)
 
       self.data[self.step_name] = torch.cat((self.data[self.step_name][-self.max_input_len:], 
                                              torch.arange(pad_size).to(device = self.device, dtype = torch.long) + self.data[self.step_name].max() + 1)).to(device = self.device,
