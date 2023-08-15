@@ -154,13 +154,13 @@ class SequenceDataset(torch.utils.data.Dataset):
         for i in range(self.num_inputs):
           input_window_idx_i = self.input_window_idx[i]
             
-          input_samples_window_idx_i = window_idx_n[input_window_idx_i] - int(self.input_names[i] in self.output_names)
+          input_samples_window_idx_i = window_idx_n[input_window_idx_i] # - int(self.input_names[i] in self.output_names)
           
-          if (input_samples_window_idx_i[0] == -1) & (self.init_input is not None):
+          if (input_samples_window_idx_i[0] == 0) & (self.init_input is not None):
             input_n[0, j:(j + self.input_size[i])] = self.init_input[j:(j + self.input_size[i])]
           
-          input_window_idx_i = input_window_idx_i[input_samples_window_idx_i >= 0]
-          input_samples_window_idx_i = input_samples_window_idx_i[input_samples_window_idx_i >= 0]
+          # input_window_idx_i = input_window_idx_i[input_samples_window_idx_i >= 0]
+          # input_samples_window_idx_i = input_samples_window_idx_i[input_samples_window_idx_i >= 0]
           
           input_n[input_window_idx_i, j:(j + self.input_size[i])] = self.data[self.input_names[i]].clone()[input_samples_window_idx_i]
           
