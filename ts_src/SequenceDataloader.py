@@ -184,7 +184,8 @@ class SequenceDataloader(torch.utils.data.Dataset):
       self.shift, self.stride = ds_0.shift, ds_0.stride
       self.input_len, self.input_window_idx = ds_0.input_len, ds_0.input_window_idx
       self.output_len, self.output_window_idx = ds_0.output_len, ds_0.output_window_idx
-
+      self.start_step = ds_0.start_step 
+      
       self.max_input_len, self.max_output_len = np.max(self.input_len).item(), np.max(self.output_len).item()
       self.unique_output_window_idx = torch.cat(ds_0.output_window_idx, 0).unique()
 
