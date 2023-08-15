@@ -94,7 +94,7 @@ class SequenceDataset(torch.utils.data.Dataset):
                                                                     dtype = torch.long)
     
     # self.start_step = self.max_input_len - self.max_output_len + self.max_shift + int(self.has_ar)    
-    self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift + 1)]).item()
+    self.start_step = self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift + int(self.has_ar))]).item()
 
     if self.print_summary:
       print('\n'.join([f'Data length: {self.data_len}',
