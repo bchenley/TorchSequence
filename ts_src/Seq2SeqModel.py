@@ -61,7 +61,7 @@ class Seq2SeqModel(torch.nn.Module):
             
         self.enc2dec_hiddens_block = None
         # If learning decoder hidden states, create a block to map encoder output to decoder hidden states.
-        if self.enc2dec_hiddens_type = 'learn' :
+        if self.enc2dec_hiddens_type == 'learn' :
             if any(type_ in ['gru', 'lstm', 'lru'] for type_ in self.encoder.base_type):
                 total_encoder_hidden_size = 0
                 for i in range(self.encoder.num_inputs):
