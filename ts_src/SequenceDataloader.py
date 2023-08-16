@@ -4,7 +4,7 @@ import numpy as np
 from ts_src.SequenceDataset import SequenceDataset
 
 class SequenceDataloader(torch.utils.data.Dataset):
-  
+
   '''
   Dataloader class for sequence data.
 
@@ -27,7 +27,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
   def __init__(self,
                input_names, output_names,
                data: dict,
-               step_name = 'steps', 
+               step_name = 'steps',
                batch_size=1,
                input_len=[1], output_len=[1], shift=[0], stride=1,
                init_input=None,
@@ -35,27 +35,27 @@ class SequenceDataloader(torch.utils.data.Dataset):
                shuffle_batch = False,
                print_summary=False,
                device='cpu', dtype=torch.float32):
-    
+
     super(SequenceDataloader, self).__init__()
 
-    locals_ = locals().copy()                   
+    locals_ = locals().copy()
     for arg in locals_:
       if arg != 'self':
         setattr(self, arg, locals_[arg].copy() if arg == 'data' else locals_[arg])
 
     if isinstance(self.data, list):
       for i in range(len(self.data)):
-        if step_name not in self.data[i]: 
-          self.data[i][step_name] = torch.arange(self.data[i][self.output_names[0]].shape[0]).to(device = self.device, dtype = torch.long) 
-        
+        if step_name not in self.data[i]:
+          self.data[i][step_name] = torch.arange(self.data[i][self.output_names[0]].shape[0]).to(device = self.device, dtype = torch.long)
+
     else:
-      if step_name not in data: 
-        self.data[step_name] = torch.arange(self.data[self.output_names[0]].shape[0]).to(device = self.device, dtype = torch.long) 
-      
+      if step_name not in data:
+        self.data[step_name] = torch.arange(self.data[self.output_names[0]].shape[0]).to(device = self.device, dtype = torch.long)
+
     self.dl = self.get_dataloader
-    
+
   def collate_fn(self, batch):
-    
+
     '''
     Collate function for the dataloader.
 
@@ -85,7 +85,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
     input = torch.stack(input_samples)
     output = torch.stack(output_samples)
     steps = torch.stack(steps_samples)
-    
+
     return input, output, steps, batch_size, id
 
   @property
@@ -110,7 +110,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
                               #  shuffle_batch = self.shuffle_batch,
                                print_summary=self.print_summary,
                                device=self.device, dtype=self.dtype)
-        
+
         if i == 0: ds_0 = ds_i
 
         ds.append(ds_i)
@@ -129,7 +129,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
                            # shuffle_batch = self.shuffle_batch,
                            print_summary=self.print_summary,
                            device=self.device, dtype=self.dtype)
-      
+
       ds_0 = ds
 
     else:
@@ -161,12 +161,12 @@ class SequenceDataloader(torch.utils.data.Dataset):
 
     self.batch_shuffle_idx, sampler = None, None
     if self.shuffle_batch:
-      self.batch_shuffle_idx = torch.randperm(len(ds))    
+      self.batch_shuffle_idx = torch.randperm(len(ds))
       sampler = torch.utils.data.SubsetRandomSampler(self.batch_shuffle_idx)
       # input_samples, output_samples, steps_samples = input_samples[self.batch_shuffle_idx], output_samples[self.batch_shuffle_idx], steps_samples[self.batch_shuffle_idx]
 
     self.batch_size = len(ds) if self.batch_size == -1 else self.batch_size
-    
+
     dl = torch.utils.data.DataLoader(ds,
                                      batch_size=self.batch_size,
                                      sampler = sampler,
@@ -185,14 +185,14 @@ class SequenceDataloader(torch.utils.data.Dataset):
       self.shift, self.stride = ds_0.shift, ds_0.stride
       self.input_len, self.input_window_idx = ds_0.input_len, ds_0.input_window_idx
       self.output_len, self.output_window_idx = ds_0.output_len, ds_0.output_window_idx
-      self.start_step = ds_0.start_step 
-      
+      self.start_step = ds_0.start_step
+
       self.max_input_len, self.max_output_len = np.max(self.input_len).item(), np.max(self.output_len).item()
       self.unique_output_window_idx = torch.cat(ds_0.output_window_idx, 0).unique()
 
       self.output_mask = torch.zeros((self.max_output_len, np.sum(self.output_size))).to(device = self.device,
                                                                                          dtype = self.dtype)
-      
+
       j = 0
       for i in range(len(ds_0.output_window_idx)):
           output_window_idx_k = [k for k, l in enumerate(self.unique_output_window_idx) if l in ds_0.output_window_idx[i]]
