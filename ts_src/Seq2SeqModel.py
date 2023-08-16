@@ -5,8 +5,8 @@ from ts_src import HiddenLayer as HiddenLayer
 
 class Seq2SeqModel(torch.nn.Module):
     def __init__(self,
-                 encoder, decoder,
-                 learn_decoder_input=False, learn_decoder_hiddens=False,
+                 encoder, decoder, enc2dec_hiddens_type = None,
+                 learn_decoder_input=False,
                  enc2dec_bias=True, enc2dec_hiddens_bias=True,
                  enc2dec_dropout_p=0., enc2dec_hiddens_dropout_p=0.,
                  enc_out_as_dec_in=False,
@@ -58,10 +58,10 @@ class Seq2SeqModel(torch.nn.Module):
                                                    dropout_p=self.enc2dec_dropout_p,
                                                    device=self.device,
                                                    dtype=self.dtype)
-
+            
         self.enc2dec_hiddens_block = None
         # If learning decoder hidden states, create a block to map encoder output to decoder hidden states.
-        if self.learn_decoder_hiddens:
+        if self.enc2dec_hiddens_type = 'learn' :
             if any(type_ in ['gru', 'lstm', 'lru'] for type_ in self.encoder.base_type):
                 total_encoder_hidden_size = 0
                 for i in range(self.encoder.num_inputs):
@@ -136,7 +136,9 @@ class Seq2SeqModel(torch.nn.Module):
         decoder_hiddens = [None for _ in range(self.decoder.num_inputs)]
 
         # If learning decoder hidden states, map encoder output to decoder hidden states.
-        if self.enc2dec_hiddens_block is not None:
+        if self.enc2dec_hiddens_type is None:
+            decoder_hiddens = None  
+        elif self.enc2dec_hiddens_type == 'learn':
             if any(type_ in ['gru', 'lstm', 'lru'] for type_ in self.encoder.base_type):
                 enc2dec_hiddens_input = []
                 for i in range(self.encoder.num_inputs):
@@ -146,13 +148,13 @@ class Seq2SeqModel(torch.nn.Module):
                         enc2dec_hiddens_input.append(encoder_hiddens[i][-1:].reshape(num_samples, -1))
                     elif self.encoder.base_type[i] == 'lru':
                         enc2dec_hiddens_input.append(encoder_hiddens[i][0].reshape(num_samples, -1))
-
+    
                 enc2dec_hiddens_input = torch.cat(enc2dec_hiddens_input, -1)
             else:
                 enc2dec_hiddens_input = encoder_output.reshape(num_samples, -1)
-
+    
             enc2dec_hiddens_output = self.enc2dec_hiddens_block(enc2dec_hiddens_input)
-
+    
             j = 0
             for i in range(self.decoder.num_inputs):
                 if self.decoder.base_type[i] == 'lstm':
@@ -162,15 +164,15 @@ class Seq2SeqModel(torch.nn.Module):
                     decoder_hiddens[i] = enc2dec_hiddens_output[:, j:(j + self.decoder_hidden_size[i])].reshape(-1, num_samples, self.decoder.base_hidden_size[i])
                 if self.decoder.base_type[i] == 'lru':
                     decoder_hiddens[i] = enc2dec_hiddens_output[:, j:(j + self.decoder_hidden_size[i])].reshape(-1, num_samples, self.decoder.base_hidden_size[i])
-
+    
                 j += self.decoder_hidden_size[i]
 
-        else:
+        elif self.enc2dec_hiddens_type == 'identity':
           decoder_hiddens = encoder_hiddens
           for i in range(self.decoder.num_inputs):
             if self.decoder.base_type[i] == 'lstm':
               decoder_hiddens[i] = (decoder_hiddens[i][0], torch.zeros_like(decoder_hiddens[i][1]))
-
+                
         # Prepare decoder input based on the enc_out_as_dec_in flag.
         if self.enc_out_as_dec_in:
           decoder_input = encoder_output
