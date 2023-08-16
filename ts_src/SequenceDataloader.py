@@ -165,6 +165,8 @@ class SequenceDataloader(torch.utils.data.Dataset):
       sampler = torch.utils.data.SubsetRandomSampler(self.batch_shuffle_idx)
       # input_samples, output_samples, steps_samples = input_samples[self.batch_shuffle_idx], output_samples[self.batch_shuffle_idx], steps_samples[self.batch_shuffle_idx]
 
+    self.batch_size = len(ds) if self.batch_size == -1 else self.batch_size
+    
     dl = torch.utils.data.DataLoader(ds,
                                      batch_size=self.batch_size,
                                      sampler = sampler,
@@ -173,7 +175,6 @@ class SequenceDataloader(torch.utils.data.Dataset):
     self.num_batches = len(dl)
 
     if len(ds) > 0:
-      self.batch_size = len(ds) if self.batch_size == -1 else self.batch_size
       
       # self.batch_shuffle_idx = ds_0.batch_shuffle_idx
       self.input_size, self.output_size = ds_0.input_size, ds_0.output_size
