@@ -16,7 +16,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                data,
                time_name, input_names, output_names,
                step_shifts = None,
-               combine_features = None, transforms = {'all': FeatureTransform('identity')},
+               combine_features = None, transforms = None,
                pct_train_val_test = [1., 0., 0.],
                batch_size = -1,
                input_len = [1], output_len = [1], shift = [0], stride = 1,
@@ -66,21 +66,29 @@ class TimeSeriesDataModule(pl.LightningDataModule):
       self.input_output_names = np.unique(self.input_names + self.output_names).tolist()
       self.input_output_names_original = self.input_output_names
 
-      self.transforms = {'all': FeatureTransform(transform_type='identity', device = self.device, dtype = self.dtype)} if self.transforms is None else self.transforms
+      if self.transforms is None:
+        self.transforms = {'all': FeatureTransform(transform_type = 'identity',
+                                                   device = self.device,
+                                                   dtype = self.dtype)}
+
       for name in self.input_output_names:
         if 'all' in self.transforms:
           self.transforms[name] = copy.deepcopy(self.transforms['all'])
         elif name not in self.transforms:
-          self.transforms[name] = FeatureTransform(transform_type = 'identity')
+          self.transforms[name] = FeatureTransform(transform_type = 'identity',
+                                                   device = self.device,
+                                                   dtype = self.dtype)
 
-      if 'all' in self.transforms: del self.transforms['all']           
+      if 'all' in self.transforms: del self.transforms['all']
+
+      self.has_ar = np.isin(self.output_names, self.input_names).any()
 
       self.max_input_len = np.max(input_len).item()
       self.max_output_len = np.max(output_len).item()
       self.max_shift = np.max(shift).item()
-      self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift)]).item()
+      self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift + int(self.has_ar))]).item()
 
-      self.dt = self.dt or data[0][time_name].diff().mean() if isinstance(data, list) else data[time_name].diff().mean()
+      self.dt = self.dt or data[0][time_name].diff().mean() if isinstance(data, list) else np.diff(data[time_name]).mean()
 
       self.predicting, self.data_prepared = False, False
 
@@ -197,8 +205,6 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
         self.data[data_idx]['steps'] = torch.arange(self.data_len[data_idx]).to(device=self.device, dtype=torch.long)
 
-      self.has_ar = np.isin(self.output_names, self.input_names).any()
-
       j = 0
       output_input_idx = []
       for i, name in enumerate(self.input_names):
@@ -223,7 +229,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
       self.input_output_idx, self.output_input_idx = input_output_idx, output_input_idx
 
-      if len(self.data) == 0:
+      if len(self.data) == 1:
         self.data = self.data[0]
         self.transforms = self.transforms[0]
         self.data_len = self.data_len[0]
@@ -271,13 +277,17 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         val_len = int(self.pct_train_val_test[1] * self.data_len)
 
         train_data = {name: self.data[name][:train_len] for name in ([self.time_name, 'steps'] + self.input_output_names)}
+        train_data['id'] = self.data['id']
+
         if self.pct_train_val_test[1] > 0:
           val_data = {name: self.data[name][train_len:(train_len + val_len)] for name in ([self.time_name, 'steps'] + self.input_output_names)}
+          val_data['id'] = self.data['id']
         else:
           val_data = {}
 
         if self.pct_train_val_test[2] > 0:
           test_data = {name: self.data[name][(train_len + val_len):] for name in ([self.time_name, 'steps'] + self.input_output_names)}
+          test_data['id'] = self.data['id']
           test_len = len(next(iter(test_data.values())))
         else:
             test_data = {}
@@ -289,26 +299,30 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
         if self.pad_data and (self.start_step > 0):
 
-          pad_dim = self.start_step
+          # train_data['steps'] = torch.cat((train_data['steps'],
+          #                                  torch.arange(1, 1 + self.start_step).to(device=self.device, dtype=torch.long) + train_data['steps'][-1]),0)
+
+          # for name in self.input_output_names:
+          #   train_data[name] = torch.nn.functional.pad(train_data[name], (0, 0, self.start_step, 0), mode='constant', value=0)
 
           if len(val_data) > 0:
-            val_data['steps'] = torch.cat((train_data['steps'][-pad_dim:], torch.arange(1, 1 + len(val_data['steps'])).to(train_data['steps']) + train_data['steps'][-1])) + pad_dim
+            val_data['steps'] = torch.cat((train_data['steps'][-self.start_step:], torch.arange(1, 1 + len(val_data['steps'])).to(train_data['steps']) + train_data['steps'][-1]))
             for name in self.input_output_names:
-                val_data[name] = torch.cat((train_data[name][-pad_dim:], val_data[name]), 0)
+              val_data[name] = torch.cat((train_data[name][-self.start_step:], val_data[name]), 0)
 
             val_init_input = val_init_input or []
             for i, name in enumerate(self.input_names):
-                val_init_input.append(train_data[name][-(pad_dim + 1)])
+                val_init_input.append(train_data[name][-(self.start_step + 1)])
 
           if len(test_data) > 0:
             data_ = val_data if len(val_data) > 0 else train_data
-            test_data['steps'] = torch.cat((data_['steps'][-pad_dim:], torch.arange(1, 1 + len(test_data['steps'])).to(data_['steps']) + data_['steps'][-1]))
+            test_data['steps'] = torch.cat((data_['steps'][-self.start_step:], torch.arange(1, 1 + len(test_data['steps'])).to(data_['steps']) + data_['steps'][-1]))
             for name in self.input_output_names:
-              test_data[name] = torch.cat((data_[name][-pad_dim:], test_data[name]), 0)
+              test_data[name] = torch.cat((data_[name][-self.start_step:], test_data[name]), 0)
 
             test_init_input = test_init_input or []
             for i, name in enumerate(self.input_names):
-              test_init_input.append(data_[name][-(pad_dim + 1)])
+              test_init_input.append(data_[name][-(self.start_step + 1)])
 
           else:
 
@@ -441,18 +455,18 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         self.val_batch_size = 1
 
       self.val_dl = SequenceDataloader(input_names=self.input_names,
-                                      output_names=self.output_names,
-                                      step_name='steps',
-                                      data=self.val_data,
-                                      batch_size=self.val_batch_size,
-                                      input_len=self.input_len,
-                                      output_len=self.output_len,
-                                      shift=self.shift,
-                                      stride=self.stride,
-                                      init_input=self.val_init_input,
-                                      print_summary=self.print_summary,
-                                      device=self.device,
-                                      dtype=self.dtype)
+                                       output_names=self.output_names,
+                                       step_name='steps',
+                                       data=self.val_data,
+                                       batch_size=self.val_batch_size,
+                                       input_len=self.input_len,
+                                       output_len=self.output_len,
+                                       shift=self.shift,
+                                       stride=self.stride,
+                                       init_input=self.val_init_input,
+                                       print_summary=self.print_summary,
+                                       device=self.device,
+                                       dtype=self.dtype)
 
       self.num_val_batches = self.val_dl.num_batches
       self.val_batch_shuffle_idx = self.val_dl.batch_shuffle_idx
@@ -466,6 +480,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
       print("Validation Dataloader Created.")
 
       return self.val_dl.dl
+
     else:
       return None
 
