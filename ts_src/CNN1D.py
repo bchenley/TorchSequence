@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 
+from ts_src.Polynomial import Polynomial
+
 class CNN1D(torch.nn.Module):
     """
     CNN1D: A PyTorch module implementing a 1D Convolutional Neural Network.
@@ -40,13 +42,16 @@ class CNN1D(torch.nn.Module):
         output = model(X)
     """
     def __init__(self, 
-                 in_channels, out_channels, input_len=1,
-                 pad_front=False,
-                 kernel_size=[(1,)], kernel_stride=[(1,)], padding=[(0,)], 
-                 dilation=[(1,)], groups=[1], bias=[False], 
-                 pool_type=[None], pool_size=[(2,)], pool_stride=[(1,)],
-                 batch_norm=False, batch_norm_learn=False,
-                 device=None, dtype=None):
+                 in_channels, out_channels, input_len = 1,
+                 pad_front = False,
+                 kernel_size = [(1,)], kernel_stride = [(1,)], padding = [(0,)], 
+                 dilation = [(1,)], groups = [1], bias = [False], 
+                 pool_type = [None], pool_size = [(2,)], pool_stride = [(1,)],
+                 activation = ['identity'],
+                 degree = [2], coef_init = [None], coef_train = [True], coef_reg = [[0.001, 1]] , zero_order = [False],
+                 batch_norm = False, batch_norm_learn = False,
+                 device = None, dtype = None):
+
         """
         Constructor method for initializing the CNN1D module and its attributes.
 
@@ -70,7 +75,7 @@ class CNN1D(torch.nn.Module):
             dtype (torch.dtype, optional): Data type for the model parameters. Default is None.
         """
         super(CNN1D, self).__init__()
-
+        
         # Store the arguments as attributes
         locals_ = locals().copy()
         for arg in locals_:
@@ -86,10 +91,16 @@ class CNN1D(torch.nn.Module):
         if len(self.dilation) == 1: self.dilation = self.dilation * self.num_layers
         if len(self.groups) == 1: self.groups = self.groups * self.num_layers
         if len(self.bias) == 1: self.bias = self.bias * self.num_layers
+        if len(self.activation) == 1: self.activation = self.activation * self.num_layers
+        if len(self.degree) == 1: self.degree = self.degree * self.num_layers
+        if len(self.coef_init) == 1: self.coef_init = self.coef_init * self.num_layers
+        if len(self.coef_train) == 1: self.coef_train = self.coef_train * self.num_layers
+        if len(self.coef_reg) == 1: self.coef_reg = self.coef_reg * self.num_layers
+        if len(self.zero_order) == 1: self.zero_order = self.zero_order * self.num_layers
         if len(self.pool_type) == 1: self.pool_type = self.pool_type * self.num_layers
         if len(self.pool_size) == 1: self.pool_size = self.pool_size * self.num_layers
         if len(self.pool_stride) == 1: self.pool_stride = self.pool_stride * self.num_layers
-
+        
         # Create the CNN layers
         self.cnn = torch.nn.ModuleList()  
         for i in range(self.num_layers):
@@ -98,7 +109,7 @@ class CNN1D(torch.nn.Module):
             # Determine the input channels for the current layer
             in_channels_i = self.in_channels if i == 0 else self.out_channels[i - 1]
 
-            # Add Conv1d layer to the current layer
+            # 1) Add Conv1d layer to the current layer
             self.cnn[-1].append(torch.nn.Conv1d(in_channels=in_channels_i,
                                                 out_channels=self.out_channels[i],
                                                 kernel_size=self.kernel_size[i],
@@ -108,18 +119,24 @@ class CNN1D(torch.nn.Module):
                                                 groups=self.groups[i],
                                                 bias=self.bias[i],
                                                 device=self.device, dtype=self.dtype))
-
-            # Add batch normalization layer if specified
-            if self.batch_norm:
-                batch_norm_i = torch.nn.BatchNorm1d(self.out_channels[i], 
-                                                    affine=self.batch_norm_learn,
-                                                    device = self.device, dtype = self.dtype)
-            else:
-                batch_norm_i = torch.nn.Identity()
-
-            self.cnn[-1].append(batch_norm_i)
-
-            # Add pooling layer if specified
+            # 2) Add activation
+            if self.activation[i] == 'identity':
+              activation_fn = torch.nn.Identity()
+            elif self.activation[i] == 'relu':
+              activation_fn = torch.nn.ReLU()
+            elif self.activation[i] == 'polynomial':
+              activation_fn = Polynomial(in_features = self.out_channels[i],
+                                         degree = self.degree[i],
+                                         coef_init = self.coef_init[i],
+                                         coef_train = self.coef_train[i],
+                                         coef_reg = self.coef_reg[i],
+                                         zero_order = self.zero_order[i],
+                                         device = self.device,
+                                         dtype = self.dtype)
+            
+            self.cnn[-1].append(activation_fn)
+            
+            # 3) Add pooling layer if specified
             if self.pool_type[i] is None:
                 pool_i = torch.nn.Identity()
             if self.pool_type[i] == 'max':
@@ -128,13 +145,23 @@ class CNN1D(torch.nn.Module):
             elif self.pool_type[i] == 'avg':
                 pool_i = torch.nn.AvgPool1d(kernel_size=self.pool_size[i],
                                             stride=self.pool_stride[i])     
-
+            
             self.cnn[-1].append(pool_i)
+
+            # 4) Add batch normalization layer if specified
+            if self.batch_norm:
+                batch_norm_i = torch.nn.BatchNorm1d(self.out_channels[i], 
+                                                    affine=self.batch_norm_learn,
+                                                    device = self.device, dtype = self.dtype)
+            else:
+                batch_norm_i = torch.nn.Identity()
+
+            self.cnn[-1].append(batch_norm_i)
         
-        # # Determine the number of output features after passing through the layers
-        # with torch.no_grad():             
-        #     X = torch.zeros((2, self.input_len, in_channels)).to(device=self.device, dtype=self.dtype)
-        #     self.out_features = self.forward(X).shape[-1]
+        # Determine the number of output features after passing through the layers
+        with torch.no_grad():             
+          X = torch.zeros((2, self.input_len, in_channels)).to(device=self.device, dtype=self.dtype)
+          self.output_len = self.forward(X).shape[1]
 
     def forward(self, input):
         """ 
@@ -146,13 +173,20 @@ class CNN1D(torch.nn.Module):
         Returns:
             torch.Tensor: Output tensor after passing through the CNN1D module.
         """
-        output = input.clone()
+        output = input.clone().transpose(1, 2)
         for i in range(self.num_layers):   
-            # Apply padding to the input tensor if pad_front is True
-            input_i = torch.nn.functional.pad(output.transpose(1, 2), (self.kernel_size[i][0] - 1, 0)) if self.pad_front else output.transpose(1, 2)
-            # Apply the current CNN layer to the input tensor
-            output = self.cnn[i][1](self.cnn[i][0](input_i))
-            # Transpose back the output tensor to the original shape
-            output = self.cnn[i][2](output).transpose(1, 2)
+          # Apply padding to the input tensor if pad_front is True
+          input_i = torch.nn.functional.pad(output, (self.kernel_size[i][0] - 1, 0)) if self.pad_front else output # .transpose(1, 2)
+          # Apply the current CNN layer to the input tensor
+          output = self.cnn[i][0](input_i)
+          # Apply activation
+          output = self.cnn[i][1](output.transpose(1, 2)).transpose(1, 2)
+          # Apply pooling
+          output = self.cnn[i][2](output)
+          # Apply batch normalization
+          output = self.cnn[i][3](output)
+        
+        # Transpose back the output tensor to the original shape
+        output = output.transpose(1, 2)
 
         return output
