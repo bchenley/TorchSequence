@@ -67,33 +67,28 @@ class SequenceDataset(torch.utils.data.Dataset):
     self.input_size = [self.data[name].shape[-1] for name in self.input_names]
     self.output_size = [self.data[name].shape[-1] for name in self.output_names]
 
-    self.total_input_len = len(torch.cat(self.input_window_idx).unique())
-    self.total_output_len = len(torch.cat(self.output_window_idx).unique())
+    self.max_input_len = np.max(self.input_len)
+    self.max_output_len = np.max(self.output_len)
     self.max_shift = np.max(self.shift)
 
     self.has_ar = np.isin(self.output_names, self.input_names).any()
 
     self.input_window_idx = []
     for i in range(self.num_inputs):
-      self.input_window_idx.append(torch.arange(self.total_input_len - self.input_len[i], self.total_input_len).to(device = 'cpu',
+      self.input_window_idx.append(torch.arange(self.max_input_len - self.input_len[i], self.max_input_len).to(device = 'cpu',
                                                                                                                dtype = torch.long))
-      if self.has_ar and (self.input_names[i] not in self.output_names):
-        self.input_window_idx[i] += 1
 
     self.output_window_idx = []
     for i in range(self.num_outputs):
-      output_window_idx_i = torch.arange(self.total_input_len - self.output_len[i], self.total_input_len).to(device = 'cpu',
+      output_window_idx_i = torch.arange(self.max_input_len - self.output_len[i], self.max_input_len).to(device = 'cpu',
                                                                                                          dtype = torch.long) + self.shift[i]
       self.output_window_idx.append(output_window_idx_i)
-
-      if self.has_ar:
-        self.output_window_idx[i] += 1
 
     self.total_window_size = torch.cat(self.output_window_idx).max().item() + 1
     self.total_window_idx = torch.arange(self.total_window_size).to(device = 'cpu',
                                                                     dtype = torch.long)
 
-    self.start_step = np.max([0, (self.total_input_len - self.total_output_len + self.max_shift + int(self.has_ar))]).item()
+    self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift + 1)]).item()
 
     if self.print_summary:
       print('\n'.join([f'Data length: {self.data_len}',
@@ -103,14 +98,14 @@ class SequenceDataset(torch.utils.data.Dataset):
                        '\n'.join([f'Output indices for {self.output_names[i]}: {self.output_window_idx[i].tolist()}' for i in range(self.num_outputs)])]))
 
     if self.forecast:
-      pad_size = self.total_window_size - self.total_input_len # + int(self.has_ar)
+      pad_size = self.total_window_size - self.max_input_len # + int(self.has_ar)
 
-      self.data[self.step_name] = torch.cat((self.data[self.step_name][-self.total_input_len:],
+      self.data[self.step_name] = torch.cat((self.data[self.step_name][-self.max_input_len:],
                                              torch.arange(pad_size).to(device = self.device, dtype = torch.long) + self.data[self.step_name].max() + 1)).to(device = self.device,
                                                                                                                                                             dtype = torch.long)
       for name in np.unique(self.input_names + self.output_names):
         data_size = self.data[name].shape[-1]
-        self.data[name] = self.data[name][-self.total_input_len:]
+        self.data[name] = self.data[name][-self.max_input_len:]
         self.data[name] = torch.nn.functional.pad(self.data[name],
                                                   pad = (0, 0, 0, pad_size),
                                                   mode = 'constant', value = 0.)
@@ -144,20 +139,20 @@ class SequenceDataset(torch.utils.data.Dataset):
         steps_samples.append(self.data[self.step_name][window_idx_n])
 
         # input
-        input_n = torch.zeros((self.total_input_len, np.sum(self.input_size))).to(device=self.device,
+        input_n = torch.zeros((self.max_input_len, np.sum(self.input_size))).to(device=self.device,
                                                                            dtype=self.dtype)
 
         j = 0
         for i in range(self.num_inputs):
           input_window_idx_i = self.input_window_idx[i]
 
-          input_samples_window_idx_i = window_idx_n[input_window_idx_i] # - int(self.input_names[i] in self.output_names)
+          input_samples_window_idx_i = window_idx_n[input_window_idx_i] - int(self.input_names[i] in self.output_names)
 
           if (input_samples_window_idx_i[0] == 0) & (self.init_input is not None):
             input_n[0, j:(j + self.input_size[i])] = self.init_input[j:(j + self.input_size[i])]
 
-          # input_window_idx_i = input_window_idx_i[input_samples_window_idx_i >= 0]
-          # input_samples_window_idx_i = input_samples_window_idx_i[input_samples_window_idx_i >= 0]
+          input_window_idx_i = input_window_idx_i[input_samples_window_idx_i >= 0]
+          input_samples_window_idx_i = input_samples_window_idx_i[input_samples_window_idx_i >= 0]
 
           input_n[input_window_idx_i, j:(j + self.input_size[i])] = self.data[self.input_names[i]].clone()[input_samples_window_idx_i]
 
