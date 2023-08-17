@@ -18,7 +18,6 @@ class Seq2SeqModel(torch.nn.Module):
             encoder (torch.nn.Module): The encoder component of the Seq2Seq model.
             decoder (torch.nn.Module): The decoder component of the Seq2Seq model.
             learn_decoder_input (bool): Whether to learn decoder input.
-            learn_decoder_hiddens (bool): Whether to learn decoder hidden states.
             enc2dec_bias (bool): Whether to use bias in the enc2dec_input_block.
             enc2dec_hiddens_bias (bool): Whether to use bias in the enc2dec_hiddens_block.
             enc2dec_dropout_p (float): Dropout probability for the enc2dec_input_block.
@@ -33,7 +32,6 @@ class Seq2SeqModel(torch.nn.Module):
         self.encoder = encoder
         self.decoder = decoder
         self.learn_decoder_input = learn_decoder_input
-        self.learn_decoder_hiddens = learn_decoder_hiddens
         self.enc2dec_bias = enc2dec_bias
         self.enc2dec_hiddens_bias = enc2dec_hiddens_bias
         self.enc2dec_dropout_p = enc2dec_dropout_p
