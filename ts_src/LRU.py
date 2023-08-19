@@ -37,7 +37,7 @@ class LRU(torch.nn.Module): # (torch.nn.RNN):
     
     if len(relax_init) == 1: self.relax_init = self.relax_init * self.num_filterbanks
 
-    if len(self.relax_minmax) == 1 self.relax_minmax = self.relax_minmax * self.num_filterbanks
+    if len(self.relax_minmax) == 1: self.relax_minmax = self.relax_minmax * self.num_filterbanks
 
     self.relax_init = torch.tensor(self.relax_init).reshape(self.num_filterbanks,)
 
