@@ -182,7 +182,9 @@ class SequenceModelBase(torch.nn.Module):
                                 device = self.device, dtype = self.dtype,
                                 batch_first = True)
     elif self.base_type == 'lru':
-      self.base = LRU(input_size = self.input_size, hidden_size = self.hidden_size,
+      self.base = LRU(input_size = self.input_size, 
+                      hidden_size = self.hidden_size,
+                      num_filterbanks = self.num_filterbanks,
                       bias = self.rnn_bias,
                       relax_init = self.relax_init, relax_train = self.relax_train, relax_minmax = self.relax_minmax,
                       device = self.device, dtype = self.dtype)
