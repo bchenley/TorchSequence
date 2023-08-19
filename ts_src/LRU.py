@@ -19,7 +19,8 @@ class LRU(torch.nn.Module): # (torch.nn.RNN):
 
   def __init__(self,
                input_size, hidden_size, weight_reg=[0.001, 1], weight_norm=2, bias=False,
-               relax_init=[0.5], relax_train=True, relax_minmax=[[0.1, 0.9]], device='cpu', dtype=torch.float32):
+               relax_init=[0.5], relax_train=True, relax_minmax=[[0.1, 0.9]], 
+               device = 'cpu', dtype = torch.float32):
 
     super(LRU, self).__init__()
 
@@ -41,7 +42,9 @@ class LRU(torch.nn.Module): # (torch.nn.RNN):
     self.relax = torch.nn.Parameter(self.relax_init.to(device = self.device, dtype = self.dtype), requires_grad = self.relax_train)
 
     if self.input_size > 1:
-      self.input_block = torch.nn.Linear(in_features = self.input_size, out_features = self.num_filterbanks, bias = self.bias)
+      self.input_block = torch.nn.Linear(in_features = self.input_size, 
+                                         out_features = self.num_filterbanks, bias = self.bias,
+                                         device = self.device, dtype = self.dtype) 
     else:
       self.input_block = torch.nn.Identity()
 
