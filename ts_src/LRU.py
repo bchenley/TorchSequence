@@ -18,7 +18,10 @@ class LRU(torch.nn.Module): # (torch.nn.RNN):
   '''
 
   def __init__(self,
-               input_size, hidden_size, weight_reg=[0.001, 1], weight_norm=2, bias=False,
+               input_size, hidden_size, 
+               num_filterbanks = 1,
+               weight_reg=[0.001, 1], weight_norm=2, 
+               bias=False,
                relax_init=[0.5], relax_train=True, relax_minmax=[[0.1, 0.9]], 
                device = 'cpu', dtype = torch.float32):
 
@@ -31,11 +34,10 @@ class LRU(torch.nn.Module): # (torch.nn.RNN):
         setattr(self, arg, locals_[arg])
       
     # self.to(device = self.device, dtype = self.dtype)
+    
+    if len(relax_init) == 1: self.relax_init = self.relax_init * self.num_filterbanks
 
-    self.num_filterbanks = len(self.relax_init)
-
-    if len(self.relax_minmax) == 1:
-      self.relax_minmax = self.relax_minmax * self.num_filterbanks
+    if len(self.relax_minmax) == 1 self.relax_minmax = self.relax_minmax * self.num_filterbanks
 
     self.relax_init = torch.tensor(self.relax_init).reshape(self.num_filterbanks,)
 
