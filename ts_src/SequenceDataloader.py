@@ -175,7 +175,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
 
     if len(ds) > 0:
       
-      # self.batch_shuffle_idx = ds_0.batch_shuffle_idx
+      self.batch_shuffle_idx = ds_0.batch_shuffle_idx
       self.input_size, self.output_size = ds_0.input_size, ds_0.output_size
       self.num_inputs, self.num_outputs = ds_0.num_inputs, ds_0.num_outputs
       self.input_size, self.output_size = ds_0.input_size, ds_0.output_size
