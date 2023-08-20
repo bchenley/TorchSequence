@@ -27,7 +27,7 @@ class SequenceDataset(torch.utils.data.Dataset):
                input_names, output_names, step_name='steps',
                input_len=[1], output_len=[1], shift=[0], stride=1,
                init_input=None,
-              #  shuffle_batch = False,
+               shuffle_batch = False,
                forecast = False,
                print_summary=False,
                device='cpu', dtype=torch.float32):
