@@ -1,6 +1,6 @@
 import torch 
 
-class LRU(torch.nn.Module): # (torch.nn.RNN):
+class LRU(torch.nn.Module):
   '''
   Laguerre Recurrent Unit (LRU) model.
 
@@ -116,7 +116,7 @@ class LRU(torch.nn.Module): # (torch.nn.RNN):
 
     return output, hiddens
 
-  def generate_laguerre_functions(self, max_len):
+  def generate_laguerre_functions(self, max_len = None):
     '''
     Generate Laguerre functions up to a specified maximum length.
 
@@ -126,6 +126,10 @@ class LRU(torch.nn.Module): # (torch.nn.RNN):
     Returns:
         torch.Tensor: Generated Laguerre functions.
     '''
+
+    if max_len is None:
+      max_len = ((-30 - torch.log(1-self.relax.max())) / torch.log(self.relax.max())).round().int()
+    
     with torch.no_grad():
         hiddens = self.init_hiddens(1)
 
