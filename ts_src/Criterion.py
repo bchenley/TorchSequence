@@ -14,7 +14,7 @@ class Criterion():
     self.name = name
     self.dims = dims
 
-  def __call__(self, y_pred, y_true):
+  def __call__(self, y_pred, y_true, num_params = None):
     '''
     Computes the criterion based on the predicted and true values.
 
@@ -54,5 +54,9 @@ class Criterion():
         # Fractional Bias
         if self.dims is not None: criterion = (y_pred.nansum(dim=self.dims) - y_true.nansum(dim=self.dims)) / y_true.nansum(dim=self.dims) * 100
         else: criterion = 2*(y_pred - y_true)/(y_pred + y_true) # (y_pred - y_true) / y_true * 100
-          
+    elif self.name == 'bic':
+      N = y.shape[0] if y.ndim == 2 else y.shape[1]
+      error_var = torch.var(y_true - y_pred)      
+      criterion = N*torch.log(error_var) + num_params*torch.log(N)
+        
     return criterion
