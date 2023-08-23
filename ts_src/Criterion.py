@@ -1,3 +1,5 @@
+import torch
+
 class Criterion():
   '''
   A class for computing criterion functions.
