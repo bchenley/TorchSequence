@@ -57,7 +57,8 @@ class Criterion():
         if self.dims is not None: criterion = (y_pred.nansum(dim=self.dims) - y_true.nansum(dim=self.dims)) / y_true.nansum(dim=self.dims) * 100
         else: criterion = 2*(y_pred - y_true)/(y_pred + y_true) # (y_pred - y_true) / y_true * 100
     elif self.name == 'bic':
-      N = y_true.shape[0] if y_true.ndim == 2 else y_true.shape[1]
+      N = torch.tensor(y_true.shape[0] if y_true.ndim == 2 else y_true.shape[1]).to(y_true)
+      
       error_var = torch.var(y_true - y_pred)      
       criterion = N*torch.log(error_var) + num_params*torch.log(N)
         
