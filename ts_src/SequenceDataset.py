@@ -77,7 +77,7 @@ class SequenceDataset(torch.utils.data.Dataset):
     for i in range(self.num_inputs):
       self.input_window_idx.append(torch.arange(self.max_input_len - self.input_len[i], self.max_input_len).to(device = 'cpu',
                                                                                                                dtype = torch.long))
-      self.input_names[i] += int(self.has_ar)*(self.input_names[i] in self.output_names)
+      self.input_names[i] += int(self.has_ar & (self.input_names[i] in self.output_names))
         
 
     self.output_window_idx = []
