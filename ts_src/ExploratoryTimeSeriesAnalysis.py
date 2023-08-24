@@ -194,7 +194,7 @@ class ExploratoryTimeSeriesAnalysis():
       data_names = data_names or self.data_names
 
       fig, ax = plt.subplots(len(self.data_names), len(data_names), figsize=figsize, num=fig_num)
-
+      
       xcorr_names = list(self.xcorr)
 
       i = -1
@@ -207,7 +207,7 @@ class ExploratoryTimeSeriesAnalysis():
           if any(f"{name}[t]" in xcorr_names[i] for name in data_names):
 
             jy += 1
-            ax_ixiy = ax[ix, jy] if len(data_names) > 1 else ax[jy] if len(data_names) > 1 else ax
+            ax_ixiy = ax[ix, jy] if len(data_names) > 1 else ax[jy] if len(self.data_names) > 1 else ax
 
             if domain == 'frequency':
               xaxis, xcorr_, _ = fft(xcorr_, fs=1 / self.dt)
