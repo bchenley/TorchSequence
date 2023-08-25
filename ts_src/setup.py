@@ -1,8 +1,8 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(name = 'TorchTimeSeries', 
       version = '0.1',
-      packages = ['TorchTimeSeries.ts_src'], 
+      packages = find_packages(), 
       install_requires = ['torch',
                           'pytorch_lightning',
                           'numpy',
