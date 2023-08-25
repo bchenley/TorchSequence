@@ -182,11 +182,12 @@ class SequenceDataloader(torch.utils.data.Dataset):
       self.data_len, self.num_samples = ds_0.data_len, ds_0.num_samples
       self.total_window_size, self.total_window_idx = ds_0.total_window_size, ds_0.total_window_idx
       self.shift, self.stride = ds_0.shift, ds_0.stride
-      self.input_len, self.input_window_idx = ds_0.input_len, ds_0.input_window_idx
+      self.input_len, self.input_window_idx = ds_0.input_len, ds_0.input_window_idx      
       self.output_len, self.output_window_idx = ds_0.output_len, ds_0.output_window_idx
       self.start_step = ds_0.start_step
-
+      
       self.max_input_len, self.max_output_len = np.max(self.input_len).item(), np.max(self.output_len).item()
+      self.total_input_len, self.total_output_len = ds_0.total_input_len, ds_0.total_output_len
       self.unique_output_window_idx = torch.cat(ds_0.output_window_idx, 0).unique()
 
       self.output_mask = torch.zeros((self.max_output_len, np.sum(self.output_size))).to(device = self.device,
