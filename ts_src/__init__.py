@@ -5,6 +5,8 @@ from setuptools import find_packages
 
 __all__ = find_packages()
 
+print(__all__)
+
 # __all__ = ['ExploratoryTimeSeriesAnalysis',
 #            'FeatureTransform',
 #            'Criterion', 
