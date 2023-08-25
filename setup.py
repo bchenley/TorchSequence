@@ -20,4 +20,5 @@ setup(name = 'torchts',
       description = "A package for time series analysis using PyTorch",
       url = 'http://github.com/bchenley/TorchTimeSeries',
       classifiers = ["Programming Language :: Python :: 3",
-                     "License :: MIT License"])
+                     "License :: OSI Approved :: MIT License"]
+)
