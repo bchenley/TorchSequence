@@ -1,0 +1,23 @@
+from setuptools import setup
+
+setup(name = 'TorchTimeSeries', 
+      version = '0.1',
+      packages = ['TorchTimeSeries.ts_src'], 
+      install_requires = ['torch',
+                          'pytorch_lightning',
+                          'numpy',
+                          'pandas',
+                          'math',
+                          'sklearn',
+                          'seaborn',
+                          'statsmodels',
+                          'datetime',
+                          'matplotlib',
+                          'google',
+                          'os'],
+      author = "B.C. Henley",
+      author_email = 'henley.brandon@gmail.com',
+      description = "A package for time series analysis using PyTorch",
+      url = 'http://github.com/bchenley/TorchTimeSeries',
+      classifiers = ["Programming Language :: Python :: 3",
+                     "License :: MIT License"])
