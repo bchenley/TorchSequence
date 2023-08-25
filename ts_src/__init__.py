@@ -1,9 +1,9 @@
 print("Initializing TorchTimeSeries package...")
 
-from setuptools import find_packages
-# import importlib
+import importlib
+import pkgutil
 
-__all__ = find_packages()
+__all__ = [name for _,name,_ in pkgutil.iter_modules(['TorchTimeSeries.ts_src'])]
 
 print(__all__)
 
@@ -43,9 +43,9 @@ print(__all__)
 #            'Naive',
 #            'MovingAverage']
 
-# for module_name in __all__:
-#     module = importlib.import_module(f'.{module_name}', __name__)
-#     globals()[module_name] = getattr(module, module_name)
+for module_name in __all__:
+    module = importlib.import_module(f'.{module_name}', __name__)
+    globals()[module_name] = getattr(module, module_name)
 
            
 print("Done")
