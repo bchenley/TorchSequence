@@ -2,7 +2,7 @@
 import torch
 import pandas as pd
 
-from Criterion import Criterion 
+from ts_src.Criterion import Criterion 
 
 class Naive():
   def __init__(self,
