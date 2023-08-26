@@ -1,149 +1,149 @@
-import torch 
+import torch
 
 class LRU(torch.nn.Module):
-  '''
-  Laguerre Recurrent Unit (LRU) model.
+    """
+    Linear Recurrent Unit (LRU) module.
 
-  Args:
-      input_size (int): Number of expected features in the input.
-      hidden_size (int): Number of features in the hidden state.
-      weight_reg (list): Regularization parameters for the weights. [Regularization weight, regularization exponent]
-      weight_norm (int): Norm to be used for weight regularization.
-      bias (bool): If True, adds a learnable bias to the output.
-      relax_init (list): Initial relaxation values for the LRU model.
-      relax_train (bool): Whether to train the relaxation values.
-      relax_minmax (list): Minimum and maximum relaxation values for each filter bank.
-      device (str): Device to use for computation ('cpu' or 'cuda').
-      dtype (torch.dtype): Data type of the model parameters.
-  '''
-
-  def __init__(self,
-               input_size, hidden_size, 
-               num_filterbanks = 1,
-               weight_reg=[0.001, 1], weight_norm=2, 
-               bias=False,
-               relax_init=[0.5], relax_train=True, relax_minmax=[[0.1, 0.9]], 
-               device = 'cpu', dtype = torch.float32):
-
-    super(LRU, self).__init__()
-
-    locals_ = locals().copy()
-
-    for arg in locals_:
-      if arg != 'self':
-        setattr(self, arg, locals_[arg])
-      
-    # self.to(device = self.device, dtype = self.dtype)
+    Args:
+        input_size (int): Input feature size.
+        hidden_size (int): Hidden state size.
+        num_filterbanks (int, optional): Number of filterbanks. Default is 1.
+        weight_reg (list of float, optional): Weight regularization for L2 regularization and Laplace prior.
+        weight_norm (float, optional): Weight normalization. Default is 2.
+        bias (bool, optional): Whether to use bias. Default is False.
+        relax_init (list of float, optional): Relaxation factor initialization.
+        relax_train (bool, optional): Whether relaxation factors are trainable. Default is True.
+        relax_minmax (list of list of float, optional): Min and max values for relaxation factors.
+        device (str, optional): Device to use. Default is 'cpu'.
+        dtype (torch.dtype, optional): Data type to use. Default is torch.float32.
+    """
     
-    if len(relax_init) == 1: self.relax_init = self.relax_init * self.num_filterbanks
+    def __init__(self,
+                 input_size, hidden_size,
+                 num_filterbanks=1,
+                 weight_reg=[0.001, 1], weight_norm=2,
+                 bias=False,
+                 relax_init=[0.5], relax_train=True, relax_minmax=[[0.1, 0.9]],
+                 device='cpu', dtype=torch.float32):
 
-    if len(self.relax_minmax) == 1: self.relax_minmax = self.relax_minmax * self.num_filterbanks
+        super(LRU, self).__init__()
 
-    self.relax_init = torch.tensor(self.relax_init).reshape(self.num_filterbanks,)
+        locals_ = locals().copy()
 
-    self.relax = torch.nn.Parameter(self.relax_init.to(device = self.device, dtype = self.dtype), requires_grad = self.relax_train)
+        for arg in locals_:
+            if arg != 'self':
+                setattr(self, arg, locals_[arg])
 
-    if self.input_size > 1:
-      self.input_block = torch.nn.Linear(in_features = self.input_size, 
-                                         out_features = self.num_filterbanks, bias = self.bias,
-                                         device = self.device, dtype = self.dtype) 
-    else:
-      self.input_block = torch.nn.Identity()
+        if len(relax_init) == 1:
+            self.relax_init = self.relax_init * self.num_filterbanks
 
-  def init_hiddens(self, num_samples):
-    '''
-    Initialize the hidden state of the LRU model.
+        if len(self.relax_minmax) == 1:
+            self.relax_minmax = self.relax_minmax * self.num_filterbanks
 
-    Args:
-        num_samples (int): Number of samples in the batch.
+        self.relax_init = torch.tensor(self.relax_init).reshape(self.num_filterbanks,)
 
-    Returns:
-        torch.Tensor: Initialized hidden state tensor.
-    '''
-    return torch.zeros((self.num_filterbanks, num_samples, self.hidden_size)).to(device=self.device, dtype=self.dtype)
+        self.relax = torch.nn.Parameter(
+            self.relax_init.to(device=self.device, dtype=self.dtype), requires_grad=self.relax_train)
 
-  def cell(self, input, hiddens=None):
-    '''
-    LRU cell computation for a single time step.
+        if self.input_size > 1:
+            self.input_block = torch.nn.Linear(
+                in_features=self.input_size,
+                out_features=self.num_filterbanks, bias=self.bias,
+                device=self.device, dtype=self.dtype)
+        else:
+            self.input_block = torch.nn.Identity()
 
-    Args:
-        input (torch.Tensor): Input tensor for the current time step.
-        hiddens (torch.Tensor): Hidden state tensor.
+    def init_hiddens(self, num_samples):
+        """
+        Initialize hidden states.
 
-    Returns:
-        torch.Tensor: Output tensor for the current time step.
-        torch.Tensor: Updated hidden state tensor.
-    '''
-    num_samples, input_size = input.shape
+        Args:
+            num_samples (int): Number of samples.
 
-    hiddens = hiddens if hiddens is not None else self.init_hiddens(num_samples)
+        Returns:
+            torch.Tensor: Initialized hidden states.
+        """
+        return torch.zeros((self.num_filterbanks, num_samples, self.hidden_size)).to(device=self.device, dtype=self.dtype)
 
-    sq_relax = torch.sqrt(self.relax)
+    def cell(self, input, hiddens=None):
+        """
+        LRU cell operation.
 
-    hiddens_new = torch.zeros_like(hiddens).to(hiddens)
+        Args:
+            input (torch.Tensor): Input tensor.
+            hiddens (torch.Tensor, optional): Hidden states. Default is None.
 
-    hiddens_new[..., 0] = sq_relax[:, None] * hiddens[..., 0] + (1 - sq_relax ** 2).sqrt()[:, None] * self.input_block(input).t()
+        Returns:
+            torch.Tensor: Output tensor.
+            torch.Tensor: Updated hidden states.
+        """
+        num_samples, input_size = input.shape
 
-    for i in range(1, self.hidden_size):
-        hiddens_new[..., i] = sq_relax[:, None] * (hiddens[..., i] + hiddens_new[..., i - 1]) - hiddens[..., i - 1]
+        hiddens = hiddens if hiddens is not None else self.init_hiddens(num_samples)
 
-    output = hiddens_new.permute(1, 0, 2)  # [batch_size, num_filters, hidden_size]
+        sq_relax = torch.sqrt(self.relax)
 
-    return output, hiddens_new
+        hiddens_new = torch.zeros_like(hiddens).to(hiddens)
 
-  def forward(self, input, hiddens=None):
-    '''
-    Forward pass of the LRU model.
+        hiddens_new[..., 0] = sq_relax[:, None] * hiddens[..., 0] + (1 - sq_relax ** 2).sqrt()[:, None] * self.input_block(input).t()
 
-    Args:
-        input (torch.Tensor): Input tensor.
-        hiddens (torch.Tensor): Hidden state tensor.
+        for i in range(1, self.hidden_size):
+            hiddens_new[..., i] = sq_relax[:, None] * (hiddens[..., i] + hiddens_new[..., i - 1]) - hiddens[..., i - 1]
 
-    Returns:
-        torch.Tensor: Output tensor.
-        torch.Tensor: Updated hidden state tensor.
-    '''
-    num_samples, input_len, input_size = input.shape
+        output = hiddens_new.permute(1, 0, 2)
 
-    hiddens = self.init_hiddens(num_samples) if hiddens is None else hiddens
+        return output, hiddens_new
 
-    output = []
-    for n, input_n in enumerate(input.split(1, 1)):
-        output_n, hiddens = self.cell(input_n.squeeze(1), hiddens)
-        output.append(output_n.unsqueeze(1))
+    def forward(self, input, hiddens=None):
+        """
+        LRU forward pass.
 
-    output = torch.cat(output, 1)
+        Args:
+            input (torch.Tensor): Input tensor.
+            hiddens (torch.Tensor, optional): Hidden states. Default is None.
 
-    return output, hiddens
+        Returns:
+            torch.Tensor: Output tensor.
+            torch.Tensor: Updated hidden states.
+        """
+        num_samples, input_len, input_size = input.shape
 
-  def generate_laguerre_functions(self, max_len = None):
-    '''
-    Generate Laguerre functions up to a specified maximum length.
+        hiddens = self.init_hiddens(num_samples) if hiddens is None else hiddens
 
-    Args:
-        max_len (int): Maximum length of the Laguerre functions.
+        output = []
+        for n, input_n in enumerate(input.split(1, 1)):
+            output_n, hiddens = self.cell(input_n.squeeze(1), hiddens)
+            output.append(output_n.unsqueeze(1))
 
-    Returns:
-        torch.Tensor: Generated Laguerre functions.
-    '''
+        output = torch.cat(output, 1)
 
-    if max_len is None:
-      max_len = ((-30 - torch.log(1-self.relax.max())) / torch.log(self.relax.max())).round().int()
-    
-    with torch.no_grad():
-        hiddens = self.init_hiddens(1)
+        return output, hiddens
 
-        impulse = torch.zeros((1, max_len, self.input_size)).to(device=self.device, dtype=self.dtype)
+    def generate_laguerre_functions(self, max_len=None):
+        """
+        Generate Laguerre functions.
 
-        impulse[:, 0, :] = 1
+        Args:
+            max_len (int, optional): Maximum length. Default is None.
 
-        output, hiddens = self.forward(impulse, hiddens)
+        Returns:
+            torch.Tensor: Generated Laguerre functions.
+        """
+        if max_len is None:
+            max_len = ((-30 - torch.log(1 - self.relax.max())) / torch.log(self.relax.max())).round().int()
 
-        return output.squeeze(0)
+        with torch.no_grad():
+            hiddens = self.init_hiddens(1)
 
-  def clamp_relax(self):
-    '''
-    Clamp relaxation values to the specified minimum and maximum range.
-    '''
-    for i in range(self.num_filterbanks):
-        self.relax[i].data.clamp_(self.relax_minmax[i][0], self.relax_minmax[i][1])
+            impulse = torch.zeros((1, max_len, self.input_size)).to(device=self.device, dtype=self.dtype)
+
+            impulse[:, 0, :] = 1
+
+            output, hiddens = self.forward(impulse, hiddens)
+
+            return output.squeeze(0)
+
+    def clamp_relax(self):
+        """Clamp relaxation factors within specified range."""
+        for i in range(self.num_filterbanks):
+            self.relax[i].data.clamp_(self.relax_minmax[i][0], self.relax_minmax[i][1])
