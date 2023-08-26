@@ -64,7 +64,7 @@ class SequenceDataset(torch.utils.data.Dataset):
     self.has_ar = np.isin(self.output_names, self.input_names).any()
                  
     self.input_len = [self.data_len - int(self.has_ar) if len == -1 else len for len in self.input_len]
-    self.output_len = [np.max(self.input_len) - int(self.has_ar) if len == -1 else len for len in self.output_len]
+    self.output_len = [self.data_len - int(self.has_ar) if len == -1 else len for len in self.output_len]
 
     self.input_size = [self.data[name].shape[-1] for name in self.input_names]
     self.output_size = [self.data[name].shape[-1] for name in self.output_names]
