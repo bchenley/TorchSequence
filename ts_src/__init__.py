@@ -4,11 +4,11 @@ import importlib
 import pkgutil
 import os
 
-__all__ = [name for _,name,_ in pkgutil.iter_modules(['TorchTimeSeries.ts_src'])]
+# __all__ = [name for _,name,_ in pkgutil.iter_modules(['TorchTimeSeries.ts_src'])]
 
 files = [filename[:-3] for filename in os.listdir('TorchTimeSeries/ts_src') if filename.endswith('.py')]
 
-# __all__ = [module_name for module_name in files if module_name != '__init__']
+__all__ = [module_name for module_name in files if module_name != '__init__']
 
 # __all__ = ['ExploratoryTimeSeriesAnalysis',
 #            'FeatureTransform',
