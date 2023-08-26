@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from Polynomial import Polynomial
+from ts_src.Polynomial import Polynomial
 
 class CNN1D(torch.nn.Module):
     """
