@@ -1,7 +1,7 @@
 import torch
 import pandas as pd
 
-from ts_src.Criterion import Criterion
+from Criterion import Criterion
 
 class MovingAverage():
   """
