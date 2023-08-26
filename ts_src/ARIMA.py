@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import pandas as pd
 
-from Criterion import Criterion 
+from ts_src.Criterion import Criterion 
 
 class ARIMA():
   def __init__(self,
