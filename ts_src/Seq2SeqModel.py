@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from HiddenLayer
+from ts_src.HiddenLayer import HiddenLayer
 
 class Seq2SeqModel(torch.nn.Module):
     def __init__(self,
