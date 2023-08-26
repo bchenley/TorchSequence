@@ -61,8 +61,10 @@ class SequenceDataset(torch.utils.data.Dataset):
     if step_name not in data: self.data[step_name] = torch.arange(self.data_len).to(device = self.device,
                                                                                     dtype = torch.long)
 
-    self.input_len = [self.data_len if len == -1 else len for len in self.input_len]
-    self.output_len = [np.max(self.input_len) if len == -1 else len for len in self.output_len]
+    self.has_ar = np.isin(self.output_names, self.input_names).any()
+                 
+    self.input_len = [self.data_len - int(self.has_ar) if len == -1 else len for len in self.input_len]
+    self.output_len = [np.max(self.input_len) - int(self.has_ar) if len == -1 else len for len in self.output_len]
 
     self.input_size = [self.data[name].shape[-1] for name in self.input_names]
     self.output_size = [self.data[name].shape[-1] for name in self.output_names]
@@ -71,8 +73,6 @@ class SequenceDataset(torch.utils.data.Dataset):
     self.max_output_len = np.max(self.output_len)
     self.max_shift = np.max(self.shift)
     
-    self.has_ar = np.isin(self.output_names, self.input_names).any()
-
     self.input_window_idx = []
     for i in range(self.num_inputs):
       input_window_idx_i = torch.arange(self.max_input_len - self.input_len[i], self.max_input_len).to(device = 'cpu',
