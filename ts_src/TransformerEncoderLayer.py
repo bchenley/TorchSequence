@@ -1,7 +1,7 @@
 import torch 
 
-from ts_src.Attention import Attention
-from ts_src.Polynomial import Polynomial
+from Attention import Attention
+from Polynomial import Polynomial
 
 class TransformerEncoderLayer(torch.nn.TransformerEncoderLayer):
     '''
