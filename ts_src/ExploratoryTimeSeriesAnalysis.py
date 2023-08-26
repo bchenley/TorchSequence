@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
+dir(ts_src)
+
 from moving_average import moving_average
 from fft import fft
 
