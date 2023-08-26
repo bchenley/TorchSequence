@@ -38,7 +38,9 @@ class ExploratoryTimeSeriesAnalysis():
     for arg in locals_:
       setattr(self, arg, locals_[arg])
 
-  def generate_xcorr(self, hann_window_len=[None], demean = [False]):
+  def generate_xcorr(self, 
+                     hann_window_len=[None], 
+                     demean = [False], diff_order = [0]):
     """
     Generate cross-correlation for the specified data columns.
 
@@ -51,11 +53,9 @@ class ExploratoryTimeSeriesAnalysis():
       None
     """
 
-    if len(hann_window_len) == 1:
-      hann_window_len = hann_window_len * len(self.data_names)
-
-    if len(demean) == 1:
-      demean = demean * len(self.data_names)
+    if len(hann_window_len) == 1: hann_window_len = hann_window_len * len(self.data_names)
+    if len(demean) == 1: demean = demean * len(self.data_names)
+    if len(diff_order) == 1: diff_order = diff_order * len(self.data_names)
 
     data = self.data.copy()
 
@@ -66,6 +66,9 @@ class ExploratoryTimeSeriesAnalysis():
       data_.append(torch.tensor(self.data[name]).to(device=self.device, dtype=self.dtype)
                     if not isinstance(self.data[name], torch.Tensor) else self.data[name].to(device=self.device,
                                                                                           dtype=self.dtype))
+
+      data_[-1] = torch.cat((torch.zeros((diff_order[i], data_[-1].shape[-1])).to(data_[-1]),
+                             data_[-1].diff(diff_order[i], 0)), 0)
 
       data_[-1] = data_[-1] - moving_average(data_[-1], torch.hann_window(hann_window_len[i]).to(data_[-1])) \
           if hann_window_len[i] is not None else data_[-1]
@@ -85,7 +88,8 @@ class ExploratoryTimeSeriesAnalysis():
 
     self.lags = np.arange(self.record_len) * self.dt
 
-  def plot_ts(self, domain='time', hann_window_len=[None], demean = [False],
+  def plot_ts(self, domain='time', hann_window_len=[None],
+              demean = [False], diff_order = [0],
               xlim=None,
               figsize=None, title_size=20, xlabel_size=20, ylabel_size=20, fig_num=1):
     """
@@ -108,10 +112,9 @@ class ExploratoryTimeSeriesAnalysis():
       None
     """
 
-    if len(hann_window_len) == 1:
-      hann_window_len = hann_window_len * len(self.data_names)
-    if len(demean) == 1:
-      demean = demean * len(self.data_names)
+    if len(hann_window_len) == 1: hann_window_len = hann_window_len * len(self.data_names)
+    if len(demean) == 1: demean = demean * len(self.data_names)
+    if len(diff_order) == 1: diff_order = diff_order * len(self.data_names)
 
     data, input_size = [], []
     for name in self.data_names:
@@ -129,25 +132,27 @@ class ExploratoryTimeSeriesAnalysis():
 
     self.record_len = data.shape[0]
 
+    data_ = []
+    for i, name in enumerate(self.data_names):
+      data_.append(torch.tensor(self.data[name]).to(device=self.device, dtype=self.dtype)
+                    if not isinstance(self.data[name], torch.Tensor) else self.data[name].to(device=self.device,
+                                                                                        dtype=self.dtype))
+      
+      data_[-1] = torch.cat((torch.zeros((diff_order[i], data_[-1].shape[-1])).to(data_[-1]),
+                             data_[-1].diff(diff_order[i], 0)), 0)
+
+      data_[-1] = data_[-1] - moving_average(data_[-1], torch.hann_window(hann_window_len[i]).to(data_[-1])) \
+                  if hann_window_len[i] is not None else data_[-1]
+
+      data_[-1] = data_[-1] - data_[-1].mean(0) if demean[i] else data_[-1]
+
+    data = torch.cat(data_, -1)
+
     if domain == 'time':
       self.time = self.data[self.time_name]
       xaxis = self.time
       xlabel = f"Time [{self.time_unit}]"
     elif domain == 'frequency':
-
-      data_ = []
-      for i, name in enumerate(self.data_names):
-        data_.append(torch.tensor(self.data[name]).to(device=self.device, dtype=self.dtype)
-                      if not isinstance(self.data[name], torch.Tensor) else self.data[name].to(device=self.device,
-                                                                                          dtype=self.dtype))
-
-        data_[-1] = data_[-1] - moving_average(data_[-1], torch.hann_window(hann_window_len[i]).to(data_[-1])) \
-                    if hann_window_len[i] is not None else data_[-1]
-
-        data_[-1] = data_[-1] - data_[-1].mean(0) if demean[i] else data_[-1]
-
-      data = torch.cat(data_, -1)
-
       self.freq, data, _ = fft(data, fs=1 / self.dt)
       xaxis = self.freq
       xlabel = f"Frequency [1/{self.time_unit}]"
@@ -163,7 +168,8 @@ class ExploratoryTimeSeriesAnalysis():
       if i == num_data - 1:
         ax_i.set_xlabel(xlabel, fontsize=xlabel_size)
       if self.data_units is not None:
-        ax_i.set_ylabel(self.data_units[i], fontsize=ylabel_size)
+        ax_i.set_ylabel(("Δ" if diff_order[i] > 0 else "") + (r"$^{{{}}}$".format(diff_order[i]) if diff_order[i] > 1 else "")
+                        + self.data_units[i], fontsize=ylabel_size)
       ax_i.set_xlim(xlim)
       ax_i.grid()
       ax_i.legend(loc='upper right')
