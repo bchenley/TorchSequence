@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from ts_src.SequenceDataset import SequenceDataset
+import SequenceDataset
 
 class SequenceDataloader(torch.utils.data.Dataset):
 
