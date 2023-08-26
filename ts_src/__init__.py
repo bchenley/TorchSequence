@@ -2,7 +2,7 @@ print("Initializing TorchTimeSeries package...")
 
 import importlib
 import pkgutil
-os
+import os
 
 __all__ = [name for _,name,_ in pkgutil.iter_modules(['TorchTimeSeries.ts_src'])]
 
