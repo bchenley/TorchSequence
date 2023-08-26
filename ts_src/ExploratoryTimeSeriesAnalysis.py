@@ -2,10 +2,8 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-dir(TorchTimeSeries.ts_src)
-
-from moving_average import moving_average
-from fft import fft
+from ts_src.moving_average import moving_average
+from ts_src.fft import fft
 
 class ExploratoryTimeSeriesAnalysis():
   """
