@@ -1,6 +1,6 @@
 import torch
 
-from HiddenLayer import HiddenLayer
+from ts_src.HiddenLayer import HiddenLayer
 
 class Embedding(torch.nn.Module):
     '''
