@@ -86,7 +86,7 @@ class SequenceDataset(torch.utils.data.Dataset):
 
     self.output_window_idx = []
     for i in range(self.num_outputs):
-      output_window_idx_i = torch.arange(self.max_output_len - self.output_len[i], self.max_output_len).to(device = 'cpu',
+      output_window_idx_i = torch.arange(self.max_input_len - self.output_len[i], self.max_input_len).to(device = 'cpu',
                                                                                                          dtype = torch.long) + self.shift[i]
 
       output_window_idx_i += int(self.has_ar)
