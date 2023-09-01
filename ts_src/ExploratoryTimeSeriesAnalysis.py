@@ -219,7 +219,7 @@ class ExploratoryTimeSeriesAnalysis():
               xaxis, xcorr_, _ = fft(xcorr_, fs=1 / self.dt)
               xlabel = f"Frequency [1/{self.time_unit}]"
               if self.data_units is not None:
-                ylabel = f"{self.data_units[ix]}$^2$*{self.time_unit}" if ix == iy else f"{self.data_units[ix]}*{self.data_units[iy]}/Hz"
+                ylabel = f"{self.data_units[ix]}$^2$*{self.time_unit}" if ix == iy else f"{self.data_units[ix]}*{self.data_units[iy]}*{self.time_unit}"
             else:
               xaxis = self.lags
               xlabel = f"Lags [{self.time_unit}]"
@@ -227,7 +227,7 @@ class ExploratoryTimeSeriesAnalysis():
                 ylabel = f"{self.data_units[ix]}$^2$" if ix == iy else f"{self.data_units[ix]}*{self.data_units[iy]}"
 
             ax_ixiy.plot(xaxis, xcorr_, 'b')
-            ax_ixiy.set_title(xcorr_names[i], fontsize=title_size)
+            ax_ixiy.set_title(f"FT[{xcorr_names[i]}]", fontsize=title_size)
             if ix == int(np.sqrt(len(self.xcorr))) - 1:
               ax_ixiy.set_xlabel(xlabel, fontsize=xlabel_size)
             ax_ixiy.set_ylabel(ylabel, fontsize=ylabel_size)
