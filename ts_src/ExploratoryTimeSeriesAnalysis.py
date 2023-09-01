@@ -227,7 +227,7 @@ class ExploratoryTimeSeriesAnalysis():
                 ylabel = f"{self.data_units[ix]}$^2$" if ix == iy else f"{self.data_units[ix]}*{self.data_units[iy]}"
 
             ax_ixiy.plot(xaxis, xcorr_, 'b')
-            ax_ixiy.set_title(f"FT[{xcorr_names[i]}]", fontsize=title_size)
+            ax_ixiy.set_title(f"FT[{xcorr_names[i]}]" if domain == 'frequency' else xcorr_names[i], fontsize=title_size)
             if ix == int(np.sqrt(len(self.xcorr))) - 1:
               ax_ixiy.set_xlabel(xlabel, fontsize=xlabel_size)
             ax_ixiy.set_ylabel(ylabel, fontsize=ylabel_size)
