@@ -34,8 +34,12 @@ class SequenceModel(torch.nn.Module):
                # LRU parameters
                base_relax_init = [[0.5]], base_relax_train = [True], base_relax_minmax = [[[0.1, 0.9]]], base_num_filterbanks = [1],
                # CNN parameters
-               base_cnn_out_channels = [None],
-               base_cnn_kernel_size = [[(1,)]], base_cnn_kernel_stride = [[(1,)]], base_cnn_padding = [[(0,)]], base_cnn_dilation = [[(1,)]], base_cnn_groups = [[1]], base_cnn_bias = [[False]],
+               base_cnn_out_channels = [[1]],
+               base_cnn_kernel_size = [[(1,)]], base_cnn_kernel_stride = [[(1,)]],
+               base_cnn_padding = [[(0,)]], base_cnn_dilation = [[(1,)]],
+               base_cnn_groups = [[1]], base_cnn_bias = [[True]],
+               base_cnn_activation = [['identity']],
+               base_cnn_degree = [[2]], base_cnn_coef_init = [[None]], base_cnn_coef_train = [[True]], base_cnn_coef_reg = [[[0.001, 1]]], base_cnn_zero_order = [[False]],
                base_cnn_pool_type = [[None]], base_cnn_pool_size = [[(2,)]], base_cnn_pool_stride = [[(1,)]],
                base_cnn_batch_norm = [False], base_cnn_batch_norm_learn = [False],
                base_cnn_pad_front = [False],
@@ -99,9 +103,7 @@ class SequenceModel(torch.nn.Module):
                #
                device = 'cpu', dtype = torch.float32):
 
-    super().__init__() # SequenceModel, self
-
-    # self.to(device = device, dtype = dtype)
+    super(SequenceModel, self).__init__()
 
     locals_ = locals().copy()
 
@@ -114,7 +116,7 @@ class SequenceModel(torch.nn.Module):
             setattr(self, arg, value * num_inputs)
           else:
             setattr(self, arg, value)
-        elif isinstance(value, list) and any(x in arg for x in ['output_']): # 'output_size', 'output_len',
+        elif isinstance(value, list) and any(x in arg for x in ['output_']):
           if len(value) == 1:
             setattr(self, arg, value * num_outputs)
           else:
@@ -126,7 +128,6 @@ class SequenceModel(torch.nn.Module):
 
     self.seq_base, self.hidden_layer = torch.nn.ModuleList([]), torch.nn.ModuleList([])
     for i in range(self.num_inputs):
-      # input-associated sequence layer
 
       if self.base_transformer_feedforward_activation[i] == 'identity':
         self.base_transformer_dim_feedforward[i] = self.base_hidden_size[i]
@@ -151,8 +152,10 @@ class SequenceModel(torch.nn.Module):
                                      cnn_out_channels = self.base_cnn_out_channels[i],
                                      cnn_pad_front = self.base_cnn_pad_front[i],
                                      cnn_kernel_size = self.base_cnn_kernel_size[i], cnn_kernel_stride = self.base_cnn_kernel_stride[i], cnn_padding = self.base_cnn_padding[i], cnn_dilation = self.base_cnn_dilation[i], cnn_groups = self.base_cnn_groups[i], cnn_bias = self.base_cnn_bias[i],
+                                     cnn_activation = self.base_cnn_activation[i],
+                                     cnn_degree = self.base_cnn_degree[i], cnn_coef_init = self.base_cnn_coef_init[i], cnn_coef_train = self.base_cnn_coef_train[i], cnn_coef_reg = self.base_cnn_coef_reg[i] , cnn_zero_order = self.base_cnn_zero_order[i],
                                      cnn_pool_type = self.base_cnn_pool_type[i], cnn_pool_size = self.base_cnn_pool_size[i], cnn_pool_stride = self.base_cnn_pool_stride[i],
-                                     cnn_batch_norm = self.base_cnn_batch_norm, cnn_batch_norm_learn = self.base_cnn_batch_norm_learn,
+                                     cnn_batch_norm = self.base_cnn_batch_norm[i], cnn_batch_norm_learn = self.base_cnn_batch_norm_learn[i],
                                      # Transformer parameters
                                      encoder_output_size = self.encoder_output_size, seq_type = self.base_seq_type[i],
                                      transformer_embedding_type = self.base_transformer_embedding_type[i], transformer_embedding_bias = self.base_transformer_embedding_bias[i], transformer_embedding_activation = self.base_transformer_embedding_activation[i],
@@ -192,7 +195,7 @@ class SequenceModel(torch.nn.Module):
       if self.hidden_out_features[i] > 0:
         if self.base_hidden_size[i] > 0:
           if self.base_type[i] == 'lru':
-            hidden_in_features_i = self.base_hidden_size[i]*len(self.base_relax_init[i])
+            hidden_in_features_i = self.base_hidden_size[i]*self.base_num_filterbanks[i]
           else:
             hidden_in_features_i = (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
         else:
@@ -219,19 +222,18 @@ class SequenceModel(torch.nn.Module):
       self.hidden_layer.append(hidden_layer_i)
       #
 
-    self.max_base_seq_len = np.max([base.output_len for base in self.seq_base])
+    self.max_base_seq_len = 1 if self.process_by_step else np.max([base.output_len for base in self.seq_base])
 
     # interaction layer
     if self.interaction_out_features > 0:
-      if np.sum(self.hidden_out_features) > 0:
-        interaction_in_features = int(np.sum(self.hidden_out_features))
+      if sum(self.hidden_out_features) > 0:
+        interaction_in_features = int(sum(self.hidden_out_features))
       else:
         interaction_in_features = 0
         for i in range(self.num_inputs):
           if self.base_type[i] in ['lstm','gru']:
             interaction_in_features += (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
           elif self.base_type[i] == 'lru':
-
             interaction_in_features += self.base_num_filterbanks[i]*self.base_hidden_size[i]
           elif self.base_type[i] == 'transformer':
             interaction_in_features += self.base_transformer_dim_feedforward[i]
@@ -261,8 +263,8 @@ class SequenceModel(torch.nn.Module):
     if self.modulation_window_len is not None:
       if self.interaction_out_features > 0:
         modulation_in_features = self.interaction_out_features
-      elif np.sum(self.hidden_out_features) > 0:
-        modulation_in_features = np.sum(self.hidden_out_features)
+      elif sum(self.hidden_out_features) > 0:
+        modulation_in_features = sum(self.hidden_out_features)
       else:
         modulation_in_features = 0
         for i in range(self.num_inputs):
@@ -303,22 +305,32 @@ class SequenceModel(torch.nn.Module):
         output_in_features_i = self.modulation_layer.num_modulators
       elif self.interaction_out_features > 0:
         output_in_features_i = self.interaction_out_features
-      elif np.sum(self.hidden_out_features) > 0:
+      elif sum(self.hidden_out_features) > 0:
         if self.output_associated[i]:
           output_in_features_i = self.hidden_out_features[i]
         else:
-          output_in_features_i = int(np.sum(self.hidden_out_features))
+          output_in_features_i = int(sum(self.hidden_out_features))
       else:
         if self.output_associated[i]:
-          if self.base_type[i] != 'identity':
+          if self.base_type[i] in ['lstm', 'gru']:
             output_in_features_i = (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
+          elif self.base_type[i] == 'lru':
+            output_in_features_i = self.base_num_filterbanks[i]*self.base_hidden_size[i]
+          elif self.base_type[i] == 'cnn':
+            output_in_features_i = self.base_hidden_size[i]
           else:
             output_in_features_i = self.input_size[i]
+        elif self.base_type[i] == 'identity':
+          output_in_features_i = sum(self.input_size)
         else:
           output_in_features_i = 0
           for j in range(self.num_inputs):
-            if self.base_type[j] != 'identity':
+            if self.base_type[j] in ['lstm', 'gru']:
               output_in_features_i += (1 + int(self.base_rnn_bidirectional[j]))*self.base_hidden_size[j]
+            if self.base_type[j] == 'lru':
+              output_in_features_i += len(self.base_relax_init[j])*self.base_hidden_size[j]
+            elif self.base_type[j] == 'cnn':
+              output_in_features_i += self.base_hidden_size[j]
 
       if self.flatten == 'time':
         output_in_features_i = 1 # output_in_features_i * self.max_input_len
@@ -344,11 +356,11 @@ class SequenceModel(torch.nn.Module):
                                      # softmax parameter
                                      softmax_dim = self.output_softmax_dim[i],
                                      dropout_p = self.output_dropout_p[i],
-                                     weights_to_1 = self.output_layer_w_to_1[i], # (output_out_features_i == 1) & ((np.sum(self.hidden_out_features[i]) > 0) | (np.sum(self.interaction_out_features) > 0)),
+                                     weights_to_1 = self.output_layer_w_to_1[i], # (output_out_features_i == 1) & ((sum(self.hidden_out_features[i]) > 0) | (sum(self.interaction_out_features) > 0)),
                                      device = self.device, dtype = self.dtype)
       else:
         output_layer_i = torch.nn.Identity()
-        if np.sum(self.hidden_out_features) > 0:
+        if sum(self.hidden_out_features) > 0:
           self.output_size[i] = self.hidden_out_features[i]
         elif self.interaction_out_features > 0:
           self.output_size[i] = self.interaction_out_features
@@ -362,9 +374,11 @@ class SequenceModel(torch.nn.Module):
 
       self.output_layer.append(output_layer_i)
 
+    self.total_input_size, self.total_output_size = sum(self.input_size), sum(self.output_size)
+
     with torch.no_grad():
-      X = torch.empty((2, self.max_input_len, np.sum(self.input_size))).to(device = self.device,
-                                                                           dtype = self.dtype)
+      X = torch.empty((2, self.max_input_len, sum(self.input_size))).to(device = self.device,
+                                                                        dtype = self.dtype)
       encoder_output = torch.empty((2, self.max_input_len, encoder_output_size)).to(X) if encoder_output_size is not None else None
 
       self.max_output_len = self.forward(X, encoder_output = encoder_output)[0].shape[1]
@@ -394,88 +408,116 @@ class SequenceModel(torch.nn.Module):
               steps = None,
               encoder_output = None):
 
+    """
+    Process the input data through the sequence model.
+
+    Args:
+        input (torch.Tensor): Input data of shape (num_samples, input_len, input_size).
+        input_window_idx (list, optional): List of indices specifying the input window for each input.
+        hiddens (list, optional): List of initial hidden states for each input.
+        steps (int, optional): Number of processing steps.
+        encoder_output (torch.Tensor, optional): Encoder output data.
+
+    Returns:
+        torch.Tensor: Processed output data.
+        list: List of updated hidden states.
+    """
+
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
 
-    input_window_idx = [torch.arange(input_len).to(device = self.device, dtype = torch.long) for i in range(self.num_inputs)] \
-                        if input_window_idx is None else input_window_idx
+    input_window_idx = [torch.arange(input_len).to(device=self.device, dtype=torch.long)
+                        for _ in range(self.num_inputs)] if input_window_idx is None else input_window_idx
 
+    # Initialize hidden states if not provided
     hiddens = hiddens if hiddens is not None else self.init_hiddens()
 
-    # List to store the output of hidden layers
     hidden_output = []
-
     # Process each input in the batch individually
-    for i,input_i in enumerate(input.split(self.input_size, -1)):
+    for i, input_i in enumerate(input.split(self.input_size, -1)):
 
+      # Determine the output feature size for the hidden layer
       if self.hidden_out_features[i] > 0:
         hidden_out_features_i = self.hidden_out_features[i]
       else:
-        hidden_out_features_i = (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
+        if self.seq_base[i].base_type in ['lstm', 'gru']:
+          hidden_out_features_i = (1 + int(self.base_rnn_bidirectional[i])) * self.base_hidden_size[i]
+        elif self.seq_base[i].base_type == 'lru':
+          hidden_out_features_i = self.base_hidden_size[i] * self.base_num_filterbanks[i]
+        else:
+          hidden_out_features_i = self.base_hidden_size[i]
 
+      # Initialize tensor for hidden layer output
       hidden_output_i = torch.zeros((num_samples, np.min([input_len, self.max_base_seq_len]), hidden_out_features_i)).to(input)
 
-      # Generate output and hiddens of sequence base for the ith input
-      base_output_i, hiddens[i] = self.seq_base[i](input = input_i[:, -1:] \
-                                                   if (self.seq_base[i].base_type in ['gru','lstm','lru']) \
-                                                    & (self.seq_base[i].seq_type == 'decoder') \
-                                                    & (not self.joint_prediction) \
-                                                   else input_i[:, input_window_idx[i]],
+      # Generate output and updated hidden states from sequence base
+      base_output_i, hiddens[i] = self.seq_base[i](input = input_i[:, -1:] if self.process_by_step
+                                                           else input_i[:, input_window_idx[i]],
                                                    hiddens = hiddens[i],
                                                    encoder_output = encoder_output)
 
-      if self.store_layer_outputs: self.base_layer_output[i].append(base_output_i)
+      # Store the output of the base layer if required
+      if self.store_layer_outputs:
+        self.base_layer_output[i].append(base_output_i)
 
-      # Generate hidden layer outputs for ith input, append result to previous hidden layer output of previous inputs
-
+      # Generate hidden layer outputs for the ith input
       hidden_output_i[:, -base_output_i.shape[1]:] = self.hidden_layer[i](base_output_i)
 
       hidden_output.append(hidden_output_i)
 
-      if self.store_layer_outputs: self.hidden_layer_output[i].append(hidden_output_i)
+      # Store the output of the hidden layer if required
+      if self.store_layer_outputs:
+        self.hidden_layer_output[i].append(hidden_output_i)
 
-    output_ = torch.cat(hidden_output,-1)
+    output_ = torch.cat(hidden_output, -1)
 
+    # Generate interaction layer output
     output_ = self.interaction_layer(output_)
 
-    if self.store_layer_outputs: self.interaction_layer_output.append(output_)
+    # Store the output of the interaction layer if required
+    if self.store_layer_outputs:
+      self.interaction_layer_output.append(output_)
 
+    # Apply modulation layer if present
     if self.modulation_layer is not None:
       output_ = self.modulation_layer(output_, steps)
 
-      if self.store_layer_outputs: self.modulation_layer_output.append(output_)
+      # Store the output of the modulation layer if required
+      if self.store_layer_outputs:
+        self.modulation_layer_output.append(output_)
 
-    # For each output
+    # Generate output for each output layer
     output = []
     for i in range(self.num_outputs):
-      # If ith output layer is "associated" (linked to a single input)
+      # Determine the input for the current output layer
       if self.output_associated[i]:
-        # Set the output of the ith hidden layer as input to the ith output layer
         output_input_i = hidden_output[i]
-      # Otherwise, pass the entire output of previous layer as the input to the ith output layer
       else:
         output_input_i = output_
 
-      # flatten input to output layer if desired
+      # Flatten input for output layer if necessary
       if self.flatten == 'time':
         output_input_i = self.flatten_layer(output_input_i).unsqueeze(2)
-
       if self.flatten == 'feature':
         output_input_i = self.flatten_layer(output_input_i).unsqueeze(1)
 
-      # Generate output of ith output layer, append result to previous outputs
+      # Generate output of the ith output layer
       output_i = self.output_layer[i](output_input_i)
 
+      # Reshape output if necessary
       if (self.flatten == 'feature'):
         output_i = output_i.reshape(num_samples, self.max_output_len, self.output_size[i])
 
       output.append(output_i)
 
-      if self.store_layer_outputs: self.output_layer_output[i].append(output_i)
+      # Store the output of the output layer if required
+      if self.store_layer_outputs:
+        self.output_layer_output[i].append(output_i)
 
     # Concatenate outputs into single tensor
     output = torch.cat(output, -1)
 
+    # Update max_output_len if necessary
     if (self.flatten is not None) & (self.max_output_len != output.shape[1]):
       self.max_output_len = output.shape[1]
 
@@ -488,8 +530,30 @@ class SequenceModel(torch.nn.Module):
               input_window_idx = None, output_window_idx = None,
               input_mask = None, output_mask = None,
               output_input_idx = [], input_output_idx = [],
-              encoder_output= None):
+              encoder_output = None):
 
+    """
+    Perform forward pass through the sequence model.
+
+    Args:
+      input (torch.Tensor): Input data of shape (num_samples, input_len, input_size).
+      steps (torch.Tensor, optional): Number of processing steps.
+      hiddens (list, optional): List of initial hidden states for each input.
+      target (torch.Tensor, optional): Target data.
+      input_window_idx (list, optional): List of input window indices.
+      output_window_idx (list, optional): List of output window indices.
+      input_mask (torch.Tensor, optional): Input mask.
+      output_mask (torch.Tensor, optional): Output mask.
+      output_input_idx (list, optional): List of indices for output input.
+      input_output_idx (list, optional): List of indices for input output.
+      encoder_output (torch.Tensor, optional): Encoder output data.
+
+    Returns:
+      torch.Tensor: Processed output data.
+      list: List of updated hidden states.
+    """
+
+    # Initialize lists to store layer outputs
     self.base_layer_output = [[] for _ in range(self.num_inputs)]
     self.hidden_layer_output = [[] for _ in range(self.num_inputs)]
     self.interaction_layer_output = []
@@ -497,75 +561,74 @@ class SequenceModel(torch.nn.Module):
     self.output_layer_output = [[] for _ in range(self.num_outputs)]
 
     # Convert inputs to the correct device
-    input = input.to(device = self.device, dtype = self.dtype)
-    steps = steps.to(device = self.device, dtype = torch.long) if steps is not None else None
-    output_mask = output_mask.to(device =  self.device, dtype = torch.long) if output_mask is not None else None
+    input = input.to(device=self.device, dtype=self.dtype)
+    steps = steps.to(device=self.device, dtype=torch.long) if steps is not None else None
+    output_mask = output_mask.to(device=self.device, dtype=torch.long) if output_mask is not None else None
 
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
 
-    input_window_idx = [torch.arange(input_len).to(device = self.device, dtype = torch.long) for i in range(self.num_inputs)] \
-                       if input_window_idx is None else input_window_idx
+    # Prepare input window indices if not provided
+    input_window_idx = [torch.arange(input_len).to(device=self.device, dtype=torch.long)
+                        for _ in range(self.num_inputs)] if input_window_idx is None else input_window_idx
+    output_window_idx = [torch.arange(input_len).to(device=self.device, dtype=torch.long)
+                         for _ in range(self.num_outputs)] if output_window_idx is None else output_window_idx
+
+    unique_input_window_idx = torch.cat(input_window_idx).unique()
+    unique_output_window_idx = torch.cat(output_window_idx).unique()
 
     # Get total number of steps
     if steps is not None:
       _, num_steps = steps.shape
 
-    # Get the maximum output sequence length
-    # max_output_len = np.max([len(idx) for idx in output_window_idx]) if output_window_idx is not None else input_len
-
     # Get the total output size
-    total_output_size = np.sum(self.output_size)
+    total_output_size = sum(self.output_size)
 
     # Initiate hiddens if None
     hiddens = hiddens if hiddens is not None else self.init_hiddens()
 
-    # Process output and updated hiddens
+    # Process output and update hiddens
+    # if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder
 
-    if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder
+    # else: # model is a decoder
+    if self.process_by_step:
+      output = torch.zeros((num_samples, input_len, self.total_output_size)).to(device = self.device,
+                                                                                dtype = self.dtype)
+
+      output[:, :1], hiddens = self.process(input = input[:, :1].clone(),
+                                            steps = steps[:, :1] if steps is not None else None,
+                                            hiddens = hiddens,
+                                            encoder_output = encoder_output)
+      
+      for n in range(1, input_len):
+
+        if (len(output_input_idx) > 0) & (len(input_output_idx) > 0):
+          input[:, n, output_input_idx] = target[:, n-1, input_output_idx] if target is not None else output[:, n-1, input_output_idx]
+
+        output[:, n:(n+1)], hiddens = self.process(input = input[:, n:(n+1)].clone(),
+                                                   steps = steps[:, n:(n+1)] if steps is not None else None,
+                                                   hiddens = hiddens,
+                                                   encoder_output = encoder_output)
+
+    else:
+      input = torch.nn.functional.pad(input,
+                                      (0, 0, np.max([self.max_output_len - input_len, 0]), 0),
+                                      "constant", 0).to(input)
+
       output, hiddens = self.process(input = input,
                                      input_window_idx = input_window_idx,
-                                     steps = steps,
+                                     steps = steps[:, unique_input_window_idx] if steps is not None else None,
                                      hiddens = hiddens,
                                      encoder_output = encoder_output)
-
-    else: # model is a decoder
-
-      if self.process_by_step:
-        # Prepare input for the next step
-        input_, output = input, []
-
-        for n in range(self.max_output_len):
-          output_, hiddens = self.process(input = input_.clone()[:, n:(n+1)],
-                                          steps = steps[:, n:(n+1)] if steps is not None else None,
-                                          hiddens = hiddens,
-                                          encoder_output = encoder_output)
-
-          output.append(output_[:, -1:])
-
-          if (len(output_input_idx) > 0) & (n < (self.max_output_len-1)):
-            input_[:, (n+1):(n+2), output_input_idx] = target[:, n:(n+1), input_output_idx] if target is not None else output[-1][..., input_output_idx]
-
-        output = torch.cat(output, 1)
-
-      else:
-
-        input_ = torch.nn.functional.pad(input.clone(),
-                                         (0, 0, np.max([self.max_output_len - input_len, 0]), 0),
-                                          "constant", 0).to(input)
-
-        output, hiddens = self.process(input = input_,
-                                       input_window_idx = input_window_idx,
-                                       steps = steps,
-                                       hiddens = hiddens,
-                                       encoder_output = encoder_output)
 
     # Only keep the outputs for the maximum output sequence length
     output = output[:, -self.max_output_len:]
 
     # Apply the output mask if specified
-    if output_mask is not None: output = output*output_mask
+    if output_mask is not None:
+      output = output * output_mask
 
+    # Concatenate stored layer outputs if required
     if self.store_layer_outputs:
       for i in range(self.num_inputs):
         if len(self.base_layer_output[i]) > 0:
@@ -584,52 +647,272 @@ class SequenceModel(torch.nn.Module):
 
   def constrain(self):
 
+    """
+    Apply constraints to the model parameters.
+
+    Constraints are applied to different components of the model, such as
+    the sequence base, hidden layers, interaction layer, and output layers.
+    """
+
+    # Apply constraints to sequence base and hidden layers for each input
     for i in range(self.num_inputs):
       if self.base_constrain[i]:
         self.seq_base[i].constrain()
 
       if self.hidden_constrain[i]:
-         self.hidden_layer[i].constrain()
+        self.hidden_layer[i].constrain()
 
+    # Apply constraints to the interaction layer if specified
     if self.interaction_constrain:
-       self.interaction_layer.constrain()
+      self.interaction_layer.constrain()
 
+    # Apply constraints to output layers for each output
     for i in range(self.num_outputs):
       if self.output_constrain[i]:
-         self.output_layer[i].constrain()
+        self.output_layer[i].constrain()
 
   def penalize(self):
+
+    """
+    Calculate the penalty term for regularization.
+
+    This method calculates the penalty term for each component of the model
+    that is subject to regularization, such as the sequence base, hidden layers,
+    interaction layer, and output layers. The penalty terms are summed up and
+    returned as the total regularization loss.
+
+    Returns:
+        loss (float): Total regularization loss due to penalty terms.
+    """
+
     loss = 0
 
+    # Calculate penalty terms and accumulate them for sequence base and hidden layers of each input
     for i in range(self.num_inputs):
-      if self.base_penalize[i]:
-        loss += self.seq_base[i].penalize()
+        if self.base_penalize[i]:
+            loss += self.seq_base[i].penalize()
 
-    if self.hidden_penalize[i]:
-      loss += self.hidden_layer[i].penalize()
+        if self.hidden_penalize[i]:
+            loss += self.hidden_layer[i].penalize()
 
+    # Calculate penalty term for interaction layer if specified
     if self.interaction_penalize:
-      loss += self.interaction_layer.penalize()
+        loss += self.interaction_layer.penalize()
 
+    # Calculate penalty terms and accumulate them for output layers of each output
     for i in range(self.num_outputs):
-      if self.output_penalize[i]:
-        loss += self.output_layer[i].penalize()
+        if self.output_penalize[i]:
+            loss += self.output_layer[i].penalize()
 
     return loss
 
   def generate_impulse_response(self, seq_len):
+    """
+    Generate impulse responses for each input feature.
+
+    This method generates impulse responses for each input feature of the model.
+    It creates an impulse input signal for each feature, passes it through the
+    sequence base and hidden layer, and collects the corresponding impulse responses.
+
+    Args:
+        seq_len (int): Length of the sequence for which impulse responses are generated.
+
+    Returns:
+        impulse_response (list): A list containing impulse responses for each input feature.
+                                Each entry in the list is a tensor representing the
+                                impulse response for a specific input feature.
+    """
+
     with torch.no_grad():
-      impulse_response = [None for _ in range(self.num_inputs)]
-      for i in range(self.num_inputs):
-        # if self.base_type[i] in ['gru', 'lstm', 'lru']:
-        impulse_response[i] = [None for _ in range(self.input_size[i])]
-        for f in range(self.input_size[i]):
-          impulse_i = torch.zeros((1, seq_len, self.input_size[i])).to(device = self.device,
-                                                                                  dtype = self.dtype)
-          impulse_i[0, 0, f] = 1.
+        impulse_response = [None for _ in range(self.num_inputs)]
 
-          base_output_if, _ = self.seq_base[i](input = impulse_i)
+        # Generate impulse response for each input and each feature
+        for i in range(self.num_inputs):
+            impulse_response[i] = [None for _ in range(self.input_size[i])]
+            for f in range(self.input_size[i]):
+                # Create impulse input signal for the current feature
+                impulse_i = torch.zeros((1, seq_len, self.input_size[i])).to(device=self.device,
+                                                                              dtype=self.dtype)
+                impulse_i[0, 0, f] = 1.
 
-          impulse_response[i][f] = self.hidden_layer[i].F[0](base_output_if)[0]
+                # Pass the impulse input through sequence base and hidden layer
+                base_output_if, _ = self.seq_base[i](input=impulse_i)
+                impulse_response[i][f] = self.hidden_layer[i].F[0](base_output_if)[0]
 
     return impulse_response
+
+  def predict(self,
+            input, steps=None,
+            hiddens=None,
+            encoder_output=None,
+            input_window_idx=None, output_window_idx=None,
+            input_mask=None, output_mask=None,
+            output_input_idx=[], input_output_idx=[],
+            output_transforms=None):
+    """
+    Perform prediction using the model.
+
+    This method performs prediction using the model. It takes input data, optionally steps data,
+    and other parameters to generate predictions. It returns the prediction results and associated time steps.
+
+    Args:
+        input (Tensor): Input data tensor.
+        steps (Tensor, optional): Steps data tensor. Default is None.
+        hiddens (list of Tensors, optional): Initial hidden state tensors. Default is None.
+        encoder_output (Tensor, optional): Encoder output tensor. Default is None.
+        input_window_idx (list of Tensors, optional): Indices for input windows. Default is None.
+        output_window_idx (list of Tensors, optional): Indices for output windows. Default is None.
+        input_mask (Tensor, optional): Input mask tensor. Default is None.
+        output_mask (Tensor, optional): Output mask tensor. Default is None.
+        output_input_idx (list, optional): Indices for output input. Default is an empty list.
+        input_output_idx (list, optional): Indices for input output. Default is an empty list.
+        output_transforms (list of Transform objects, optional): Output transforms for prediction. Default is None.
+
+    Returns:
+        prediction (Tensor): Prediction results tensor.
+        prediction_time (Tensor): Associated time steps tensor.
+    """
+
+    # Clone input and steps if provided
+    input = input.clone()
+    steps = steps.clone() if steps is not None else None
+
+    num_samples, input_len, input_size = input.shape
+
+    with torch.no_grad():
+        # Generate prediction using the model
+        prediction, hiddens = self.forward(input=input,
+                                           steps=steps,
+                                           hiddens=hiddens,
+                                           input_window_idx=input_window_idx, output_window_idx=output_window_idx,
+                                           input_mask=input_mask, output_mask=output_mask,
+                                           output_input_idx=output_input_idx,
+                                           input_output_idx=input_output_idx,
+                                           encoder_output=encoder_output)
+
+    # Extract prediction steps and compute associated time steps
+    prediction_steps = steps[:, -self.max_output_len:] if steps is not None else None
+    prediction_time = prediction_steps * self.dt if prediction_steps is not None else None
+
+    # Apply output transforms if provided
+    if output_transforms:
+        for sampled_idx in range(num_samples):
+            j = 0
+            for i in range(self.num_outputs):
+                prediction[sampled_idx, :, j:(j + self.output_size[i])] = output_transforms[i].inverse_transform(prediction[sampled_idx, :, j:(j + self.output_size[i])])
+                j += self.output_size[i]
+
+    return prediction, prediction_time
+
+  def forecast(self,
+              input, steps=None,
+              hiddens=None,
+              num_forecast_steps=1,
+              encoder_output=None,
+              input_window_idx=None, output_window_idx=None,
+              input_mask=None, output_mask=None,
+              output_input_idx=[], input_output_idx=[],
+              output_transforms=None):
+    """
+    Perform forecasting using the model.
+
+    Args:
+        input (Tensor): Input data tensor.
+        steps (Tensor, optional): Steps data tensor. Default is None.
+        hiddens (list of Tensors, optional): Initial hidden state tensors. Default is None.
+        num_forecast_steps (int): Number of forecast steps. Default is 1.
+        encoder_output (Tensor, optional): Encoder output tensor. Default is None.
+        input_window_idx (list of Tensors, optional): Indices for input windows. Default is None.
+        output_window_idx (list of Tensors, optional): Indices for output windows. Default is None.
+        input_mask (Tensor, optional): Input mask tensor. Default is None.
+        output_mask (Tensor, optional): Output mask tensor. Default is None.
+        output_input_idx (list, optional): Indices for output input. Default is an empty list.
+        input_output_idx (list, optional): Indices for input output. Default is an empty list.
+        output_transforms (list of Transform objects, optional): Output transforms for forecasting. Default is None.
+
+    Returns:
+        forecast (Tensor): Forecast results tensor.
+        forecast_time (Tensor): Associated time steps tensor.
+    """
+
+    # Clone input and steps if provided
+    input = input.clone()
+    steps = steps.clone() if steps is not None else None
+
+    with torch.no_grad():
+      num_samples, input_len, input_size = input.shape
+
+      # Initialize forecast and forecast steps tensors
+      forecast = torch.empty((num_samples, 0, self.total_output_size)).to(device=self.device,
+                                                                        dtype=self.dtype)
+      if steps is not None:
+        forecast_steps = torch.empty((num_samples, 0)).to(steps)
+      else:
+        forecast_steps = None
+
+      # Calculate forecast length based on window indices
+      if (input_window_idx is not None) & (output_window_idx is not None):
+        max_input_window_idx = np.max([idx.max().cpu() for idx in input_window_idx])
+        max_output_window_idx = np.max([idx.max().cpu() for idx in output_window_idx])
+        forecast_len = np.max([1, max_output_window_idx - max_input_window_idx])
+      else:
+        forecast_len = 1
+
+      # Perform initial prediction using the model
+      prediction, hiddens = self.forward(input = input,
+                                          steps = steps,
+                                          hiddens = hiddens,
+                                          input_window_idx = input_window_idx,
+                                          output_window_idx = output_window_idx,
+                                          encoder_output = encoder_output,
+                                          input_output_idx = input_output_idx,
+                                          output_input_idx = output_input_idx)
+
+      # Concatenate initial prediction to forecast
+      forecast = torch.cat((forecast, prediction[:, -forecast_len:]), 1)
+      if steps is not None:
+          forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
+          steps += forecast_len
+
+      # Continue forecasting iteratively
+      while forecast.shape[1] < (forecast_len + num_forecast_steps):
+
+          # Prepare input for next forecasting step
+          input_ar = torch.zeros((num_samples, forecast_len, input_size)).to(input)
+          if (len(input_output_idx) > 0) & (len(output_input_idx) > 0):
+              input_ar[..., output_input_idx] = forecast[:, -forecast_len:, input_output_idx]
+
+          # Concatenate input for next forecasting step
+          input = torch.cat((input[:, forecast_len:], input_ar), 1)
+
+          # Perform forecasting step using the model
+          prediction, hiddens = self(input=input,
+                                      steps=steps,
+                                      hiddens=hiddens,
+                                      encoder_output=encoder_output,
+                                      input_output_idx=input_output_idx,
+                                      output_input_idx=output_input_idx)
+
+          # Concatenate current prediction to forecast
+          forecast = torch.cat((forecast, prediction[:, -forecast_len:]), 1)
+          if steps is not None:
+              forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
+              steps += forecast_len
+
+    # Apply output transforms if provided
+    if output_transforms:
+        for sampled_idx in range(num_samples):
+            j = 0
+            for i in range(self.num_outputs):
+                forecast[sampled_idx, :, j:(j + self.output_size[i])] = output_transforms[i].inverse_transform(
+                    forecast[sampled_idx, :, j:(j + self.output_size[i])])
+                j += self.output_size[i]
+
+    # Extract the forecast for the desired number of forecast steps
+    forecast = forecast[:, forecast_len:][:, :num_forecast_steps]
+    forecast_steps = forecast_steps[:, forecast_len:][:, :num_forecast_steps] if forecast_steps is not None else None
+
+    # Calculate forecast time steps
+    forecast_time = forecast_steps * self.dt if forecast_steps is not None else None
+
+    return forecast, forecast_time
