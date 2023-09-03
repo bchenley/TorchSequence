@@ -356,7 +356,7 @@ class SequenceModel(torch.nn.Module):
                                      # softmax parameter
                                      softmax_dim = self.output_softmax_dim[i],
                                      dropout_p = self.output_dropout_p[i],
-                                     weights_to_1 = self.output_layer_w_to_1[i], # (output_out_features_i == 1) & ((sum(self.hidden_out_features[i]) > 0) | (sum(self.interaction_out_features) > 0)),
+                                     weights_to_1 = (output_out_features_i == 1) & ((sum(self.hidden_out_features) > 0) | (sum(self.interaction_out_features) > 0)), # self.output_layer_w_to_1[i], # 
                                      device = self.device, dtype = self.dtype)
       else:
         output_layer_i = torch.nn.Identity()
