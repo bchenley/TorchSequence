@@ -14,8 +14,7 @@ class SequenceModel(torch.nn.Module):
                output_size = [1], output_len = [1],
                base_stateful = [False], process_by_step = False, joint_prediction = False,
                dt = 1,
-               norm_type = None, affine_norm = False,
-               flatten = None,
+               norm_type = None, affine_norm = False,               
                store_layer_outputs = False,
                encoder_output_size = None,
                ## Sequence base parameters
@@ -100,6 +99,7 @@ class SequenceModel(torch.nn.Module):
                output_constrain = [False], output_penalize = [False],
                output_dropout_p = [0.],
                output_layer_w_to_1 = [False],
+               output_flatten = [None],
                #
                device = 'cpu', dtype = torch.float32):
 
@@ -293,14 +293,9 @@ class SequenceModel(torch.nn.Module):
       self.modulation_out_features = self.modulation_layer.num_modulators
     #
 
-    if self.flatten:
-      self.flatten_layer = torch.nn.Flatten(1, 2)
-    else:
-      self.flatten_layer = None
-
     # output layer
-    self.output_layer = torch.nn.ModuleList([])
-    for i in range(self.num_outputs):
+    self.output_layer, self.Flatten = torch.nn.ModuleList([]), torch.nn.ModuleList([])
+    for i in range(self.num_outputs):      
       if self.modulation_layer is not None:
         output_in_features_i = self.modulation_layer.num_modulators
       elif self.interaction_out_features > 0:
@@ -332,14 +327,19 @@ class SequenceModel(torch.nn.Module):
             elif self.base_type[j] == 'cnn':
               output_in_features_i += self.base_hidden_size[j]
 
-      if self.flatten == 'time':
-        output_in_features_i = 1 # output_in_features_i * self.max_input_len
-        output_out_features_i = 1 # self.output_size[i] * self.max_output_len
-      elif self.flatten == 'feature':
-        output_in_features_i = output_in_features_i * self.max_base_seq_len # self.max_input_len
-        output_out_features_i = self.output_size[i] * self.max_output_len
+      if self.output_flatten[i]:
+        self.Flatten.append(torch.nn.Flatten(1, 2))
+
+        if self.output_flatten[i] == 'time':
+          output_in_features_i = 1
+          output_out_features_i = 1 
+        elif self.output_flatten[i] == 'feature':
+          output_in_features_i = output_in_features_i * self.max_base_seq_len 
+          output_out_features_i = self.output_size[i] * self.max_output_len
 
       else:
+        self.Flatten[i].append(None)
+
         output_out_features_i = self.output_size[i]
 
       if self.output_size[i] > 0:
@@ -356,7 +356,7 @@ class SequenceModel(torch.nn.Module):
                                      # softmax parameter
                                      softmax_dim = self.output_softmax_dim[i],
                                      dropout_p = self.output_dropout_p[i],
-                                     weights_to_1 = (output_out_features_i == 1) & ((sum(self.hidden_out_features) > 0) | (sum(self.interaction_out_features) > 0)), # self.output_layer_w_to_1[i], # 
+                                     weights_to_1 = output_out_features_i == 1, # self.output_layer_w_to_1[i], # 
                                      device = self.device, dtype = self.dtype)
       else:
         output_layer_i = torch.nn.Identity()
@@ -496,16 +496,16 @@ class SequenceModel(torch.nn.Module):
         output_input_i = output_
 
       # Flatten input for output layer if necessary
-      if self.flatten == 'time':
-        output_input_i = self.flatten_layer(output_input_i).unsqueeze(2)
-      if self.flatten == 'feature':
-        output_input_i = self.flatten_layer(output_input_i).unsqueeze(1)
-
+      if self.output_flatten[i] == 'time':
+        output_input_i = self.Flatten[i](output_input_i).unsqueeze(2)
+      if self.output_flatten == 'feature':
+        output_input_i = self.Flatten[i](output_input_i).unsqueeze(1)
+      
       # Generate output of the ith output layer
       output_i = self.output_layer[i](output_input_i)
 
       # Reshape output if necessary
-      if (self.flatten == 'feature'):
+      if (self.output_flatten[i] == 'feature'):
         output_i = output_i.reshape(num_samples, self.max_output_len, self.output_size[i])
 
       output.append(output_i)
@@ -518,7 +518,7 @@ class SequenceModel(torch.nn.Module):
     output = torch.cat(output, -1)
 
     # Update max_output_len if necessary
-    if (self.flatten is not None) & (self.max_output_len != output.shape[1]):
+    if any([flatten is not None for flatten in self.output_flatten]) & (self.max_output_len != output.shape[1]):
       self.max_output_len = output.shape[1]
 
     return output, hiddens
