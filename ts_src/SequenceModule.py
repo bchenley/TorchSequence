@@ -488,7 +488,11 @@ class SequenceModule(pl.LightningModule):
   ## End of Testing
 
   ## plot history
-  def plot_history(self, history=None, plot_train_history_by='epochs', figsize=None):
+  def plot_history(self, 
+                   history=None, 
+                   plot_train_history_by='epochs', 
+                   metric_digits = 4,
+                   figsize=None):
     """
     Plot the training and validation history.
 
@@ -522,21 +526,25 @@ class SequenceModule(pl.LightningModule):
     fig = plt.figure(figsize=figsize if figsize is not None else (5, 5 * num_params))
     ax_i = 0
     for param in history:
+      last_metric = None
+      if (self.loss_fn.name in param) | (self.metric_fn.name in param):
+        last_metric = np.round(param[-1].tolist(), metric_digits)
+        
       ax_i += 1
       ax = fig.add_subplot(num_params, 1, ax_i)
-      ax.plot(train_history[x_label].cpu(), train_history[param].cpu(), 'k', label='Train')
+      ax.plot(train_history[x_label].cpu(), train_history[param].cpu(), 'k', 
+              label = f"Train ({last_metric})" if last_metric is not None else 'Train')
 
       # Plot validation history if available and plotted by epochs
       if (self.val_history is not None) & (param in self.val_history) & (x_label == 'epochs'):
         N = np.min([self.val_history[x_label].shape[0], self.val_history[param].shape[0]])
 
-        if self.loss_fn.name in param:
+        if (self.loss_fn.name in param) | (self.metric_fn.name in param):
           metric = self.val_history[param][:N]
-        elif self.metric_fn.name is not None:
-          if self.metric_fn.name in param:
-            metric = self.val_history[param][:N]
+          last_metric = np.round(metric[-1].tolist(), metric_digits)
 
-        ax.plot(self.val_history[x_label][:N].cpu(), metric.cpu(), 'r', label='Val')
+        ax.plot(self.val_history[x_label][:N].cpu(), metric.cpu(), 'r', 
+                label = f"Val ({last_metric})" if last_metric is not None else 'Val')
 
       ax.set_title(param)
       ax.set_xlabel(x_label)
