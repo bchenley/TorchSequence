@@ -488,9 +488,9 @@ class SequenceModule(pl.LightningModule):
   ## End of Testing
 
   ## plot history
-  def plot_history(self, 
-                   history=None, 
-                   plot_train_history_by='epochs', 
+  def plot_history(self,
+                   history=None,
+                   plot_train_history_by='epochs',
                    metric_digits = 4,
                    figsize=None):
     """
@@ -529,10 +529,10 @@ class SequenceModule(pl.LightningModule):
       last_metric = None
       if (self.loss_fn.name in param) | (self.metric_fn.name in param):
         last_metric = np.round(train_history[param][-1].item(), metric_digits)
-        
+
       ax_i += 1
       ax = fig.add_subplot(num_params, 1, ax_i)
-      ax.plot(train_history[x_label].cpu(), train_history[param].cpu(), 'k', 
+      ax.plot(train_history[x_label].cpu(), train_history[param].cpu(), 'k',
               label = f"Train ({last_metric})" if last_metric is not None else 'Train')
 
       # Plot validation history if available and plotted by epochs
@@ -543,7 +543,7 @@ class SequenceModule(pl.LightningModule):
           metric = self.val_history[param][:N]
           last_metric = np.round(metric[-1].item(), metric_digits)
 
-        ax.plot(self.val_history[x_label][:N].cpu(), metric.cpu(), 'r', 
+        ax.plot(self.val_history[x_label][:N].cpu(), metric.cpu(), 'r',
                 label = f"Val ({last_metric})" if last_metric is not None else 'Val')
 
       ax.set_title(param)
@@ -730,7 +730,7 @@ class SequenceModule(pl.LightningModule):
         train_prediction, train_output_steps = self.generate_reduced_output(prediction, output_steps,
                                                                             reduction=reduction,
                                                                             transforms=transform_idx)
-
+        
         train_target, _ = self.generate_reduced_output(target, output_steps,
                                                        reduction=reduction,
                                                        transforms=transform_idx)
@@ -756,14 +756,22 @@ class SequenceModule(pl.LightningModule):
           self.train_prediction_data[train_idx][f"{output_name}_target"] = train_target_i # [start_step:]
           self.train_prediction_data[train_idx][f"{output_name}_prediction"] = train_prediction_i # [start_step:]
 
-          # Compute loss for each output
+          # Compute global loss for each output
           train_loss_i = Criterion(self.loss_fn.name, dims=(0, 1))(train_prediction_i.unsqueeze(0), train_target_i.unsqueeze(0))
-          self.train_prediction_data[train_idx][f"{output_name}_{self.loss_fn.name}"] = train_loss_i
+          self.train_prediction_data[train_idx][f"{output_name}_global_{self.loss_fn.name}"] = train_loss_i
+
+          # Compute step-wise loss for each output
+          train_loss_i = Criterion(self.loss_fn.name, dims=0)(train_prediction_i.unsqueeze(0), train_target_i.unsqueeze(0))
+          self.train_prediction_data[train_idx][f"{output_name}_step_{self.loss_fn.name}"] = train_loss_i
 
           if self.metric_fn is not None:
-              # Compute metric for each output
+              # Compute global metric for each output
               train_metric_i = Criterion(self.metric_fn.name, dims=(0, 1))(train_prediction_i.unsqueeze(0), train_target_i.unsqueeze(0))
-              self.train_prediction_data[train_idx][f"{output_name}_{self.metric_fn.name}"] = train_metric_i
+              self.train_prediction_data[train_idx][f"{output_name}_global_{self.metric_fn.name}"] = train_metric_i
+
+              # Compute step-wise metric for each output
+              train_metric_i = Criterion(self.metric_fn.name, dims=0)(train_prediction_i.unsqueeze(0), train_target_i.unsqueeze(0))
+              self.train_prediction_data[train_idx][f"{output_name}_step_{self.loss_fn.name}"] = train_metric_i
 
           j += output_size[i]
 
@@ -828,14 +836,22 @@ class SequenceModule(pl.LightningModule):
               self.val_prediction_data[val_idx][f"{output_name}_target"] = val_target_i
               self.val_prediction_data[val_idx][f"{output_name}_prediction"] = val_prediction_i
 
-              # Compute loss for each output
+              # Compute global loss for each output
               val_loss_i = Criterion(self.loss_fn.name, dims=(0, 1))(val_prediction_i.unsqueeze(0), val_target_i.unsqueeze(0))
-              self.val_prediction_data[val_idx][f"{output_name}_{self.loss_fn.name}"] = val_loss_i
+              self.val_prediction_data[val_idx][f"{output_name}_global_{self.loss_fn.name}"] = val_loss_i
+
+              # Compute step-wise loss for each output
+              val_loss_i = Criterion(self.loss_fn.name, dims=0)(val_prediction_i.unsqueeze(0), val_target_i.unsqueeze(0))
+              self.val_prediction_data[val_idx][f"{output_name}_step_{self.loss_fn.name}"] = val_loss_i
 
               if self.metric_fn is not None:
-                  # Compute metric for each output
+                  # Compute global metric for each output
                   val_metric_i = Criterion(self.metric_fn.name, dims=(0, 1))(val_prediction_i.unsqueeze(0), val_target_i.unsqueeze(0))
-                  self.val_prediction_data[val_idx][f"{output_name}_{self.metric_fn.name}"] = val_metric_i
+                  self.val_prediction_data[val_idx][f"{output_name}_global_{self.metric_fn.name}"] = val_metric_i
+
+                  # Compute step-wise metric for each output
+                  val_metric_i = Criterion(self.metric_fn.name, dims=0)(val_prediction_i.unsqueeze(0), val_target_i.unsqueeze(0))
+                  self.val_prediction_data[val_idx][f"{output_name}_step_{self.loss_fn.name}"] = val_metric_i
 
               j += output_size[i]
 
@@ -903,14 +919,22 @@ class SequenceModule(pl.LightningModule):
             self.test_prediction_data[test_idx][f"{output_name}_target"] = test_target_i
             self.test_prediction_data[test_idx][f"{output_name}_prediction"] = test_prediction_i
 
-            # Compute loss for each output
+            # Compute global loss for each output
             test_loss_i = Criterion(self.loss_fn.name, dims=(0, 1))(test_prediction_i.unsqueeze(0), test_target_i.unsqueeze(0))
-            self.test_prediction_data[test_idx][f"{output_name}_{self.loss_fn.name}"] = test_loss_i
+            self.test_prediction_data[test_idx][f"{output_name}_global_{self.loss_fn.name}"] = test_loss_i
+            
+            # Compute step-wise loss for each output
+            test_loss_i = Criterion(self.loss_fn.name, dims=0)(test_prediction_i.unsqueeze(0), test_target_i.unsqueeze(0))
+            self.test_prediction_data[test_idx][f"{output_name}_step_{self.loss_fn.name}"] = test_loss_i
 
             if self.metric_fn is not None:
-                # Compute metric for each output
-                test_metric_i = Criterion(self.metric_fn.name, dims=(0, 1))(test_prediction_i.unsqueeze(0), test_target_i.unsqueeze(0))
-                self.test_prediction_data[test_idx][f"{output_name}_{self.metric_fn.name}"] = test_metric_i
+              # Compute global metric for each output
+              test_metric_i = Criterion(self.metric_fn.name, dims=(0, 1))(test_prediction_i.unsqueeze(0), test_target_i.unsqueeze(0))
+              self.test_prediction_data[test_idx][f"{output_name}_global_{self.metric_fn.name}"] = test_metric_i
+
+              # Compute step-wise metric for each output
+              test_metric_i = Criterion(self.metric_fn.name, dims=0)(test_prediction_i.unsqueeze(0), test_target_i.unsqueeze(0))
+              self.test_prediction_data[test_idx][f"{output_name}_step_{self.loss_fn.name}"] = test_metric_i
 
             j += output_size[i]
 
@@ -927,82 +951,6 @@ class SequenceModule(pl.LightningModule):
     self.trainer.datamodule.predicting = False
 
   ##
-  def evaluate_model(self, metric):
-    """
-    Evaluate the model's performance using specified loss and metric on test, validation, or training data.
-
-    Args:
-        metric (str): function to evaluate ('mse', 'mae', etc.).
-        
-    Returns:
-        None
-    """
-
-    self.eval_metric = metric
-    
-    # Move the model to GPU if applicable
-    if self.accelerator == 'gpu':
-      self.model.to('cuda')
-
-    metric_name = metric
-
-    time_name = self.trainer.datamodule.time_name
-    
-    stride = self.trainer.datamodule.stride
-
-    # Initialize metric function and metric function
-    metric_fn = Criterion(metric_name)    
-    
-    # Select prediction data based on availability
-    if self.test_prediction_data is not None:
-      prediction_data = self.test_prediction_data
-    elif self.val_prediction_data is not None:
-      prediction_data = self.val_prediction_data
-    else:
-      prediction_data = self.train_prediction_data
-
-    if not isinstance(prediction_data, list):
-      prediction_data = [prediction_data]
-
-    self.evaluation_data = []
-
-    # Iterate through prediction data
-    for data_idx in range(len(prediction_data)):
-
-      time = prediction_data[data_idx][time_name]
-      
-      self.evaluation_data.append({})
-
-      self.evaluation_data[data_idx][time_name] = time
-      
-      for name in self.trainer.datamodule.output_names:
-        
-        target = prediction_data[data_idx][f"{name}_target"]
-        prediction = prediction_data[data_idx][f"{name}_prediction"]
-        
-        # Calculate metric
-        step_metric = metric_fn(target, prediction)
-        global_metric = step_metric.mean(0)
-        stride_metric, stride_time = [], []
-
-        self.evaluation_data[data_idx][f"{name}_step_{metric_name}"] = step_metric
-        self.evaluation_data[data_idx][f"{name}_global_{metric_name}"] = global_metric
-
-        # Calculate metric over strides
-        for i in range(stride, step_metric.shape[0] + 1, stride):
-            stride_time.append(time[(i - stride):i])
-            stride_metric.append(step_metric[(i - stride):i].mean(0))
-
-        self.evaluation_data[data_idx][f"{name}_stride_{metric_name}"] = torch.cat(stride_metric, 0)
-
-      self.evaluation_data[data_idx][f"stride_{self.trainer.datamodule.time_name}"] = stride_time
-      
-    # If there's only one dataset, convert to a single dictionary
-    if len(self.evaluation_data) == 1:
-      self.evaluation_data = self.evaluation_data[0]
-  ##
-
-  ##
   def plot_predictions(self,
                        id = None,
                        output_feature_units = None,
@@ -1014,14 +962,14 @@ class SequenceModule(pl.LightningModule):
     output_feature_names = self.trainer.datamodule.output_feature_names
     num_outputs = len(output_names)
     output_size = self.trainer.datamodule.output_size
-    total_output_size = sum(output_size)
+    max_output_size = np.max(output_size)
 
     start_step = self.trainer.datamodule.start_step
 
     if self.trainer.datamodule.num_datasets == 1:
-
-      rows, cols = total_output_size, num_outputs
-      fig, ax = plt.subplots(rows, cols, figsize = figsize if figsize is not None else (10*num_outputs, 5*total_output_size))
+      
+      rows, cols = num_outputs, max_output_size
+      fig, ax = plt.subplots(rows, cols, figsize = figsize if figsize is not None else (20*max_output_size, 5*num_outputs))
 
       train_time = self.train_prediction_data[time_name]
       if hasattr(train_time, 'tz'): train_time = train_time.dt.tz_localize(None)
@@ -1049,7 +997,7 @@ class SequenceModule(pl.LightningModule):
           pass
 
         for f in range(output_size[i]):
-
+            
           if (output_feature_names is not None) & (output_size[i] > 1):
             output_feature_name_if = output_feature_names[f]
           else:
@@ -1064,18 +1012,18 @@ class SequenceModule(pl.LightningModule):
             output_feature_units_if = None
 
           try:
-            ax_if = ax[f,i]
+            ax_if = ax[i,f]
           except:
             try:
-              j = i if (cols>1) & (rows == 1) else f
+              j = i if (rows>1) & (cols == 1) else f
               ax_if = ax[j]
             except:
               ax_if = ax
 
           train_target_if = self.train_prediction_data[f"{output_name}_target"][:, f].cpu()
           train_prediction_if = self.train_prediction_data[f"{output_name}_prediction"][:, f].cpu()
-          train_loss_if = np.round(self.train_prediction_data[f"{output_name}_{self.loss_fn.name}"][f].item(),2)
-          train_metric_if = np.round(self.train_prediction_data[f"{output_name}_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
+          train_loss_if = np.round(self.train_prediction_data[f"{output_name}_global_{self.loss_fn.name}"][f].item(), 2)
+          train_metric_if = np.round(self.train_prediction_data[f"{output_name}_global_{self.metric_fn.name}"][f].item(), 2) if self.metric_fn is not None else None
           if include_baseline:
             train_baseline_prediction_if = self.train_prediction_data[f"{output_name}_baseline_prediction"][:, f].cpu()
             train_baseline_loss_if = np.round(self.train_prediction_data[f"{output_name}_baseline_{self.loss_fn.name}"][f].item(),2)
@@ -1095,8 +1043,8 @@ class SequenceModule(pl.LightningModule):
           if val_time is not None:
             val_target_if = self.val_prediction_data[f"{output_name}_target"][:, f].cpu()
             val_prediction_if = self.val_prediction_data[f"{output_name}_prediction"][:, f].cpu()
-            val_loss_if = np.round(self.val_prediction_data[f"{output_name}_{self.loss_fn.name}"][f].item(),2)
-            val_metric_if = np.round(self.val_prediction_data[f"{output_name}_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
+            val_loss_if = np.round(self.val_prediction_data[f"{output_name}_global_{self.loss_fn.name}"][f].item(),2)
+            val_metric_if = np.round(self.val_prediction_data[f"{output_name}_global_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
             if include_baseline:
               val_baseline_prediction_if = self.val_prediction_data[f"{output_name}_baseline_prediction"][:, f].cpu()
               val_baseline_loss_if = np.round(self.val_prediction_data[f"{output_name}_baseline_{self.loss_fn.name}"][f].item(),2)
@@ -1116,8 +1064,8 @@ class SequenceModule(pl.LightningModule):
           if test_time is not None:
             test_target_if = self.test_prediction_data[f"{output_name}_target"][:, f].cpu()
             test_prediction_if = self.test_prediction_data[f"{output_name}_prediction"][:, f].cpu()
-            test_loss_if = np.round(self.test_prediction_data[f"{output_name}_{self.loss_fn.name}"][f].item(),2)
-            test_metric_if = np.round(self.test_prediction_data[f"{output_name}_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
+            test_loss_if = np.round(self.test_prediction_data[f"{output_name}_global_{self.loss_fn.name}"][f].item(),2)
+            test_metric_if = np.round(self.test_prediction_data[f"{output_name}_global_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
             if include_baseline:
               test_baseline_prediction_if = self.test_prediction_data[f"{output_name}_baseline_prediction"][:, f].cpu()
               test_baseline_loss_if = np.round(self.test_prediction_data[f"{output_name}_baseline_{self.loss_fn.name}"][f].item(),2)
@@ -1169,8 +1117,8 @@ class SequenceModule(pl.LightningModule):
         if len(data_idx) > 0:
           prediction_data = self.test_prediction_data[data_idx[0]]
 
-      rows, cols = total_output_size, num_outputs
-      fig, ax = plt.subplots(rows, cols, figsize = figsize if figsize is not None else (10*num_outputs, 5*total_output_size))
+      rows, cols = max_output_size, num_outputs
+      fig, ax = plt.subplots(rows, cols, figsize = figsize if figsize is not None else (10*num_outputs, 5*max_output_size))
 
       time = prediction_data[time_name]
       if hasattr(time, 'tz'): time = time.dt.tz_localize(None)
@@ -1253,26 +1201,174 @@ class SequenceModule(pl.LightningModule):
 
     return fig
   ##
+  
+  ##
+  def evaluate_model(self, metric):
+    """
+    Evaluate the model's performance using specified loss and metric on test, validation, or training data.
+
+    Args:
+        metric (str): function to evaluate ('mse', 'mae', etc.).
+
+    Returns:
+        None
+    """
+
+    self.eval_metric = metric
+
+    # Move the model to GPU if applicable
+    if self.accelerator == 'gpu':
+      self.model.to('cuda')
+
+    metric_name = metric
+
+    time_name = self.trainer.datamodule.time_name
+
+    stride = self.trainer.datamodule.stride
+
+    # Initialize metric function and metric function
+    metric_fn = Criterion(metric_name)
+
+    # Select prediction data based on availability
+    if self.test_prediction_data is not None:
+      prediction_data = self.test_prediction_data
+    elif self.val_prediction_data is not None:
+      prediction_data = self.val_prediction_data
+    else:
+      prediction_data = self.train_prediction_data
+
+    if not isinstance(prediction_data, list):
+      prediction_data = [prediction_data]
+
+    self.evaluation_data = []
+
+    # Iterate through prediction data
+    for data_idx in range(len(prediction_data)):
+
+      time = prediction_data[data_idx][time_name]
+
+      self.evaluation_data.append({})
+
+      self.evaluation_data[data_idx][time_name] = time
+
+      for name in self.trainer.datamodule.output_names:
+
+        target = prediction_data[data_idx][f"{name}_target"]
+        prediction = prediction_data[data_idx][f"{name}_prediction"]
+
+        # Calculate metric
+        step_metric = metric_fn(target, prediction)
+        global_metric = step_metric.mean(0)
+        stride_metric, stride_time = [], []
+
+        self.evaluation_data[data_idx][f"{name}_step_{metric_name}"] = step_metric
+        self.evaluation_data[data_idx][f"{name}_global_{metric_name}"] = global_metric
+
+        # Calculate metric over strides
+        for i in range(stride, step_metric.shape[0] + 1, stride):
+            stride_time.append(time[(i - stride):i])
+            stride_metric.append(step_metric[(i - stride):i].mean(0))
+
+        self.evaluation_data[data_idx][f"{name}_stride_{metric_name}"] = torch.cat(stride_metric, 0)
+
+      self.evaluation_data[data_idx][f"stride_{self.trainer.datamodule.time_name}"] = stride_time
+
+    # If there's only one dataset, convert to a single dictionary
+    if len(self.evaluation_data) == 1:
+      self.evaluation_data = self.evaluation_data[0]
+  ##
+
+  ## 
+  def plot_evaluation(self, 
+                    index = 'step',
+                    density = True,
+                    num_bins = None,
+                    figsize = None):
+
+    evaluation_data = self.evaluation_data
+    output_feature_names = self.trainer.datamodule.output_feature_names
+    output_feature_size = self.trainer.datamodule.output_feature_size
+    num_output_features = len(output_feature_names)
+    time_name = self.trainer.datamodule.time_name
+
+    figsize = figsize or (20, 5*num_output_features)
+    num_bins = num_bins or 20
+
+    step_time = evaluation_data[time_name]
+
+    fig, ax = plt.subplots(num_output_features, 2, figsize = figsize)
+
+    if index == 'stride':
+
+      stride_time = evaluation_data[f"stride_{time_name}"]
+      
+      num_bins = num_bins or 20
+
+      for i in range(num_output_features):
+        
+        stride_metric_i = evaluation_data[f"{output_feature_names[i]}_stride_{self.eval_metric}"].cpu()
+        
+        if num_output_features > 1:
+          ax0_i, ax1_i = ax[i,0], ax[i,1]
+        else:
+          ax0_i, ax1_i = ax[0], ax[1]
+        
+        for j,t in enumerate(stride_time):            
+          ax0_i.plot(t, stride_metric_i[j].repeat(len(t)), '-b') 
+          
+        ax0_i.set_title(f"Stride-wise {self.eval_metric.upper()}")
+        ax0_i.set_xlabel(time_name)
+        ax0_i.grid()
+
+        ax1_i.hist(stride_metric_i, bins = num_bins, edgecolor = 'k', alpha = 0.7, density = density)
+        ax1_i.set_xlabel(self.eval_metric.upper())
+        ax1_i.set_ylabel('Frequency' if density else 'Count')
+        ax1_i.grid()
+
+    else:
+
+      for i in range(num_output_features):
+
+        step_metric_i = evaluation_data[f"{output_feature_names[i]}_step_{self.eval_metric}"].cpu().squeeze()
+
+        if num_output_features > 1:
+          ax0_i, ax1_i = ax[i,0], ax[i,1]
+        else:
+          ax0_i, ax1_i = ax[0], ax[1]
+
+        ax0_i.plot(step_time, step_metric_i, '-.b')
+        ax0_i.set_title(f"Step-wise {self.eval_metric.upper()}")
+        ax0_i.set_xlabel(time_name)
+
+        ax0_i.grid()
+
+        ax1_i.hist(step_metric_i, bins = num_bins, edgecolor = 'k', alpha = 0.7, density = density)
+        ax1_i.set_xlabel(self.eval_metric.upper())
+        ax1_i.set_ylabel('Frequency' if density else 'Count')
+        ax1_i.grid()
+
+    fig.tight_layout()
+  ##
 
   ## forecast
   def forecast(self,
-               num_forecast_steps, 
+               num_forecast_steps,
                id = None,
                hiddens = None,
                invert = True,
                eval = False):
-    
+
     data, transforms = self.trainer.datamodule.data, self.trainer.datamodule.transforms
-    if not isinstance(data, list): 
+    if not isinstance(data, list):
       data = [data]
       transforms = [transforms]
-    
+
     id = id or data[0]['id']
-      
+
     idx = [idx for idx,data_ in enumerate(data) if data_['id'] == id][0]
-    
+
     data, transforms = data[idx], transforms[idx]
-    
+
     # Fetch relevant names and sizes from the datamodule
     time_name = self.trainer.datamodule.time_name
     input_names = self.trainer.datamodule.input_names
@@ -1281,7 +1377,7 @@ class SequenceModule(pl.LightningModule):
     output_feature_size = self.trainer.datamodule.output_feature_size
 
     # Move the model to the appropriate device and data type
-    self.model.to(device = self.trainer.datamodule.device, 
+    self.model.to(device = self.trainer.datamodule.device,
                       dtype = self.trainer.datamodule.dtype)
 
     if hasattr(self.trainer.datamodule,'test_data'):
@@ -1341,21 +1437,21 @@ class SequenceModule(pl.LightningModule):
     if steps is not None:
       min_step, max_step = steps.min().item(), steps.max().item()
 
-    if not eval: 
+    if not eval:
       input = torch.cat([data[name] for name in input_names], -1)[-max_input_len:].reshape(1, max_input_len, total_input_size)
       steps = data['steps'][-max_input_len:].reshape(1, max_input_len)
       num_samples = 1
-      
+
     with torch.no_grad():
-      
+
       # Initialize forecast tensors
       forecast = torch.empty((num_samples, 0, total_output_size)).to(device = self.model.device,
                                                                       dtype = self.model.dtype)
       forecast_steps = torch.empty((num_samples, 0)).to(device = self.model.device,
                                                         dtype = torch.long)
-      
+
       # Generate forecast steps
-      while forecast.shape[1] < num_forecast_steps: # (max_output_len + num_forecast_steps):  
+      while forecast.shape[1] < num_forecast_steps: # (max_output_len + num_forecast_steps):
         # Generate prediction for the next forecast step
         prediction, hiddens = self.forward(input = input,
                                            steps = steps,
@@ -1365,7 +1461,7 @@ class SequenceModule(pl.LightningModule):
                                            output_mask = output_mask,
                                            output_input_idx = output_input_idx,
                                            input_output_idx = input_output_idx)
-        
+
         # Create input for the next forecast step
         input_ = torch.zeros((num_samples, max_output_len, total_input_size)).to(input)
         if len(output_input_idx) > 0:
@@ -1373,7 +1469,7 @@ class SequenceModule(pl.LightningModule):
 
         # Concatenate input for the next forecast step
         input = torch.cat((input[:, max_output_len:], input_), 1)
-        
+
         # Append prediction to forecast
         forecast = torch.cat((forecast, prediction[:, -max_output_len:]), 1)
         if steps is not None:
@@ -1386,12 +1482,12 @@ class SequenceModule(pl.LightningModule):
     forecast_target = None
 
     # Handle forecast target if forecast is in evaluation mode
-    if eval: 
+    if eval:
 
       target = torch.cat([data[name] for name in output_names], -1)
       time = data[time_name]
       start_step = self.trainer.datamodule.start_step
-      
+
       forecast_steps -= start_step
 
       idx = (forecast_steps <= max_step).all(dim=1)
@@ -1399,22 +1495,22 @@ class SequenceModule(pl.LightningModule):
       forecast = forecast[idx].reshape(len(idx), -1, total_output_size)
 
       forecast_steps = forecast_steps[idx].reshape(len(idx), -1)
-      
+
       forecast_target = target[forecast_steps - start_step] # target[idx].reshape(len(idx), -1, total_output_size) #
-      
+
       # Convert steps to forecasted time
       forecast_time = []
       for steps_ in forecast_steps:
         forecast_time.append(time.iloc[(steps_ - start_step).cpu().numpy()] if isinstance(time, pd.Series) else time[(steps_ - start_step).cpu().numpy()])
-      
+
     else:
 
       start_time = data[time_name].max() + self.trainer.datamodule.dt
 
-      forecast_time = pd.Series([start_time + n * self.trainer.datamodule.dt for n in range(num_forecast_steps)]) 
+      forecast_time = pd.Series([start_time + n * self.trainer.datamodule.dt for n in range(num_forecast_steps)])
       if data[time_name].dt.tz is not None:
-        forecast_time = forecast_time.tz_localize(data[time_name].dt.tz)    
-      
+        forecast_time = forecast_time.tz_localize(data[time_name].dt.tz)
+
     # Reduce forecast if required
     if invert:
       j = 0
@@ -1470,7 +1566,7 @@ class SequenceModule(pl.LightningModule):
     output_names = self.trainer.datamodule.output_names
     output_feature_names = self.trainer.datamodule.output_feature_names
     output_feature_size = self.trainer.datamodule.output_feature_size
-  
+
     self.backtest_data = []
 
     for id in np.unique(ids):
@@ -1480,15 +1576,15 @@ class SequenceModule(pl.LightningModule):
       id_idx = torch.tensor(np.where(ids == id)[0]).to(device=input.device, dtype=torch.long)
 
       hiddens_id = hiddens[-1]
-      
-      forecast_id, forecast_time_id, forecast_target_id = self.forecast(num_forecast_steps, 
+
+      forecast_id, forecast_time_id, forecast_target_id = self.forecast(num_forecast_steps,
                                                                         id = id,
                                                                         hiddens = hiddens_id,
                                                                         invert = invert,
                                                                         eval = True)
 
       forecast_id, forecast_time_id, forecast_target_id = forecast_id[::stride], forecast_time_id[::stride], forecast_target_id[::stride]
-      
+
       self.backtest_data[-1][time_name] = forecast_time_id
 
       j = 0
@@ -1648,16 +1744,21 @@ class SequenceModule(pl.LightningModule):
 
         j += self.model.output_size[i]
 
-    # Optionally invert the reduced output using data scalers
+    # Optionally invert the reduced output using data scalers    
     if transforms is not None:
       j = 0
-      for i, name in enumerate(self.trainer.datamodule.output_names):
-          if output_feature_names is not None:
-              f = 0
-              for k, feature_name in enumerate(output_feature_names):
-                  output_reduced[:, f:(f + output_feature_size[k])] = transforms[feature_name].inverse_transform(output_reduced[:, f:(f + output_feature_size[k])])
-          else:
-              output_reduced[:, j:(j + self.model.output_size[i])] = transforms[name].inverse_transform(output_reduced[:, j:(j + self.model.output_size[i])])
+      for i, feature_name in enumerate(self.trainer.datamodule.output_feature_names):
+        output_reduced[:, j:(j + output_feature_size[i])] = transforms[feature_name].inverse_transform(output_reduced[:, j:(j + output_feature_size[i])])
+        j += output_feature_size[i]
+
+      # j = 0
+      # for i, name in enumerate(self.trainer.datamodule.output_names):
+      #     if output_feature_names is not None:
+      #         f = 0
+      #         for k, feature_name in enumerate(output_feature_names):
+      #           output_reduced[:, f:(f + output_feature_size[k])] = transforms[feature_name].inverse_transform(output_reduced[:, f:(f + output_feature_size[k])])
+      #     else:
+      #         output_reduced[:, j:(j + self.model.output_size[i])] = transforms[name].inverse_transform(output_reduced[:, j:(j + self.model.output_size[i])])
 
     # Return the reduced output and unique output steps
     return output_reduced, unique_output_steps
