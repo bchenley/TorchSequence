@@ -939,6 +939,8 @@ class SequenceModule(pl.LightningModule):
         None
     """
 
+    self.eval_loss, self.eval_metric = loss, metric
+    
     # Move the model to GPU if applicable
     if self.accelerator == 'gpu':
       self.model.to('cuda')
