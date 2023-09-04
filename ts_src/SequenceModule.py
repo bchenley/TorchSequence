@@ -927,36 +927,32 @@ class SequenceModule(pl.LightningModule):
     self.trainer.datamodule.predicting = False
 
   ##
-  def evaluate_model(self, loss='mse', metric=None):
+  def evaluate_model(self, metric):
     """
     Evaluate the model's performance using specified loss and metric on test, validation, or training data.
 
     Args:
-        loss (str): Loss function to evaluate ('mse', 'mae', etc.).
-        metric (str): Metric function to evaluate (optional).
-
+        metric (str): function to evaluate ('mse', 'mae', etc.).
+        
     Returns:
         None
     """
 
-    self.eval_loss, self.eval_metric = loss, metric
+    self.eval_metric = metric
     
     # Move the model to GPU if applicable
     if self.accelerator == 'gpu':
       self.model.to('cuda')
 
-    loss_name, metric_name = loss, metric
+    metric_name = metric
 
     time_name = self.trainer.datamodule.time_name
     
     stride = self.trainer.datamodule.stride
 
-    # Initialize loss function and metric function
-    loss_fn = Criterion(loss_name)
-    metric_fn = None
-    if metric_name is not None:
-      metric_fn = Criterion(metric_name, 0 if metric_name == 'fb' else None)
-
+    # Initialize metric function and metric function
+    metric_fn = Criterion(metric_name)    
+    
     # Select prediction data based on availability
     if self.test_prediction_data is not None:
       prediction_data = self.test_prediction_data
@@ -984,49 +980,26 @@ class SequenceModule(pl.LightningModule):
         target = prediction_data[data_idx][f"{name}_target"]
         prediction = prediction_data[data_idx][f"{name}_prediction"]
         
-        # Calculate loss
-        step_loss = loss_fn(target, prediction)
-        global_loss = step_loss.mean(0)
-        stride_loss, stride_time = [], []
-
-        self.evaluation_data[data_idx][f"{name}_step_{loss_name}"] = step_loss
-        self.evaluation_data[data_idx][f"{name}_global_{loss_name}"] = global_loss
-
-        # Calculate loss over strides
-        for i in range(stride, step_loss.shape[0] + 1, stride):
-            stride_time.append(time[(i - stride):i])
-            stride_loss.append(step_loss[(i - stride):i].mean(0))
-
-        self.evaluation_data[data_idx][f"{name}_stride_{loss_name}"] = torch.cat(stride_loss, 0)
-
-      self.evaluation_data[data_idx][f"stride_{self.trainer.datamodule.time_name}"] = stride_time
-      
-      # Calculate metric if available
-      if metric_fn is not None:
-        if metric_fn.dims is None:
-          step_metric = metric_fn(target, prediction)
-          global_metric = step_metric.mean(0)
-          stride_metric, stride_time = [], []
-
-          for i in range(stride, step_metric.shape[0] + 1, stride):
-            stride_metric.append(step_metric[(i - stride):i].mean(0))
-
-        else:
-          step_metric = None
-          global_metric = metric_fn(target, prediction)
-
-          stride_metric = []
-          for i in range(stride, target.shape[0] + 1, stride):
-            stride_metric.append(metric_fn(target[(i - stride):i], prediction[(i - stride):i]).reshape(-1, target.shape[-1]))
+        # Calculate metric
+        step_metric = metric_fn(target, prediction)
+        global_metric = step_metric.mean(0)
+        stride_metric, stride_time = [], []
 
         self.evaluation_data[data_idx][f"{name}_step_{metric_name}"] = step_metric
         self.evaluation_data[data_idx][f"{name}_global_{metric_name}"] = global_metric
+
+        # Calculate metric over strides
+        for i in range(stride, step_metric.shape[0] + 1, stride):
+            stride_time.append(time[(i - stride):i])
+            stride_metric.append(step_metric[(i - stride):i].mean(0))
+
         self.evaluation_data[data_idx][f"{name}_stride_{metric_name}"] = torch.cat(stride_metric, 0)
 
+      self.evaluation_data[data_idx][f"stride_{self.trainer.datamodule.time_name}"] = stride_time
+      
     # If there's only one dataset, convert to a single dictionary
     if len(self.evaluation_data) == 1:
       self.evaluation_data = self.evaluation_data[0]
-
   ##
 
   ##
