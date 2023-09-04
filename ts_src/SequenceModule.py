@@ -993,6 +993,8 @@ class SequenceModule(pl.LightningModule):
 
         self.evaluation_data[data_idx][f"{name}_stride_{loss_name}"] = torch.cat(stride_loss, 0)
 
+      self.evaluation_data[data_idx][f"stride_{self.trainer.datamodule.time_name}"] = stride_time
+      
       # Calculate metric if available
       if metric_fn is not None:
         if metric_fn.dims is None:
@@ -1014,8 +1016,6 @@ class SequenceModule(pl.LightningModule):
         self.evaluation_data[data_idx][f"{name}_step_{metric_name}"] = step_metric
         self.evaluation_data[data_idx][f"{name}_global_{metric_name}"] = global_metric
         self.evaluation_data[data_idx][f"{name}_stride_{metric_name}"] = torch.cat(stride_metric, 0)
-
-      self.evaluation_data[data_idx][f"stride_{self.trainer.datamodule.time_name}"] = stride_time
 
     # If there's only one dataset, convert to a single dictionary
     if len(self.evaluation_data) == 1:
