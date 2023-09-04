@@ -528,7 +528,7 @@ class SequenceModule(pl.LightningModule):
     for param in history:
       last_metric = None
       if (self.loss_fn.name in param) | (self.metric_fn.name in param):
-        last_metric = np.round(param[-1].tolist(), metric_digits)
+        last_metric = np.round(train_history[param][-1].tolist(), metric_digits)
         
       ax_i += 1
       ax = fig.add_subplot(num_params, 1, ax_i)
