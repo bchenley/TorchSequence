@@ -970,14 +970,16 @@ class SequenceModule(pl.LightningModule):
     for data_idx in range(len(prediction_data)):
 
       time = prediction_data[data_idx][self.trainer.datamodule.time_name]
-
+      
       self.evaluation_data.append({})
 
+      self.evaluation_data[data_idx][time_name] = time
+      
       for name in self.trainer.datamodule.output_names:
-
+        
         target = prediction_data[data_idx][f"{name}_target"]
         prediction = prediction_data[data_idx][f"{name}_prediction"]
-
+        
         # Calculate loss
         step_loss = loss_fn(target, prediction)
         global_loss = step_loss.mean(0)
