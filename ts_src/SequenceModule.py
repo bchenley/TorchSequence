@@ -945,6 +945,8 @@ class SequenceModule(pl.LightningModule):
 
     loss_name, metric_name = loss, metric
 
+    time_name = self.trainer.datamodule.time_name
+    
     stride = self.trainer.datamodule.stride
 
     # Initialize loss function and metric function
@@ -969,7 +971,7 @@ class SequenceModule(pl.LightningModule):
     # Iterate through prediction data
     for data_idx in range(len(prediction_data)):
 
-      time = prediction_data[data_idx][self.trainer.datamodule.time_name]
+      time = prediction_data[data_idx][time_name]
       
       self.evaluation_data.append({})
 
