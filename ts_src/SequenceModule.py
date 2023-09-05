@@ -1199,7 +1199,7 @@ class SequenceModule(pl.LightningModule):
     self.actual_prediction_ax = ax
     self.actual_prediction_plot = plt.gcf()
 
-    return fig
+    # return fig
   ##
   
   ##
@@ -1398,7 +1398,7 @@ class SequenceModule(pl.LightningModule):
 
   ## forecast
   def forecast(self,
-               num_forecast_steps,
+               num_forecast_steps = None,
                id = None,
                hiddens = None,
                invert = True,
@@ -1426,78 +1426,87 @@ class SequenceModule(pl.LightningModule):
     self.model.to(device = self.trainer.datamodule.device,
                       dtype = self.trainer.datamodule.dtype)
 
-    if hasattr(self.trainer.datamodule,'test_data'):
-      if not hasattr(self.trainer.datamodule,'test_dl'):
-        self.trainer.datamodule.predicting = True
-        self.trainer.datamodule.test_dataloader() ;
-        self.trainer.datamodule.predicting = False
-      dl = self.trainer.datamodule.test_dl
-    elif hasattr(self.trainer.datamodule, 'val_data'):
-      if not hasattr(self.trainer.datamodule,'val_dl'):
-        self.trainer.datamodule.val_dataloader() ;
-      dl = self.trainer.datamodule.val_dl
-    else:
-      dl = self.trainer.datamodule.train_dl
-
-    input, steps, ids = [], [], []
-    for batch in dl.dl:
-      input.append(batch[0][:batch[3]])
-      steps.append(batch[2][:batch[3]])
-      ids.append(batch[4])
-
-    input = torch.cat(input, 0)
-    steps = torch.cat(steps, 0)
-    ids = np.concatenate(ids).tolist()
-
-    # Handle batch shuffle index
-    if dl.batch_shuffle_idx is not None:
-      input = input[dl.batch_shuffle_idx.argsort()]
-      steps = steps[dl.batch_shuffle_idx.argsort()]
-      ids = [ids[sort_idx] for sort_idx in dl.batch_shuffle_idx.argsort().tolist()]
-
-    id_idx = torch.tensor([id_idx for id_idx,id_ in enumerate(ids) if id_ == id]).to(device = input.device, dtype = torch.long)
-
-    input = input[id_idx].reshape(len(id_idx), input.shape[1], input.shape[2])
-    steps = steps[id_idx].reshape(len(id_idx), steps.shape[1])
-    ids = [ids[id_idx_item] for id_idx_item in id_idx.tolist()]
-
     # Extract various indices and values
     input_window_idx = self.trainer.datamodule.train_input_window_idx
     output_window_idx = self.trainer.datamodule.train_output_window_idx
-    max_input_len = self.trainer.datamodule.train_max_input_len
-    max_output_len = self.trainer.datamodule.train_max_output_len
+    total_window_size = self.trainer.datamodule.train_dl.total_window_size
+    # max_input_len = self.trainer.datamodule.train_max_input_len
+    # max_output_len = self.trainer.datamodule.train_max_output_len
+    total_input_len = len(torch.cat(input_window_idx).unique())
+    total_output_len = len(torch.cat(output_window_idx).unique())
     total_input_size = sum(self.trainer.datamodule.input_size)
-    total_output_size = sum(self.trainer.datamodule.output_size)
+    output_size = self.trainer.datamodule.output_size
+    total_output_size = sum(output_size)
     output_mask = self.trainer.datamodule.train_output_mask
     output_input_idx, input_output_idx = self.trainer.datamodule.output_input_idx, self.trainer.datamodule.input_output_idx
 
+    num_forecast_steps = num_forecast_steps or total_output_len
+    
     max_input_window_idx = np.max([idx.max().cpu() for idx in input_window_idx])
     max_output_window_idx = np.max([idx.max().cpu() for idx in output_window_idx])
 
     # Calculate forecast length
     forecast_len = np.max([1, max_output_window_idx - max_input_window_idx])
 
-    num_samples = input.shape[0]
+    if eval:
+      if hasattr(self.trainer.datamodule,'test_data'):
+        if not hasattr(self.trainer.datamodule,'test_dl'):
+          self.trainer.datamodule.predicting = True
+          self.trainer.datamodule.test_dataloader() ;
+          self.trainer.datamodule.predicting = False
+        dl = self.trainer.datamodule.test_dl
+      elif hasattr(self.trainer.datamodule, 'val_data'):
+        if not hasattr(self.trainer.datamodule,'val_dl'):
+          self.trainer.datamodule.val_dataloader() ;
+        dl = self.trainer.datamodule.val_dl
+      else:
+        dl = self.trainer.datamodule.train_dl
 
-    min_step, max_step = [], []
-    if steps is not None:
-      min_step, max_step = steps.min().item(), steps.max().item()
+      input, steps, ids = [], [], []
+      for batch in dl.dl:
+        input.append(batch[0][:batch[3]])
+        steps.append(batch[2][:batch[3]])
+        ids.append(batch[4])
 
-    if not eval:
-      input = torch.cat([data[name] for name in input_names], -1)[-max_input_len:].reshape(1, max_input_len, total_input_size)
-      steps = data['steps'][-max_input_len:].reshape(1, max_input_len)
+      input = torch.cat(input, 0)
+      steps = torch.cat(steps, 0)
+      ids = np.concatenate(ids).tolist()
+
+      # Handle batch shuffle index
+      if dl.batch_shuffle_idx is not None:
+        input = input[dl.batch_shuffle_idx.argsort()]
+        steps = steps[dl.batch_shuffle_idx.argsort()]
+        ids = [ids[sort_idx] for sort_idx in dl.batch_shuffle_idx.argsort().tolist()]
+
+      id_idx = torch.tensor([id_idx for id_idx,id_ in enumerate(ids) if id_ == id]).to(device = input.device, dtype = torch.long)
+
+      input = input[id_idx].reshape(len(id_idx), input.shape[1], input.shape[2])
+      steps = steps[id_idx].reshape(len(id_idx), steps.shape[1])
+      ids = [ids[id_idx_item] for id_idx_item in id_idx.tolist()]
+
+      min_step, max_step = [], []
+      if steps is not None:
+        min_step, max_step = steps.min().item(), steps.max().item()
+
+    else:
+
+      input = torch.cat([data[name] for name in input_names], -1)[-total_input_len:].reshape(1, total_input_len, total_input_size)
+      steps = data['steps'][-total_input_len:].reshape(1, total_input_len)
+      steps  = torch.cat((steps, steps.max()+torch.arange(1,total_window_size-total_input_len+1).reshape(1,-1).to(steps)), 1)
       num_samples = 1
+    
+    num_samples = input.shape[0]
 
     with torch.no_grad():
 
       # Initialize forecast tensors
       forecast = torch.empty((num_samples, 0, total_output_size)).to(device = self.model.device,
-                                                                      dtype = self.model.dtype)
+                                                                     dtype = self.model.dtype)
       forecast_steps = torch.empty((num_samples, 0)).to(device = self.model.device,
                                                         dtype = torch.long)
 
       # Generate forecast steps
-      while forecast.shape[1] < num_forecast_steps: # (max_output_len + num_forecast_steps):
+      while forecast.shape[1] < num_forecast_steps: # (total_output_len + num_forecast_steps):
         # Generate prediction for the next forecast step
         prediction, hiddens = self.forward(input = input,
                                            steps = steps,
@@ -1509,18 +1518,18 @@ class SequenceModule(pl.LightningModule):
                                            input_output_idx = input_output_idx)
 
         # Create input for the next forecast step
-        input_ = torch.zeros((num_samples, max_output_len, total_input_size)).to(input)
+        input_ = torch.zeros((num_samples, total_output_len, total_input_size)).to(input)
         if len(output_input_idx) > 0:
-          input_[:, :, output_input_idx] = prediction[:, -max_output_len:, input_output_idx]
+          input_[:, :, output_input_idx] = prediction[:, -total_output_len:, input_output_idx]
 
         # Concatenate input for the next forecast step
-        input = torch.cat((input[:, max_output_len:], input_), 1)
+        input = torch.cat((input[:, total_output_len:], input_), 1)
 
         # Append prediction to forecast
-        forecast = torch.cat((forecast, prediction[:, -max_output_len:]), 1)
+        forecast = torch.cat((forecast, prediction[:, -total_output_len:]), 1)
         if steps is not None:
-          forecast_steps = torch.cat((forecast_steps, steps[:, -max_output_len:]), 1)
-          steps += max_output_len
+          forecast_steps = torch.cat((forecast_steps, steps[:, -total_output_len:]), 1)
+          steps += total_output_len
 
       # Extract the relevant portion of the forecast
       forecast, forecast_steps = forecast[:, -num_forecast_steps:], forecast_steps[:, -num_forecast_steps:]
@@ -1573,14 +1582,91 @@ class SequenceModule(pl.LightningModule):
               forecast_target[sample_idx, :, j:(j+self.model.output_size[i])] = transforms[name].inverse_transform(forecast_target[sample_idx, :, j:(j+self.model.output_size[i])])
             forecast[sample_idx, :, j:(j+self.model.output_size[i])] = transforms[name].inverse_transform(forecast[sample_idx, :, j:(j+self.model.output_size[i])])
 
-    if not eval: forecast = forecast[0]
+    if not eval:
+      forecast, forecast_time = forecast[0], forecast_time
+      
+      self.forecast_data = {'id': id,
+                            time_name: forecast_time}
 
-    return forecast, forecast_time, forecast_target
+      j = 0
+      for i, output_name in enumerate(output_names):        
+        self.forecast_data[f"{output_name}"] = forecast[:, j:(j+output_size[i])]
+        j += output_size[i]
+    else:
+      return forecast, forecast_time, forecast_target
+  ##
+
+  ##
+  def plot_forecast(self, 
+                    figsize = None):
+
+    id = self.forecast_data['id']
+    
+    data = self.trainer.datamodule.data
+    if not isinstance(data, list):
+      data = [data]
+
+    idx = [idx for idx,data_ in enumerate(data) if data_['id'] == id][0]  
+    data = data[idx]
+
+    time_name = self.trainer.datamodule.time_name
+    time_unit = self.trainer.datamodule.time_unit
+    input_names = self.trainer.datamodule.input_names
+    output_names = self.trainer.datamodule.output_names
+    output_feature_names = self.trainer.datamodule.output_feature_names
+    output_feature_size = self.trainer.datamodule.output_feature_size
+    num_outputs = len(output_names)
+    
+    transforms = self.trainer.datamodule.transforms
+
+    input_window_idx = self.trainer.datamodule.train_input_window_idx
+    output_window_idx = self.trainer.datamodule.train_output_window_idx
+    total_input_len = len(torch.cat(input_window_idx).unique())
+    total_output_len = len(torch.cat(output_window_idx).unique())
+
+    forecast_time = self.forecast_data[time_name]
+
+    figsize = figsize or (10, 5*num_outputs)
+    fig, ax = plt.subplots(num_outputs, 1, figsize = figsize)
+
+    time = pd.concat([data[time_name][-total_output_len:], forecast_time])
+
+    for i in range(num_outputs):
+      ax_i = ax[i] if num_outputs > 1 else ax
+
+      output_i = torch.cat((transforms[output_names[i]].inverse_transform(data[output_names[i]])[-total_output_len:],
+                            self.forecast_data[f"{output_names[i]}"]), 0)
+
+      ax_i.plot(time, output_i, '-*')
+      ax_i.grid()
+      
+      ax_i.axvspan(forecast_time.values.min(), forecast_time.values.max(), 
+                   facecolor='black', alpha=0.1, label = 'Forecast')
+      
+      # Customize x-axis based on time unit
+      if hasattr(time, "dt"):
+        if time_unit == "S":
+          ax_i.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
+          ax_i.xaxis.set_major_locator(mdates.SecondLocator(interval=int(self.trainer.datamodule.dt.seconds)))
+        elif time_unit == "M":
+          ax_i.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
+          ax_i.xaxis.set_major_locator(mdates.MinuteLocator(interval=int(self.trainer.datamodule.dt.seconds/60)))
+        elif time_unit == "H":
+          ax_i.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+          ax_i.xaxis.set_major_locator(mdates.HourLocator(interval=int(self.trainer.datamodule.dt.seconds/3600)))
+        elif time_unit == "d":
+          ax_i.xaxis.set_major_formatter(mdates.DateFormatter("%d"))
+          ax_i.xaxis.set_major_locator(mdates.DayLocator(interval=int(self.trainer.datamodule.dt.seconds/(3600*24))))
+
+      ax_i.legend(loc = 'upper left', bbox_to_anchor = (1.02, 1), ncol = 1)
+      ax_i.set_xlabel(f"Time [{time_unit}]")
+      ax_i.set_ylabel(output_names[i])
+      
+    fig.tight_layout()
   ##
 
   ##
   def backtest(self,
-               num_backtests = 1,
                num_forecast_steps = None,
                ids = None,
                stride = 1,
@@ -1590,7 +1676,6 @@ class SequenceModule(pl.LightningModule):
 
     Args:
         ids (list or None): List of IDs to perform backtesting on. If None, backtesting is performed on all available IDs.
-        num_backtests (int): Number of backtests to perform.
         num_forecast_steps (int): Number of forecast steps to predict.
         stride (int): Step size for sampling the input data.
         hiddens (list or None): List of hidden states.
@@ -1599,8 +1684,6 @@ class SequenceModule(pl.LightningModule):
     Returns:
         None
     """
-
-    self.num_backtests = num_backtests
 
     if self.accelerator == 'gpu':
       self.model.to('cuda')
@@ -1650,12 +1733,12 @@ class SequenceModule(pl.LightningModule):
 
         j += self.trainer.datamodule.output_size[i]
 
-      if self.trainer.datamodule.num_datasets == 1:
-        self.backtest_data = self.backtest_data[0]
+    if self.trainer.datamodule.num_datasets == 1:
+      self.backtest_data = self.backtest_data[0]
   ##
 
   ##
-  def plot_backtest(self, id = None):
+  def plot_backtest(self, id = None, figsize = None, num_backtests = 1):
     """
     Plot the backtest results for a specific ID.
 
@@ -1665,6 +1748,8 @@ class SequenceModule(pl.LightningModule):
     Returns:
         matplotlib.figure.Figure: The generated matplotlib figure.
     """
+
+    self.num_backtests = num_backtests
 
     # Ensure backtest_data is a list
     backtest_data = self.backtest_data
@@ -1683,53 +1768,64 @@ class SequenceModule(pl.LightningModule):
     # Extract the backtest data for the specified ID
     backtest_data = backtest_data[data_idx]
 
+    figsize = figsize or (7 * num_backtests, 5 * self.model.num_outputs)
+    
     # Create a matplotlib figure with subplots
     fig, ax = plt.subplots(self.trainer.datamodule.num_outputs,
-                           self.num_backtests,
-                           figsize=(10 * self.num_backtests, 10 * self.model.num_outputs))
+                           num_backtests,
+                           figsize=figsize)
 
     # Extract forecast time data
     forecast_time = backtest_data[time_name]
-
+    
     # Iterate through each output and backtest step
     for i in range(self.trainer.datamodule.num_outputs):
       for j, (time_i, target_i, prediction_i) in enumerate(zip(forecast_time,
-                                                                backtest_data[f"{output_names[i]}_target"][-self.num_backtests:].cpu(),
-                                                                backtest_data[f"{output_names[i]}_prediction"][-self.num_backtests:].cpu())):
+                                                                backtest_data[f"{output_names[i]}_target"][-num_backtests:].cpu(),
+                                                                backtest_data[f"{output_names[i]}_prediction"][-num_backtests:].cpu())):
           ax_ji = (ax[i, j]
                   if self.model.num_outputs > 1
                   else ax[j]
-                  if self.num_backtests > 1
+                  if num_backtests > 1
                   else ax)
 
           # Plot time series data
           ax_ji.plot(time_i, target_i, "k", label="Target")
           ax_ji.plot(time_i, prediction_i, "r", label="Prediction")
 
-          # # Customize x-axis based on time unit
-          # if hasattr(time_i, "dt"):
-          #   if self.trainer.datamodule.time_unit == "S":
-          #     ax_ji.xaxis.set_major_formatter(mdates.DateFormatter("%S"))
-          #     ax_ji.xaxis.set_major_locator(mdates.SecondLocator(interval=int(self.trainer.datamodule.dt.seconds)))
-          #   elif self.trainer.datamodule.time_unit == "M":
-          #     ax_ji.xaxis.set_major_formatter(mdates.DateFormatter("%M"))
-          #     ax_ji.xaxis.set_major_locator(mdates.MinuteLocator(interval=int(self.trainer.datamodule.dt.seconds/60)))
-          #   elif self.trainer.datamodule.time_unit == "H":
-          #     ax_ji.xaxis.set_major_formatter(mdates.DateFormatter("%H"))
-          #     ax_ji.xaxis.set_major_locator(mdates.HourLocator(interval=int(self.trainer.datamodule.dt.seconds/3600)))
-          #   elif self.trainer.datamodule.time_unit == "d":
-          #     ax_ji.xaxis.set_major_formatter(mdates.DateFormatter("%d"))
-          #     ax_ji.xaxis.set_major_locator(mdates.DayLocator(interval=int(self.trainer.datamodule.dt.seconds/(3600*24))))
+          # Customize x-axis based on time unit
+          if hasattr(time_i, "dt"):
+            if self.trainer.datamodule.time_unit == "S":
+              ax_ji.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
+              ax_ji.xaxis.set_major_locator(mdates.SecondLocator(interval=int(self.trainer.datamodule.dt.seconds)))
+            elif self.trainer.datamodule.time_unit == "M":
+              ax_ji.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
+              ax_ji.xaxis.set_major_locator(mdates.MinuteLocator(interval=int(self.trainer.datamodule.dt.seconds/60)))
+            elif self.trainer.datamodule.time_unit == "H":
+              ax_ji.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+              ax_ji.xaxis.set_major_locator(mdates.HourLocator(interval=int(self.trainer.datamodule.dt.seconds/3600)))
+            elif self.trainer.datamodule.time_unit == "d":
+              ax_ji.xaxis.set_major_formatter(mdates.DateFormatter("%d"))
+              ax_ji.xaxis.set_major_locator(mdates.DayLocator(interval=int(self.trainer.datamodule.dt.seconds/(3600*24))))
 
+          loss_ji = self.backtest_data[f"{output_names[i]}_{self.loss_fn.name}"][j].cpu().item()
+
+          metric_ji = None
+          if self.metric_fn is not None:
+            metric_ji = self.backtest_data[f"{output_names[i]}_{self.metric_fn.name}"][j].cpu().item()
+            
           # Set grid and labels
           ax_ji.grid()
+          ax_ji.set_title(f"{self.loss_fn.name.upper()} = {np.round(loss_ji, 4)} \
+                            {self.metric_fn.name.upper()} = {np.round(metric_ji, 4)}" if metric_ji is not None
+                             else f"{self.loss_fn.name.upper()} = {np.round(loss_ji, 4)}")
           ax_ji.set_xlabel("Time")
           ax_ji.set_ylabel(output_names[i])
           ax_ji.legend()
 
     plt.tight_layout()
 
-    return fig
+    # return fig
   ##
 
   ##
