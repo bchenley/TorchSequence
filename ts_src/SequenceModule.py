@@ -16,12 +16,12 @@ import pytorch_lightning as pl
 
 class SequenceModule(pl.LightningModule):
   def __init__(self,
-                model,
-                opt, loss_fn, metric_fn=None,
-                constrain=False, penalize=False,
-                teach=False,
-                track_performance=False, track_params=False,
-                model_dir=None):
+               model,
+               opt, loss_fn, metric_fn=None,
+               constrain=False, penalize=False,
+               teach=False,
+               track_performance=False, track_params=False,
+               model_dir=None):
       """
       A PyTorch Lightning module for sequence forecasting.
 
@@ -1350,6 +1350,52 @@ class SequenceModule(pl.LightningModule):
     fig.tight_layout()
   ##
 
+  ##
+  def plot_residuals(self, 
+                     figsize = None,
+                     num_bins = None,
+                     density = True):
+
+    if self.test_prediction_data is not None:
+      prediction_data = self.test_prediction_data
+    elif self.val_prediction_data is not None:
+      prediction_data = self.val_prediction_data
+    else:
+      prediction_data = self.train_prediction_data      
+
+    output_names = self.trainer.datamodule.output_names
+    num_outputs = self.trainer.datamodule.num_outputs
+    time_unit = self.trainer.datamodule.time_unit
+
+    figsize = figsize or (20, 5*num_outputs)
+
+    time = prediction_data[self.trainer.datamodule.time_name]
+
+    num_bins = num_bins or 20
+
+    fig, ax = plt.subplots(num_outputs, 2, figsize = figsize)
+    
+    for i, output_name in enumerate(self.trainer.datamodule.output_names):
+      residual_i = (prediction_data[f"{output_name}_target"] - prediction_data[f"{output_name}_prediction"]).cpu()
+
+      if num_outputs > 1:
+        ax0_i, ax1_i = ax[i,0], ax[i,1]
+      else:
+        ax0_i, ax1_i = ax[0], ax[1]
+
+      ax0_i.plot(time, residual_i, 'k')
+      ax0_i.grid()
+      ax0_i.set_xlabel(f"Time [{time_unit}]")
+      ax0_i.set_ylabel(output_name)
+      
+      ax1_i.hist(residual_i.t(), bins = num_bins, edgecolor = 'k', alpha = 0.7, density = density)
+      ax1_i.set_xlabel('Deviation')
+      ax1_i.set_ylabel('Frequency' if density else 'Count')
+      ax1_i.grid()
+    
+    fig.tight_layout()    
+  ##
+
   ## forecast
   def forecast(self,
                num_forecast_steps,
@@ -1708,7 +1754,7 @@ class SequenceModule(pl.LightningModule):
 
     # Create a tensor to store the reduced output
     output_reduced = torch.zeros((len(unique_output_steps), sum(self.model.output_size))).to(output)
-
+     
     output_names = self.trainer.datamodule.output_feature_names or self.trainer.datamodule.output_names
     output_feature_names = self.trainer.datamodule.output_feature_names
     output_feature_size = self.trainer.datamodule.output_feature_size
