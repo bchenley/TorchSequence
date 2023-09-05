@@ -25,6 +25,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                input_len = [1], output_len = [1], shift = [0], stride = 1,
                dt = None,
                time_unit = 's',
+               input_unit = [None], output_unit = [None],
                pad_data = False,
                shuffle_train_batch = False,
                print_summary = False,
@@ -67,12 +68,14 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
     self.input_names_original, self.output_names_original = self.input_names, self.output_names
 
+    if len(input_unit) == 1:              
+                 
     self.input_output_names = np.unique(self.input_names + self.output_names).tolist()
     self.input_output_names_original = self.input_output_names
 
     if not isinstance(self.dt, timedelta):
       self.dt = timedelta(seconds = self.dt)
-
+      
     if self.transforms is None:
       self.transforms = {'all': FeatureTransform(transform_type = 'identity')}
 
