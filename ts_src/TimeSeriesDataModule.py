@@ -84,8 +84,6 @@ class TimeSeriesDataModule(pl.LightningDataModule):
           
     self.input_names_original, self.output_names_original = self.input_names, self.output_names
 
-    if len(input_unit) == 1:              
-                 
     self.input_output_names = np.unique(self.input_names + self.output_names).tolist()
     self.input_output_names_original = self.input_output_names
 
