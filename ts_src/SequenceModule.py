@@ -1444,7 +1444,7 @@ class SequenceModule(pl.LightningModule):
     
     max_input_window_idx = np.max([idx.max().cpu() for idx in input_window_idx])
     max_output_window_idx = np.max([idx.max().cpu() for idx in output_window_idx])
-
+  
     # Calculate forecast length
     forecast_len = np.max([1, max_output_window_idx - max_input_window_idx])
 
@@ -1542,8 +1542,6 @@ class SequenceModule(pl.LightningModule):
       target = torch.cat([data[name] for name in output_names], -1)
       time = data[time_name]
       start_step = self.trainer.datamodule.start_step
-
-      forecast_steps -= start_step
 
       idx = (forecast_steps <= max_step).all(dim=1)
 
