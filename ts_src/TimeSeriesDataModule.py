@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 import copy
 
 class TimeSeriesDataModule(pl.LightningDataModule):
-
+  
   def __init__(self,
                data,
                time_name, input_names, output_names,
@@ -62,10 +62,26 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     super().__init__()
 
     locals_ = locals().copy()
+
+    num_inputs, num_outputs = len(input_names), len(output_names)
+                 
     for arg in locals_:
       if arg != 'self':
-        setattr(self, arg, locals_[arg].copy() if arg == 'data' else locals_[arg])
+        value = locals_[arg]
 
+        if isinstance(value, list) and ('input_' in arg):
+          if len(value) == 1:
+            setattr(self, arg, value * num_inputs)
+          else:
+            setattr(self, arg, value)
+        elif isinstance(value, list) and ('input_' in arg):
+          if len(value) == 1:
+            setattr(self, arg, value * num_outputs)
+          else:
+            setattr(self, arg, value)
+        else:
+            setattr(self, arg, value)
+          
     self.input_names_original, self.output_names_original = self.input_names, self.output_names
 
     if len(input_unit) == 1:              
