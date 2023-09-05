@@ -1619,7 +1619,7 @@ class SequenceModule(pl.LightningModule):
 
       self.backtest_data.append({'id': id})
 
-      id_idx = torch.tensor(np.where(ids == id)[0]).to(device=input.device, dtype=torch.long)
+      # id_idx = torch.tensor(np.where(ids == id)[0]).to(device=input.device, dtype=torch.long)
 
       hiddens_id = hiddens[-1]
 
