@@ -1,4 +1,4 @@
-print("Initializing FGFSD Repo...")
+print("Initializing Diabetes project...")
 
 import importlib
 
