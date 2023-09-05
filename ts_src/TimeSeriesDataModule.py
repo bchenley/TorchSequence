@@ -68,7 +68,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     for arg in locals_:
       if arg != 'self':
         value = locals_[arg]
-
+        
         if isinstance(value, list) and ('input_' in arg):
           if len(value) == 1:
             setattr(self, arg, value * num_inputs)
@@ -279,13 +279,11 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         j = 0
         input_output_idx = []
         for i, name in enumerate(self.output_names):
-            size_i = (
-                self.output_size[i]
-                if sum(self.output_size) > 0
-                else self.model.hidden_out_features[i]
-                if sum(self.model.hidden_out_features) > 0
-                else self.model.base_hidden_size[i]
-            )
+            size_i = (self.output_size[i]
+                      if sum(self.output_size) > 0
+                      else self.model.hidden_out_features[i]
+                      if sum(self.model.hidden_out_features) > 0
+                      else self.model.base_hidden_size[i])
 
             output_idx = torch.arange(j, (j + size_i)).to(dtype = torch.long)
             if name in self.input_names:
@@ -298,9 +296,9 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
         # If there's only one dataset, consolidate data and transforms
         if self.num_datasets == 1:
-            self.data = self.data[0]
-            self.transforms = self.transforms[0]
-            self.data_len = self.data_len[0]
+          self.data = self.data[0]
+          self.transforms = self.transforms[0]
+          self.data_len = self.data_len[0]
 
         # Mark data as prepared
         self.data_prepared = True
