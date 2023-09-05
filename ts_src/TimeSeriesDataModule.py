@@ -161,12 +161,13 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             data['id'] = self.data[data_idx]['id']
 
             # Process time index and convert it to timedelta
-            time_idx = data[self.time_name]
-            if not isinstance(time_idx, pd.Series):
+            if not isinstance(data[self.time_name], pd.Series):
+              time_idx = data[self.time_name]
+              if not isinstance(time_idx, pd.Series):
                 if isinstance(time_idx, torch.Tensor):
                     time_idx = time_idx.cpu().numpy()
                 data[self.time_name] = pd.Series(time_idx * self.dt)
-
+            
             # Iterate over input and output feature names
             for name in self.input_output_names_original:
                 # Convert non-Tensor data to Tensor
