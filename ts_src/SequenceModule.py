@@ -1629,12 +1629,12 @@ class SequenceModule(pl.LightningModule):
     figsize = figsize or (10, 5*num_outputs)
     fig, ax = plt.subplots(num_outputs, 1, figsize = figsize)
 
-    time = pd.concat([data[time_name][-total_output_len:], forecast_time])
+    time = pd.concat([data[time_name][-2*total_output_len:], forecast_time])
 
     for i in range(num_outputs):
       ax_i = ax[i] if num_outputs > 1 else ax
 
-      output_i = torch.cat((transforms[output_names[i]].inverse_transform(data[output_names[i]])[-total_output_len:],
+      output_i = torch.cat((transforms[output_names[i]].inverse_transform(data[output_names[i]])[-2*total_output_len:],
                             self.forecast_data[f"{output_names[i]}"]), 0)
 
       ax_i.plot(time, output_i, '-*')
