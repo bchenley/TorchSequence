@@ -78,7 +78,7 @@ class SequenceDataset(torch.utils.data.Dataset):
       input_window_idx_i = torch.arange(self.max_input_len - self.input_len[i], self.max_input_len).to(device = 'cpu',
                                                                                                                dtype = torch.long)
       
-      input_window_idx_i += int(self.has_ar & (self.input_names[i] not in self.output_names))
+      # input_window_idx_i += int(self.has_ar & (self.input_names[i] not in self.output_names))
 
       self.input_window_idx.append(input_window_idx_i)
     
@@ -89,7 +89,7 @@ class SequenceDataset(torch.utils.data.Dataset):
       output_window_idx_i = torch.arange(self.max_input_len - self.output_len[i], self.max_input_len).to(device = 'cpu',
                                                                                                          dtype = torch.long) + self.shift[i]
 
-      output_window_idx_i += int(self.has_ar)
+      # output_window_idx_i += int(self.has_ar)
 
       self.output_window_idx.append(output_window_idx_i)
     
@@ -157,13 +157,13 @@ class SequenceDataset(torch.utils.data.Dataset):
         for i in range(self.num_inputs):
           input_window_idx_i = self.input_window_idx[i]
 
-          input_samples_window_idx_i = window_idx_n[input_window_idx_i] # - int(self.input_names[i] in self.output_names)
+          input_samples_window_idx_i = window_idx_n[input_window_idx_i] - int(self.input_names[i] in self.output_names)
 
           if (input_samples_window_idx_i[0] == 0) & (self.init_input is not None):
             input_n[0, j:(j + self.input_size[i])] = self.init_input[j:(j + self.input_size[i])]
 
-          # input_window_idx_i = input_window_idx_i[input_samples_window_idx_i >= 0]
-          # input_samples_window_idx_i = input_samples_window_idx_i[input_samples_window_idx_i >= 0]
+          input_window_idx_i = input_window_idx_i[input_samples_window_idx_i >= 0]
+          input_samples_window_idx_i = input_samples_window_idx_i[input_samples_window_idx_i >= 0]
 
           input_n[input_window_idx_i, j:(j + self.input_size[i])] = self.data[self.input_names[i]].clone()[input_samples_window_idx_i]
 
