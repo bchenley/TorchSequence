@@ -1524,7 +1524,7 @@ class SequenceModule(pl.LightningModule):
 
         # Concatenate input for the next forecast step
         input = torch.cat((input[:, total_output_len:], input_), 1)
-
+        
         # Append prediction to forecast
         forecast = torch.cat((forecast, prediction[:, -total_output_len:]), 1)
         if steps is not None:
@@ -1542,13 +1542,16 @@ class SequenceModule(pl.LightningModule):
       target = torch.cat([data[name] for name in output_names], -1)
       time = data[time_name]
       start_step = self.trainer.datamodule.start_step
-
+      
       idx = (forecast_steps <= max_step).all(dim=1)
 
-      forecast = forecast[idx].reshape(len(idx), -1, total_output_size)
+      forecast = forecast[idx] # .reshape(len(idx), -1, total_output_size)      
+      forecast_steps = forecast_steps[idx] # .reshape(len(idx), -1)
 
-      forecast_steps = forecast_steps[idx].reshape(len(idx), -1)
-
+      if forecast.shape[0] <= 1:
+        forecast = forecast.unsqueeze(0)
+        forecast_steps = forecast_steps.unsqueeze(0)
+      
       forecast_target = target[forecast_steps - start_step] # target[idx].reshape(len(idx), -1, total_output_size) #
 
       # Convert steps to forecasted time
