@@ -326,14 +326,14 @@ class SequenceModel(torch.nn.Module):
               output_in_features_i += len(self.base_relax_init[j])*self.base_hidden_size[j]
             elif self.base_type[j] == 'cnn':
               output_in_features_i += self.base_hidden_size[j]
-
+      
       if self.output_flatten[i]:
         self.Flatten.append(torch.nn.Flatten(1, 2))
 
         if self.output_flatten[i] == 'time':
           output_in_features_i = 1
           output_out_features_i = 1 
-        elif self.output_flatten[i] == 'feature':          
+        elif self.output_flatten[i] == 'feature':                    
           output_in_features_i = output_in_features_i * self.max_base_seq_len 
           output_out_features_i = self.output_size[i] * self.max_output_len
 
@@ -501,7 +501,7 @@ class SequenceModel(torch.nn.Module):
       if self.output_flatten[i] == 'feature':
         output_input_i = self.Flatten[i](output_input_i).unsqueeze(1)
       
-      # Generate output of the ith output layer
+      # Generate output of the ith output layer      
       output_i = self.output_layer[i](output_input_i)
 
       # Reshape output if necessary
