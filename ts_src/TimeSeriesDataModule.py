@@ -81,7 +81,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             setattr(self, arg, value)
         else:
             setattr(self, arg, value)
-          
+
     self.input_names_original, self.output_names_original = self.input_names, self.output_names
 
     self.input_output_names = np.unique(self.input_names + self.output_names).tolist()
@@ -139,6 +139,33 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         self.output_size = [self.data[0][name].shape[-1] for name in self.output_names]
         self.output_feature_names = self.output_names
         self.output_feature_size = self.output_size
+
+        # Initialize variables for indexing input/output features
+        j = 0
+        output_input_idx = []
+        for i, name in enumerate(self.input_names):
+            input_idx = torch.arange(j, (j + self.input_size[i])).to(dtype = torch.long)
+            if name in self.output_names:
+                output_input_idx.append(input_idx)
+            j += self.input_size[i]
+        output_input_idx = torch.cat(output_input_idx, -1) if len(output_input_idx) > 0 else []
+
+        j = 0
+        input_output_idx = []
+        for i, name in enumerate(self.output_names):
+            size_i = (self.output_size[i]
+                      if sum(self.output_size) > 0
+                      else self.model.hidden_out_features[i]
+                      if sum(self.model.hidden_out_features) > 0
+                      else self.model.base_hidden_size[i])
+
+            output_idx = torch.arange(j, (j + size_i)).to(dtype = torch.long)
+            if name in self.input_names:
+                input_output_idx.append(output_idx)
+            j += size_i
+        input_output_idx = torch.cat(input_output_idx, -1) if len(input_output_idx) > 0 else []
+
+        self.output_input_idx, self.input_output_idx = output_input_idx, input_output_idx
 
         # Create copies of transforms for each dataset
         self.transforms = [self.transforms.copy() for _ in range(self.num_datasets)]
@@ -217,6 +244,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
             # Combine input features if specified
             if self.combine_inputs:
+                
                 inputs_combined = []
                 new_input_names = []
                 for i, input_names in enumerate(self.combine_inputs):
@@ -265,33 +293,31 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             # Create a tensor of step indices
             self.data[data_idx]['steps'] = torch.arange(self.data_len[data_idx]).to(device=self.device, dtype=torch.long)
 
-        # Initialize variables for indexing input/output features
-        j = 0
-        output_input_idx = []
-        for i, name in enumerate(self.input_names):
-            input_idx = torch.arange(j, (j + self.input_size[i])).to(dtype = torch.long)
-            if name in self.output_names:
-                output_input_idx.append(input_idx)
-            j += self.input_size[i]
-        output_input_idx = torch.cat(output_input_idx, -1) if len(output_input_idx) > 0 else []
+        # # Initialize variables for indexing input/output features
+        # j = 0
+        # output_input_idx = []
+        # for i, name in enumerate(self.input_names):
+        #     input_idx = torch.arange(j, (j + self.input_size[i])).to(dtype = torch.long)
+        #     if name in self.output_names:
+        #         output_input_idx.append(input_idx)
+        #     j += self.input_size[i]
+        # output_input_idx = torch.cat(output_input_idx, -1) if len(output_input_idx) > 0 else []
 
-        j = 0
-        input_output_idx = []
-        for i, name in enumerate(self.output_names):
-            size_i = (self.output_size[i]
-                      if sum(self.output_size) > 0
-                      else self.model.hidden_out_features[i]
-                      if sum(self.model.hidden_out_features) > 0
-                      else self.model.base_hidden_size[i])
+        # j = 0
+        # input_output_idx = []
+        # for i, name in enumerate(self.output_names):
+        #     size_i = (self.output_size[i]
+        #               if sum(self.output_size) > 0
+        #               else self.model.hidden_out_features[i]
+        #               if sum(self.model.hidden_out_features) > 0
+        #               else self.model.base_hidden_size[i])
 
-            output_idx = torch.arange(j, (j + size_i)).to(dtype = torch.long)
-            if name in self.input_names:
-                input_output_idx.append(output_idx)
-            j += size_i
-        input_output_idx = torch.cat(input_output_idx, -1) if len(input_output_idx) > 0 else []
-
-        # Store the indices for input/output features
-        self.input_output_idx, self.output_input_idx = input_output_idx, output_input_idx
+        #     output_idx = torch.arange(j, (j + size_i)).to(dtype = torch.long)
+        #     if name in self.input_names:
+        #         input_output_idx.append(output_idx)
+        #     j += size_i
+        # input_output_idx = torch.cat(input_output_idx, -1) if len(input_output_idx) > 0 else []
+        # self.input_output_idx, self.output_input_idx = input_output_idx, output_input_idx
 
         # If there's only one dataset, consolidate data and transforms
         if self.num_datasets == 1:
