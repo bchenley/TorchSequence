@@ -333,7 +333,7 @@ class SequenceModel(torch.nn.Module):
         if self.output_flatten[i] == 'time':
           output_in_features_i = 1
           output_out_features_i = 1 
-        elif self.output_flatten[i] == 'feature':
+        elif self.output_flatten[i] == 'feature':          
           output_in_features_i = output_in_features_i * self.max_base_seq_len 
           output_out_features_i = self.output_size[i] * self.max_output_len
 
@@ -498,7 +498,7 @@ class SequenceModel(torch.nn.Module):
       # Flatten input for output layer if necessary
       if self.output_flatten[i] == 'time':
         output_input_i = self.Flatten[i](output_input_i).unsqueeze(2)
-      if self.output_flatten == 'feature':
+      if self.output_flatten[i] == 'feature':
         output_input_i = self.Flatten[i](output_input_i).unsqueeze(1)
       
       # Generate output of the ith output layer
