@@ -338,7 +338,7 @@ class SequenceModel(torch.nn.Module):
           output_out_features_i = self.output_size[i] * self.max_output_len
 
       else:
-        self.Flatten[i].append(None)
+        self.Flatten.append(None)
 
         output_out_features_i = self.output_size[i]
 
