@@ -106,7 +106,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     self.max_input_len = np.max(input_len).item()
     self.max_output_len = np.max(output_len).item()
     self.max_shift = np.max(shift).item()
-    self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift)]).item()
+    self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift + int(self.has_ar)]).item()
 
     self.predicting, self.data_prepared = False, False
 
