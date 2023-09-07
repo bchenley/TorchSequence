@@ -200,10 +200,10 @@ class Seq2SeqModel(torch.nn.Module):
         else:
           decoder_input = input_slice
 
-      decoder_input = decoder_input.reshape(num_samples, 1, self.decoder.total_output_size)
+        decoder_input = decoder_input.reshape(num_samples, 1, self.decoder.total_output_size)
           
-      # Pad decoder input
-      decoder_input = torch.nn.functional.pad(decoder_input, (0, 0, 0, self.decoder.max_output_len - 1), "constant", 0)
+        # Pad decoder input
+        decoder_input = torch.nn.functional.pad(decoder_input, (0, 0, 0, self.decoder.max_output_len - 1), "constant", 0)
       
       # Perform decoder forward pass
       decoder_output, decoder_hiddens = self.decoder(input = decoder_input,
