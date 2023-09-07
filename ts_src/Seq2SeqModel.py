@@ -138,17 +138,17 @@ class Seq2SeqModel(torch.nn.Module):
       unique_output_window_idx = torch.cat(output_window_idx).unique()
 
       # Get encoder and decoder steps
-      encoder_steps = steps[:, :input_len] if steps is not None else None
-      decoder_steps = steps[:, input_len:] if steps is not None else None
+      encoder_steps = steps[:, unique_input_window_idx] if steps is not None else None
+      decoder_steps = steps[:, unique_output_window_idx] if steps is not None else None
 
       # Perform encoder forward pass
       encoder_output, encoder_hiddens = self.encoder(input = input,
                                                      steps = encoder_steps,
                                                      hiddens = hiddens,
                                                      input_mask = input_mask)
-
-      hiddens = encoder_hiddens.copy()
-
+      
+      # hiddens = encoder_hiddens.copy()
+      
       # Compute decoder hidden states based on enc2dec hiddens type
       if self.enc2dec_hiddens_type is None:
           decoder_hiddens = None
@@ -180,7 +180,7 @@ class Seq2SeqModel(torch.nn.Module):
             if self.decoder.base_type[i] == 'lru':
               decoder_hiddens[i] = enc2dec_hiddens_output[:, j:(j + self.decoder_hidden_size[i])].reshape(-1, num_samples, self.decoder.base_hidden_size[i])
             j += self.decoder_hidden_size[i]
-
+      
       elif self.enc2dec_hiddens_type == 'identity':
         # Use encoder hidden states as decoder hidden states
         decoder_hiddens = encoder_hiddens[-self.decoder.num_outputs:]
@@ -188,28 +188,40 @@ class Seq2SeqModel(torch.nn.Module):
           if self.decoder.base_type[i] == 'lstm':
             decoder_hiddens[i] = (decoder_hiddens[i][0], torch.zeros_like(decoder_hiddens[i][1]))
 
-      # Set decoder input based on enc_out_as_dec_in and output_input_idx
       if self.enc_out_as_dec_in:
-        decoder_input = encoder_output
+        decoder_input = encoder_output.clone()
         decoder_steps = steps
       else:
+        input_slice = input.clone()[:, -1:]
         if len(output_input_idx) > 0:
-          decoder_input = input[:, -1:, output_input_idx].clone().reshape(num_samples, 1, self.decoder.total_output_size)
+          input_slice = input_slice[:, :, output_input_idx]
+        if self.enc2dec_input_block is not None:
+          decoder_input = self.enc2dec_input_block(input_slice)
         else:
-          decoder_input = self.enc2dec_input_block(input[:, -1:]) if self.enc2dec_input_block is not None else input[:,-1:]
+          decoder_input = input_slice
 
-        # Pad decoder input
-        decoder_input = torch.nn.functional.pad(decoder_input, (0, 0, 0, self.decoder.max_output_len - 1), "constant", 0)
-
+      decoder_input = decoder_input.reshape(num_samples, 1, self.decoder.total_output_size)
+          
+      # Pad decoder input
+      decoder_input = torch.nn.functional.pad(decoder_input, (0, 0, 0, self.decoder.max_output_len - 1), "constant", 0)
+      
       # Perform decoder forward pass
-      decoder_output, _ = self.decoder(input = decoder_input,
-                                       steps = decoder_steps,
-                                       hiddens = decoder_hiddens,
-                                       target = target,
-                                       output_mask = output_mask,
-                                       output_input_idx = output_input_idx,
-                                       input_output_idx = input_output_idx,
-                                       encoder_output = encoder_output)
+      decoder_output, decoder_hiddens = self.decoder(input = decoder_input,
+                                                     steps = decoder_steps,
+                                                     hiddens = decoder_hiddens,
+                                                     target = target,
+                                                     output_mask = output_mask,
+                                                     output_input_idx = output_input_idx,
+                                                     input_output_idx = input_output_idx,
+                                                     encoder_output = encoder_output)
+
+      # if target is not None:
+      #   plt.figure(num=2)
+      #   plt.plot(encoder_steps[0].cpu(), input[0].cpu(), '-*b', label = 'input')
+      #   plt.plot(decoder_steps[0].cpu(), target[0].cpu(), '-*k', label = 'target')
+      #   plt.plot(decoder_steps[0].cpu(), decoder_input[0].detach().cpu(), '-*g', label = 'decoder input')
+      #   plt.plot(decoder_steps[0].cpu(), decoder_output[0].detach().cpu(), '-*r', label = 'decoder output')
+      #   plt.legend()
 
       return decoder_output, hiddens
 
@@ -406,4 +418,3 @@ class Seq2SeqModel(torch.nn.Module):
       forecast_time = forecast_steps * self.dt if forecast_steps is not None else None
 
       return forecast, forecast_time
-
