@@ -435,7 +435,7 @@ class SequenceModel(torch.nn.Module):
     hidden_output = []
     # Process each input in the batch individually
     for i, input_i in enumerate(input.split(self.input_size, -1)):
-
+        
       # Determine the output feature size for the hidden layer
       if self.hidden_out_features[i] > 0:
         hidden_out_features_i = self.hidden_out_features[i]
@@ -452,10 +452,10 @@ class SequenceModel(torch.nn.Module):
 
       # Generate output and updated hidden states from sequence base
       base_output_i, hiddens[i] = self.seq_base[i](input = input_i[:, -1:] if self.process_by_step
-                                                           else input_i[:, input_window_idx[i]],
+                                                   else input_i[:, input_window_idx[i]],
                                                    hiddens = hiddens[i],
                                                    encoder_output = encoder_output)
-
+      
       # Store the output of the base layer if required
       if self.store_layer_outputs:
         self.base_layer_output[i].append(base_output_i)
@@ -531,7 +531,7 @@ class SequenceModel(torch.nn.Module):
               input_mask = None, output_mask = None,
               output_input_idx = [], input_output_idx = [],
               encoder_output = None):
-
+    
     """
     Perform forward pass through the sequence model.
 
@@ -552,7 +552,7 @@ class SequenceModel(torch.nn.Module):
       torch.Tensor: Processed output data.
       list: List of updated hidden states.
     """
-
+    
     # Initialize lists to store layer outputs
     self.base_layer_output = [[] for _ in range(self.num_inputs)]
     self.hidden_layer_output = [[] for _ in range(self.num_inputs)]
@@ -577,10 +577,6 @@ class SequenceModel(torch.nn.Module):
     unique_input_window_idx = torch.cat(input_window_idx).unique()
     unique_output_window_idx = torch.cat(output_window_idx).unique()
 
-    # Get total number of steps
-    if steps is not None:
-      _, num_steps = steps.shape
-
     # Get the total output size
     total_output_size = sum(self.output_size)
 
@@ -594,36 +590,37 @@ class SequenceModel(torch.nn.Module):
     if self.process_by_step:
       output = torch.zeros((num_samples, input_len, self.total_output_size)).to(device = self.device,
                                                                                 dtype = self.dtype)
-
-      output[:, :1], hiddens = self.process(input = input[:, :1].clone(),
+      
+      output[:, :1], hiddens = self.process(input = input[:, :1],
                                             steps = steps[:, :1] if steps is not None else None,
                                             hiddens = hiddens,
                                             encoder_output = encoder_output)
       
       for n in range(1, input_len):
 
+        input_n = input[:, n].clone()        
         if (len(output_input_idx) > 0) & (len(input_output_idx) > 0):
-          input[:, n, output_input_idx] = target[:, n-1, input_output_idx] if target is not None else output[:, n-1, input_output_idx]
-
-        output[:, n:(n+1)], hiddens = self.process(input = input[:, n:(n+1)].clone(),
+          input_n[:, output_input_idx] = target[:, n-1, input_output_idx] if target is not None else output[:, n-1, input_output_idx]
+        
+        output[:, n:(n+1)], hiddens = self.process(input = input_n.unsqueeze(1),
                                                    steps = steps[:, n:(n+1)] if steps is not None else None,
                                                    hiddens = hiddens,
                                                    encoder_output = encoder_output)
-
+        
     else:
       input = torch.nn.functional.pad(input,
                                       (0, 0, np.max([self.max_output_len - input_len, 0]), 0),
                                       "constant", 0).to(input)
-
+      
       output, hiddens = self.process(input = input,
                                      input_window_idx = input_window_idx,
                                      steps = steps[:, unique_input_window_idx] if steps is not None else None,
                                      hiddens = hiddens,
                                      encoder_output = encoder_output)
-
-    # Only keep the outputs for the maximum output sequence length
+    
+    # Only keep the outputs for the maximum output sequence length  
     output = output[:, -self.max_output_len:]
-
+    
     # Apply the output mask if specified
     if output_mask is not None:
       output = output * output_mask
@@ -644,7 +641,7 @@ class SequenceModel(torch.nn.Module):
           self.output_layer_output[i] = torch.cat(self.output_layer_output[i], 1)
 
     return output, hiddens
-
+  
   def constrain(self):
 
     """
@@ -887,11 +884,11 @@ class SequenceModel(torch.nn.Module):
 
           # Perform forecasting step using the model
           prediction, hiddens = self(input=input,
-                                      steps=steps,
-                                      hiddens=hiddens,
-                                      encoder_output=encoder_output,
-                                      input_output_idx=input_output_idx,
-                                      output_input_idx=output_input_idx)
+                                     steps=steps,
+                                     hiddens=hiddens,
+                                     encoder_output=encoder_output,
+                                     input_output_idx=input_output_idx,
+                                     output_input_idx=output_input_idx)
 
           # Concatenate current prediction to forecast
           forecast = torch.cat((forecast, prediction[:, -forecast_len:]), 1)
