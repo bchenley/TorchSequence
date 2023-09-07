@@ -400,7 +400,7 @@ class Seq2SeqModel(torch.nn.Module):
               if steps is not None:
                   forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
                   steps += forecast_len
-
+ 
       # Apply output transforms if provided
       if output_transforms:
           for sampled_idx in range(num_samples):
