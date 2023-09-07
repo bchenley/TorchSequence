@@ -370,7 +370,7 @@ class SequenceModel(torch.nn.Module):
           self.output_size[i] = 0
           for j in range(self.num_inputs):
             self.output_size[i] += (1 + int(self.base_rnn_bidirectional[j]))*self.base_hidden_size[j]
-        self.output_size = (np.array(self.output_size) * self.max_output_len).tolist() if self.flatten else self.output_size
+        self.output_size = (np.array(self.output_size) * self.max_output_len).tolist() if self.output_flatten else self.output_size
 
       self.output_layer.append(output_layer_i)
 
