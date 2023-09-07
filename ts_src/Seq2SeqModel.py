@@ -190,7 +190,7 @@ class Seq2SeqModel(torch.nn.Module):
 
       if self.enc_out_as_dec_in:
         decoder_input = encoder_output.clone()
-        decoder_steps = steps
+        decoder_steps = None # steps
       else:
         input_slice = input.clone()[:, -1:]
         if len(output_input_idx) > 0:
