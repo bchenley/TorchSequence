@@ -1638,7 +1638,7 @@ class SequenceModule(pl.LightningModule):
       output_i = torch.cat((transforms[output_names[i]].inverse_transform(data[output_names[i]])[-2*total_output_len:],
                             self.forecast_data[f"{output_names[i]}"]), 0)
 
-      ax_i.plot(time, output_i, '-*')
+      ax_i.plot(time, output_i.cpu(), '-*')
       ax_i.grid()
       
       ax_i.axvspan(forecast_time.values.min(), forecast_time.values.max(), 
