@@ -1365,21 +1365,31 @@ class SequenceModule(pl.LightningModule):
                      num_bins = None,
                      density = True):
 
-    id = id or list(self.trainer.datamodule.data)[0]['id']
+    data = self.trainer.datamodule.data
+    if not isinstance(data, list): data = [data]
       
-    data_idx = [idx for idx,data in enumerate(list(self.train_prediction_data)) if list(self.train_prediction_data)[idx]['id'] == id]
+    id = id or data[0]['id']
+
+    train_data = self.train_prediction_data
+    if not isinstance(train_data, list): train_data = [train_data]   
+      
+    data_idx = [idx for idx,data in enumerate(train_data) if train_data[idx]['id'] == id]
     if len(data_idx) > 0:
-      prediction_data = list(self.train_prediction_data)[data_idx[0]]
+      prediction_data = train_data[data_idx[0]]
       group = 'Train'
-    if (list(self.val_prediction_data) is not None) & (len(data_idx) == 0):
-      data_idx = [idx for idx,data in enumerate(list(self.val_prediction_data)) if list(self.val_prediction_data)[idx]['id'] == id]
+    if (self.val_prediction_data is not None) & (len(data_idx) == 0):
+      val_data = self.val_prediction_data
+      if not isinstance(val_data, list): val_data = [val_data]       
+      data_idx = [idx for idx,data in enumerate(val_data) if val_data[idx]['id'] == id]
       if len(data_idx) > 0:
-        prediction_data = list(self.val_prediction_data)[data_idx[0]]
+        prediction_data = val_data[data_idx[0]]
       group = 'Val'  
-    if (list(self.test_prediction_data) is not None) & (len(data_idx) == 0):
-      data_idx = [idx for idx,data in enumerate(list(self.test_prediction_data)) if list(self.test_prediction_data)[idx]['id'] == id]
+    if (self.test_prediction_data is not None) & (len(data_idx) == 0):
+      test_data = self.test_prediction_data
+      if not isinstance(test_data, list): test_data = [test_data]       
+      data_idx = [idx for idx,data in enumerate(test_data) if test_data[idx]['id'] == id]
       if len(data_idx) > 0:
-        prediction_data = list(self.test_prediction_data)[data_idx[0]]
+        prediction_data = test_data[data_idx[0]]
       group = 'Test'
 
     output_names = self.trainer.datamodule.output_names
