@@ -172,7 +172,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
         # Store the length of each dataset
         self.data_len = []
-
+        
         # Loop over each dataset
         for data_idx in range(self.num_datasets):
             # Add an 'id' column to the data if it doesn't exist
@@ -245,19 +245,19 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             # Combine input features if specified
             if self.combine_inputs:
                 
-                inputs_combined = []
-                new_input_names = []
-                for i, input_names in enumerate(self.combine_inputs):
-                    input_name_i = f"X{i+1}"
-                    self.data[data_idx][input_name_i] = torch.cat([self.data[data_idx][name] for name in input_names], -1)
-                    inputs_combined += input_names
-                    new_input_names += [input_name_i]
+              inputs_combined = []
+              new_input_names = []
+              for i, input_names in enumerate(self.combine_inputs):
+                input_name_i = f"X{i+1}"
+                self.data[data_idx][input_name_i] = torch.cat([self.data[data_idx][name] for name in input_names], -1)
+                inputs_combined += input_names
+                new_input_names += [input_name_i]
 
-                old_input_names = [name for name in self.input_names if name not in inputs_combined]
+              old_input_names = [name for name in self.input_names_original if name not in inputs_combined]
 
-                self.input_names = old_input_names + new_input_names
-                self.num_inputs = len(self.input_names)
-                self.input_size = [self.data[data_idx][name].shape[-1] for name in self.input_names]
+              self.input_names = old_input_names + new_input_names
+              self.num_inputs = len(self.input_names)
+              self.input_size = [self.data[data_idx][name].shape[-1] for name in self.input_names]
 
             # Combine output targets if specified
             if self.combine_outputs:
@@ -269,7 +269,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                     outputs_combined += output_names
                     new_output_names += [output_name_i]
 
-                old_output_names = [name for name in self.output_names if name not in outputs_combined]
+                old_output_names = [name for name in self.output_names_original if name not in outputs_combined]
 
                 self.output_names = old_output_names + new_output_names
                 self.num_outputs = len(self.output_names)
@@ -515,7 +515,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     if not self.predicting:
         # Set the training batch size
         self.train_batch_size = self.batch_size
-
+        
         # Create a SequenceDataloader for training
         self.train_dl = SequenceDataloader(
             input_names=self.input_names,
