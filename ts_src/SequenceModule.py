@@ -1368,7 +1368,7 @@ class SequenceModule(pl.LightningModule):
     data = self.trainer.datamodule.data
     if not isinstance(data, list): data = [data]
                       
-    id = id or data['id']
+    id = id or data[0]['id']
       
     data_idx = [idx for idx,data in enumerate(self.train_prediction_data) if self.train_prediction_data[idx]['id'] == id]
     if len(data_idx) > 0:
