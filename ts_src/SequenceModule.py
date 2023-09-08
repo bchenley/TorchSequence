@@ -168,7 +168,7 @@ class SequenceModule(pl.LightningModule):
     input_batch = input_batch[:batch_size]
     output_batch = output_batch[:batch_size]
     steps_batch = steps_batch[:batch_size]
-
+     
     # Perform forward pass to compute gradients
     output_pred_batch, self.hiddens = self.forward(input=input_batch,
                                                    steps=steps_batch,
@@ -179,7 +179,7 @@ class SequenceModule(pl.LightningModule):
                                                    output_input_idx=self.trainer.datamodule.output_input_idx,
                                                    input_output_idx=self.trainer.datamodule.input_output_idx,
                                                    output_mask=self.trainer.datamodule.train_output_mask)
-
+    
     # Get loss for each output
     loss = self.loss_fn(output_pred_batch * self.trainer.datamodule.train_output_mask,
                         output_batch * self.trainer.datamodule.train_output_mask)
@@ -187,7 +187,7 @@ class SequenceModule(pl.LightningModule):
 
     # Add penalty loss if desired
     if self.penalize: loss += self.model.penalize()
-
+    
     self.opt.zero_grad()
     if len(loss) > 1:
       for i in range(len(loss)):
@@ -1067,9 +1067,9 @@ class SequenceModule(pl.LightningModule):
             test_loss_if = np.round(self.test_prediction_data[f"{output_name}_global_{self.loss_fn.name}"][f].item(),2)
             test_metric_if = np.round(self.test_prediction_data[f"{output_name}_global_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
             if include_baseline:
-              test_baseline_prediction_if = self.test_prediction_data[f"{output_name}_baseline_prediction"][:, f].cpu()
-              test_baseline_loss_if = np.round(self.test_prediction_data[f"{output_name}_baseline_{self.loss_fn.name}"][f].item(),2)
-              test_baseline_metric_if = np.round(self.test_prediction_data[f"{output_name}_baseline_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
+              test_baseline_prediction_if = self.test_prediction_data[f"{output_name}_global_baseline_prediction"][:, f].cpu()
+              test_baseline_loss_if = np.round(self.test_prediction_data[f"{output_name}_global_baseline_{self.loss_fn.name}"][f].item(),2)
+              test_baseline_metric_if = np.round(self.test_prediction_data[f"{output_name}_global_baseline_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
 
             ax_if.plot(test_time, test_target_if, '-k')
             ax_if.plot(test_time, test_prediction_if, '-r')
@@ -1105,20 +1105,25 @@ class SequenceModule(pl.LightningModule):
 
     else:
 
+      id = id or self.trainer.datamodule.data[0]['id']
+        
       data_idx = [idx for idx,data in enumerate(self.train_prediction_data) if self.train_prediction_data[idx]['id'] == id]
       if len(data_idx) > 0:
         prediction_data = self.train_prediction_data[data_idx[0]]
+        group = 'Train'
       if (self.val_prediction_data is not None) & (len(data_idx) == 0):
         data_idx = [idx for idx,data in enumerate(self.val_prediction_data) if self.val_prediction_data[idx]['id'] == id]
         if len(data_idx) > 0:
           prediction_data = self.val_prediction_data[data_idx[0]]
+        group = 'Val'
       if (self.test_prediction_data is not None) & (len(data_idx) == 0):
         data_idx = [idx for idx,data in enumerate(self.test_prediction_data) if self.test_prediction_data[idx]['id'] == id]
         if len(data_idx) > 0:
           prediction_data = self.test_prediction_data[data_idx[0]]
-
-      rows, cols = max_output_size, num_outputs
-      fig, ax = plt.subplots(rows, cols, figsize = figsize if figsize is not None else (10*num_outputs, 5*max_output_size))
+        group = 'Test'
+        
+      rows, cols = num_outputs, max_output_size
+      fig, ax = plt.subplots(rows, cols, figsize = figsize if figsize is not None else (20*max_output_size, 5*num_outputs))
 
       time = prediction_data[time_name]
       if hasattr(time, 'tz'): time = time.dt.tz_localize(None)
@@ -1132,7 +1137,7 @@ class SequenceModule(pl.LightningModule):
           pass
 
         for f in range(output_size[i]):
-
+            
           if (output_feature_names is not None) & (output_size[i] > 1):
             output_feature_name_if = output_feature_names[f]
           else:
@@ -1147,18 +1152,18 @@ class SequenceModule(pl.LightningModule):
             output_feature_units_if = None
 
           try:
-            ax_if = ax[f,i]
+            ax_if = ax[i,f]
           except:
             try:
-              j = i if (cols>1) & (rows == 1) else f
+              j = i if (rows>1) & (cols == 1) else f
               ax_if = ax[j]
             except:
               ax_if = ax
 
           target_if = prediction_data[f"{output_name}_target"][:, f].cpu()
-          prediction_if = prediction_data[f"{output_name}_prediction"][:, f].cpu()
-          loss_if = np.round(prediction_data[f"{output_name}_{self.loss_fn.name}"][f].item(),2)
-          metric_if = np.round(prediction_data[f"{output_name}_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
+          prediction_if =prediction_data[f"{output_name}_prediction"][:, f].cpu()
+          loss_if = np.round(prediction_data[f"{output_name}_global_{self.loss_fn.name}"][f].item(), 2)
+          metric_if = np.round(prediction_data[f"{output_name}_global_{self.metric_fn.name}"][f].item(), 2) if self.metric_fn is not None else None
           if include_baseline:
             baseline_prediction_if = prediction_data[f"{output_name}_baseline_prediction"][:, f].cpu()
             baseline_loss_if = np.round(prediction_data[f"{output_name}_baseline_{self.loss_fn.name}"][f].item(),2)
@@ -1166,15 +1171,18 @@ class SequenceModule(pl.LightningModule):
 
           ax_if.plot(time, target_if, '-k', label = 'Actual')
           ax_if.plot(time, prediction_if, '-r', label = 'Prediction')
-          label = f"Train ({self.loss_fn.name} = {loss_if}, {self.metric_fn.name} = {metric_if})" \
-                        if metric_if is not None \
-                        else f"Train ({self.loss_fn.name} = {loss_if})"
+
+          output_name_ = output_name.upper() if output_size[i] == 1 else f"{output_name.upper()}:{output_feature_names[f]}"
+
+          title = f"ID {id} ({group}): {output_name_} | {self.loss_fn.name} = {loss_if}, {self.metric_fn.name} = {metric_if}" \
+                    if metric_if is not None \
+                    else f"{output_name_} ({self.loss_fn.name} = {loss_if})"
           if include_baseline:
             ax_if.plot(time, baseline_prediction_if, '--g', linewidth = 1.0, label = 'Baseline')
-            label = label + f", Baseline ({self.loss_fn.name} = {baseline_loss_if}, {self.metric_fn.name} = {baseline_metric_if})"
+            title = title + f"| Baseline: {self.loss_fn.name} = {baseline_loss_if}, {self.metric_fn.name} = {baseline_metric_if}"
 
-          if (f == 0) & (output_feature_names is not None):
-            ax_if.set_title(output_name)
+          ax_if.set_title(title)
+          
           if f == output_size[i] - 1:
             ax_if.set_xlabel(f"Time [{self.trainer.datamodule.time_unit}]")
 
@@ -1187,7 +1195,7 @@ class SequenceModule(pl.LightningModule):
 
           ax_if.set_ylabel(ylabel)
 
-          ax_if.legend(loc = 'upper left', bbox_to_anchor = (1.02, 1), ncol = 1)
+          ax_if.legend(loc = 'upper left', bbox_to_anchor = (1.02, 1), ncol = 1) # loc = 'upper center', bbox_to_anchor = (0.5, 1.15), ncol = 5))
           ax_if.grid()
 
       if num_outputs > 1:
@@ -1351,17 +1359,31 @@ class SequenceModule(pl.LightningModule):
   ##
 
   ##
-  def plot_residuals(self, 
+  def plot_residuals(self,
+                     id = None,
                      figsize = None,
                      num_bins = None,
                      density = True):
 
-    if self.test_prediction_data is not None:
-      prediction_data = self.test_prediction_data
-    elif self.val_prediction_data is not None:
-      prediction_data = self.val_prediction_data
-    else:
-      prediction_data = self.train_prediction_data      
+    data = self.trainer.datamodule.data
+    if not isinstance(data, list): data = [data]
+                      
+    id = id or self.trainer.datamodule.data[0]['id']
+      
+    data_idx = [idx for idx,data in enumerate(self.train_prediction_data) if self.train_prediction_data[idx]['id'] == id]
+    if len(data_idx) > 0:
+      prediction_data = self.train_prediction_data[data_idx[0]]
+      group = 'Train'
+    if (self.val_prediction_data is not None) & (len(data_idx) == 0):
+      data_idx = [idx for idx,data in enumerate(self.val_prediction_data) if self.val_prediction_data[idx]['id'] == id]
+      if len(data_idx) > 0:
+        prediction_data = self.val_prediction_data[data_idx[0]]
+      group = 'Val'  
+    if (self.test_prediction_data is not None) & (len(data_idx) == 0):
+      data_idx = [idx for idx,data in enumerate(self.test_prediction_data) if self.test_prediction_data[idx]['id'] == id]
+      if len(data_idx) > 0:
+        prediction_data = self.test_prediction_data[data_idx[0]]
+      group = 'Test'
 
     output_names = self.trainer.datamodule.output_names
     num_outputs = self.trainer.datamodule.num_outputs
@@ -1375,7 +1397,7 @@ class SequenceModule(pl.LightningModule):
 
     fig, ax = plt.subplots(num_outputs, 2, figsize = figsize)
     
-    for i, output_name in enumerate(self.trainer.datamodule.output_names):
+    for i, output_name in enumerate(output_names):
       residual_i = (prediction_data[f"{output_name}_target"] - prediction_data[f"{output_name}_prediction"]).cpu()
 
       if num_outputs > 1:
@@ -1387,6 +1409,7 @@ class SequenceModule(pl.LightningModule):
       ax0_i.grid()
       ax0_i.set_xlabel(f"Time [{time_unit}]")
       ax0_i.set_ylabel(output_name)
+      ax0_i.set_title(f"ID {id} ({group}): {output_name.upper()}")
       
       ax1_i.hist(residual_i.t(), bins = num_bins, edgecolor = 'k', alpha = 0.7, density = density)
       ax1_i.set_xlabel('Deviation')
@@ -1477,13 +1500,13 @@ class SequenceModule(pl.LightningModule):
         input = input[dl.batch_shuffle_idx.argsort()]
         steps = steps[dl.batch_shuffle_idx.argsort()]
         ids = [ids[sort_idx] for sort_idx in dl.batch_shuffle_idx.argsort().tolist()]
-
+            
       id_idx = torch.tensor([id_idx for id_idx,id_ in enumerate(ids) if id_ == id]).to(device = input.device, dtype = torch.long)
 
       input = input[id_idx].reshape(len(id_idx), input.shape[1], input.shape[2])
       steps = steps[id_idx].reshape(len(id_idx), steps.shape[1])
       ids = [ids[id_idx_item] for id_idx_item in id_idx.tolist()]
-
+      
       min_step, max_step = [], []
       if steps is not None:
         min_step, max_step = steps.min().item(), steps.max().item()
@@ -1672,6 +1695,7 @@ class SequenceModule(pl.LightningModule):
                ids = None,
                stride = 1,
                hiddens = None, invert = True):
+    
     """
     Backtest the model's performance.
 
@@ -1686,6 +1710,18 @@ class SequenceModule(pl.LightningModule):
         None
     """
 
+    if ids is None:
+      if self.trainer.datamodule.test_data is not None:
+        data = self.trainer.datamodule.test_data        
+      if self.trainer.datamodule.val_data is not None:
+        data = self.trainer.datamodule.val_data
+      else:
+        data = self.trainer.datamodule.train_data
+      
+      if not isinstance(data, list): data = [data]
+
+      ids = [data_['id'] for data_ in data]
+
     if self.accelerator == 'gpu':
       self.model.to('cuda')
 
@@ -1699,14 +1735,13 @@ class SequenceModule(pl.LightningModule):
 
     self.backtest_data = []
 
-    for id in np.unique(ids):
+    for id in ids:
 
       self.backtest_data.append({'id': id})
 
       # id_idx = torch.tensor(np.where(ids == id)[0]).to(device=input.device, dtype=torch.long)
 
       hiddens_id = hiddens[-1]
-
       forecast_id, forecast_time_id, forecast_target_id = self.forecast(num_forecast_steps,
                                                                         id = id,
                                                                         hiddens = hiddens_id,
