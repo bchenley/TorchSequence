@@ -131,19 +131,19 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
         # Store information about input and output features
         self.num_inputs = len(self.input_names)
-        self.input_size = [self.data[0][name].shape[-1] for name in self.input_names]
-        self.input_feature_names = self.input_names
+        self.input_size = [self.data[0][name].shape[-1] for name in self.input_names_original]
+        self.input_feature_names = self.input_names_original
         self.input_feature_size = self.input_size
 
         self.num_outputs = len(self.output_names)
-        self.output_size = [self.data[0][name].shape[-1] for name in self.output_names]
-        self.output_feature_names = self.output_names
+        self.output_size = [self.data[0][name].shape[-1] for name in self.output_names_original]
+        self.output_feature_names = self.output_names_original
         self.output_feature_size = self.output_size
 
         # Initialize variables for indexing input/output features
         j = 0
         output_input_idx = []
-        for i, name in enumerate(self.input_names):
+        for i, name in enumerate(self.input_names_original):
             input_idx = torch.arange(j, (j + self.input_size[i])).to(dtype = torch.long)
             if name in self.output_names:
                 output_input_idx.append(input_idx)
@@ -152,7 +152,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
         j = 0
         input_output_idx = []
-        for i, name in enumerate(self.output_names):
+        for i, name in enumerate(self.output_names_original):
             size_i = (self.output_size[i]
                       if sum(self.output_size) > 0
                       else self.model.hidden_out_features[i]
