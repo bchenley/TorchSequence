@@ -331,9 +331,9 @@ class SequenceModel(torch.nn.Module):
         self.Flatten.append(torch.nn.Flatten(1, 2))
 
         if self.output_flatten[i] == 'time':
-          output_in_features_i = 1
+          # output_in_features_i = 1
           output_out_features_i = 1 
-          self.output_size[i] = 1
+          self.output_size[i] = 1 
         elif self.output_flatten[i] == 'feature':                    
           output_in_features_i = output_in_features_i * self.max_base_seq_len 
           output_out_features_i = self.output_size[i] * self.max_output_len
@@ -495,19 +495,15 @@ class SequenceModel(torch.nn.Module):
         output_input_i = hidden_output[i]
       else:
         output_input_i = output_
-
-      # Flatten input for output layer if necessary
-      if self.output_flatten[i] == 'time':
-        output_input_i = self.Flatten[i](output_input_i).unsqueeze(2)
-      if self.output_flatten[i] == 'feature':
-        output_input_i = self.Flatten[i](output_input_i).unsqueeze(1)
       
       # Generate output of the ith output layer      
       output_i = self.output_layer[i](output_input_i)
 
-      # Reshape output if necessary
-      if (self.output_flatten[i] == 'feature'):
-        output_i = output_i.reshape(num_samples, self.max_output_len, self.output_size[i])
+      # Flatten input for output layer if necessary
+      if self.output_flatten[i] == 'time':
+        output_i = self.Flatten[i](output_i).unsqueeze(2)
+      elif self.output_flatten[i] == 'feature':
+        output_i = self.Flatten[i](output_i).unsqueeze(1).reshape(num_samples, self.max_output_len, self.output_size[i])
 
       output.append(output_i)
 
