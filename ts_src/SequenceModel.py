@@ -192,7 +192,7 @@ class SequenceModel(torch.nn.Module):
 
       self.seq_base.append(seq_base_i)
       #
-
+      
       # input-associated hidden layer
       if self.hidden_out_features[i] > 0:
         if self.base_hidden_size[i] > 0:
@@ -324,11 +324,11 @@ class SequenceModel(torch.nn.Module):
           for j in range(self.num_inputs):
             if self.base_type[j] in ['lstm', 'gru']:
               output_in_features_i += (1 + int(self.base_rnn_bidirectional[j]))*self.base_hidden_size[j]
-            if self.base_type[j] == 'lru':
+            elif self.base_type[j] == 'lru':
               output_in_features_i += len(self.base_relax_init[j])*self.base_hidden_size[j]
-            elif self.base_type[j] == 'cnn':
+            else: # elif self.base_type[j] == 'cnn':
               output_in_features_i += self.base_hidden_size[j]
-      
+            
       if self.output_flatten[i] is not None:
         self.Flatten.append(torch.nn.Flatten(1, 2))
 
@@ -346,6 +346,7 @@ class SequenceModel(torch.nn.Module):
         output_out_features_i = self.output_size[i]
       
       if output_size_original[i] > 0:
+        
         output_layer_i = HiddenLayer(# linear transformation
                                      in_features = output_in_features_i,
                                      out_features = output_out_features_i,
@@ -361,6 +362,7 @@ class SequenceModel(torch.nn.Module):
                                      dropout_p = self.output_dropout_p[i],
                                      weights_to_1 = output_out_features_i == 1, # self.output_layer_w_to_1[i], # 
                                      device = self.device, dtype = self.dtype)
+        
       else:
         output_layer_i = torch.nn.Identity()
         if self.output_flatten[i] == 'time':
