@@ -194,17 +194,17 @@ class Seq2SeqModel(torch.nn.Module):
       else:
         input_slice = input.clone()[:, -1:]
         if len(output_input_idx) > 0:
-          input_slice = input_slice[:, :, output_input_idx]
+          input_slice = input_slice[:, :, output_input_idx]          
         if self.enc2dec_input_block is not None:
           decoder_input = self.enc2dec_input_block(input_slice)
         else:
           decoder_input = input_slice
-       
+        
         decoder_input = decoder_input.reshape(num_samples, 1, self.decoder.total_output_size)
-          
+        
         # Pad decoder input
         decoder_input = torch.nn.functional.pad(decoder_input, (0, 0, 0, self.decoder.max_output_len - 1), "constant", 0)
-
+    
       # Perform decoder forward pass
       decoder_output, decoder_hiddens = self.decoder(input = decoder_input,
                                                      steps = decoder_steps,
@@ -275,15 +275,15 @@ class Seq2SeqModel(torch.nn.Module):
       num_samples, input_len, input_size = input.shape
 
       with torch.no_grad():
-          # Generate prediction using the model
-          prediction, hiddens = self.forward(input=input,
-                                            steps=steps,
-                                            hiddens=hiddens,
-                                            input_window_idx=input_window_idx, output_window_idx=output_window_idx,
-                                            input_mask=input_mask, output_mask=output_mask,
-                                            output_input_idx=output_input_idx,
-                                            input_output_idx=input_output_idx,
-                                            encoder_output=encoder_output)
+        # Generate prediction using the model
+        prediction, hiddens = self.forward(input=input,
+                                          steps=steps,
+                                          hiddens=hiddens,
+                                          input_window_idx=input_window_idx, output_window_idx=output_window_idx,
+                                          input_mask=input_mask, output_mask=output_mask,
+                                          output_input_idx=output_input_idx,
+                                          input_output_idx=input_output_idx,
+                                          encoder_output=encoder_output)
 
       # Extract prediction steps and compute associated time steps
       prediction_steps = steps[:, -self.max_output_len:] if steps is not None else None
@@ -291,11 +291,11 @@ class Seq2SeqModel(torch.nn.Module):
 
       # Apply output transforms if provided
       if output_transforms:
-          for sampled_idx in range(num_samples):
-              j = 0
-              for i in range(self.num_outputs):
-                  prediction[sampled_idx, :, j:(j + self.output_size[i])] = output_transforms[i].inverse_transform(prediction[sampled_idx, :, j:(j + self.output_size[i])])
-                  j += self.output_size[i]
+        for sampled_idx in range(num_samples):
+          j = 0
+          for i in range(self.num_outputs):
+            prediction[sampled_idx, :, j:(j + self.output_size[i])] = output_transforms[i].inverse_transform(prediction[sampled_idx, :, j:(j + self.output_size[i])])
+            j += self.output_size[i]
 
       return prediction, prediction_time
 
@@ -372,34 +372,34 @@ class Seq2SeqModel(torch.nn.Module):
 
           # Update forecast steps tensor if steps are provided
           if steps is not None:
-              forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
-              steps += forecast_len
+            forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
+            steps += forecast_len
 
           # Generate forecasts for the remaining steps
           while forecast.shape[1] < (forecast_len + num_forecast_steps):
-              input_ar = torch.zeros((num_samples, forecast_len, input_size)).to(input)
+            input_ar = torch.zeros((num_samples, forecast_len, input_size)).to(input)
 
-              # Update input_ar with the forecasted values if needed
-              if (len(input_output_idx) > 0) & (len(output_input_idx) > 0):
-                  input_ar[..., output_input_idx] = forecast[:, -forecast_len:, input_output_idx]
+            # Update input_ar with the forecasted values if needed
+            if (len(input_output_idx) > 0) & (len(output_input_idx) > 0):
+                input_ar[..., output_input_idx] = forecast[:, -forecast_len:, input_output_idx]
 
-              # Concatenate input_ar with the input tensor
-              input = torch.cat((input[:, forecast_len:], input_ar), 1)
+            # Concatenate input_ar with the input tensor
+            input = torch.cat((input[:, forecast_len:], input_ar), 1)
 
-              # Generate prediction for the next forecast step and concatenate it to the forecast tensor
-              prediction, hiddens = self(input=input,
-                                         steps=steps,
-                                         hiddens=hiddens,
-                                         encoder_output=encoder_output,
-                                         input_output_idx=input_output_idx,
-                                         output_input_idx=output_input_idx)
+            # Generate prediction for the next forecast step and concatenate it to the forecast tensor
+            prediction, hiddens = self(input=input,
+                                        steps=steps,
+                                        hiddens=hiddens,
+                                        encoder_output=encoder_output,
+                                        input_output_idx=input_output_idx,
+                                        output_input_idx=output_input_idx)
 
-              forecast = torch.cat((forecast, prediction[:, -forecast_len:]), 1)
+            forecast = torch.cat((forecast, prediction[:, -forecast_len:]), 1)
 
-              # Update forecast steps tensor if steps are provided
-              if steps is not None:
-                  forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
-                  steps += forecast_len
+            # Update forecast steps tensor if steps are provided
+            if steps is not None:
+                forecast_steps = torch.cat((forecast_steps, steps[:, -forecast_len:]), 1)
+                steps += forecast_len
  
       # Apply output transforms if provided
       if output_transforms:
