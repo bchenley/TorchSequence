@@ -63,26 +63,25 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     locals_ = locals().copy()
 
     num_inputs, num_outputs = len(input_names), len(output_names)
-
-    locals_ = [item for item in locals_ if item not in ['self', 'data']]
-
-    self.data = copy.deepcopy(data)
-                 
+ 
     for arg in locals_:
-      value = locals_[arg]
-      
-      if isinstance(value, list) and ('input_' in arg):
-        if len(value) == 1:
-          setattr(self, arg, value * num_inputs)
+      if arg != 'self':
+        value = locals_[arg]
+
+        if arg == 'data':
+          setattr(self, arg, copy.deepcopy(value))
+        elif isinstance(value, list) and ('input_' in arg):
+          if len(value) == 1:
+            setattr(self, arg, value * num_inputs)
+          else:
+            setattr(self, arg, value)
+        elif isinstance(value, list) and ('input_' in arg):
+          if len(value) == 1:
+            setattr(self, arg, value * num_outputs)
+          else:
+            setattr(self, arg, value)
         else:
-          setattr(self, arg, value)
-      elif isinstance(value, list) and ('input_' in arg):
-        if len(value) == 1:
-          setattr(self, arg, value * num_outputs)
-        else:
-          setattr(self, arg, value)
-      else:
-          setattr(self, arg, value)
+            setattr(self, arg, value)
 
     self.input_names_original, self.output_names_original = self.input_names.copy(), self.output_names.copy()
 
