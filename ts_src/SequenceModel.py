@@ -425,10 +425,10 @@ class SequenceModel(torch.nn.Module):
 
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
-
+    
     input_window_idx = [torch.arange(input_len).to(device=self.device, dtype=torch.long)
                         for _ in range(self.num_inputs)] if input_window_idx is None else input_window_idx
-
+    
     # Initialize hidden states if not provided
     hiddens = hiddens if hiddens is not None else self.init_hiddens()
 
