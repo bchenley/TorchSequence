@@ -1454,7 +1454,7 @@ class SequenceModule(pl.LightningModule):
 
     # Move the model to the appropriate device and data type
     self.model.to(device = self.trainer.datamodule.device,
-                      dtype = self.trainer.datamodule.dtype)
+                  dtype = self.trainer.datamodule.dtype)
 
     # Extract various indices and values
     input_window_idx = self.trainer.datamodule.train_input_window_idx
@@ -1540,7 +1540,7 @@ class SequenceModule(pl.LightningModule):
                                                                      dtype = self.model.dtype)
       forecast_steps = torch.empty((num_samples, 0)).to(device = self.model.device,
                                                         dtype = torch.long)
-
+      
       # Generate forecast steps
       while forecast.shape[1] < num_forecast_steps: # (total_output_len + num_forecast_steps):
         # Generate prediction for the next forecast step
@@ -1552,7 +1552,7 @@ class SequenceModule(pl.LightningModule):
                                            output_mask = output_mask,
                                            output_input_idx = output_input_idx,
                                            input_output_idx = input_output_idx)
-
+        
         # Create input for the next forecast step
         input_ = torch.zeros((num_samples, total_output_len, total_input_size)).to(input)
         if len(output_input_idx) > 0:
@@ -1566,18 +1566,18 @@ class SequenceModule(pl.LightningModule):
         if steps is not None:
           forecast_steps = torch.cat((forecast_steps, steps[:, -total_output_len:]), 1)
           steps += total_output_len
-
+        
       # Extract the relevant portion of the forecast
       forecast, forecast_steps = forecast[:, -num_forecast_steps:], forecast_steps[:, -num_forecast_steps:]
 
     forecast_target = None
-
+     
     # Handle forecast target if forecast is in evaluation mode
     if eval:
 
       target = torch.cat([data[name] for name in output_names], -1)
       time = data[time_name]
-      start_step = self.trainer.datamodule.start_step
+      start_step = self.trainer.datamodule.start_step*self.trainer.datamodule.pad_data
       
       idx = (forecast_steps <= max_step).all(dim=1)
 
@@ -1587,7 +1587,7 @@ class SequenceModule(pl.LightningModule):
       if forecast.shape[0] <= 1:
         forecast = forecast.unsqueeze(0)
         forecast_steps = forecast_steps.unsqueeze(0)
-      
+
       forecast_target = target[forecast_steps - start_step] # target[idx].reshape(len(idx), -1, total_output_size) #
 
       # Convert steps to forecasted time
@@ -1636,7 +1636,7 @@ class SequenceModule(pl.LightningModule):
   ##
   def plot_forecast(self, 
                     figsize = None):
-
+    
     id = self.forecast_data['id']
     
     data, transforms = self.trainer.datamodule.data, self.trainer.datamodule.transforms
@@ -1672,7 +1672,7 @@ class SequenceModule(pl.LightningModule):
       
       output_i = torch.cat((transforms[output_names[i]].inverse_transform(data[output_names[i]])[-2*total_output_len:],
                             self.forecast_data[output_names[i]]), 0)
-
+      
       ax_i.plot(time, output_i.cpu(), '-*')
       ax_i.grid()
       
@@ -1760,7 +1760,7 @@ class SequenceModule(pl.LightningModule):
                                                                         hiddens = hiddens_id,
                                                                         invert = invert,
                                                                         eval = True)
-
+      
       forecast_id, forecast_time_id, forecast_target_id = forecast_id[::stride], forecast_time_id[::stride], forecast_target_id[::stride]
 
       self.backtest_data[-1][time_name] = forecast_time_id
