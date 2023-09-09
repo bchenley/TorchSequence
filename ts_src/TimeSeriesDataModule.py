@@ -82,7 +82,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         else:
             setattr(self, arg, value)
 
-    self.input_names_original, self.output_names_original = self.input_names, self.output_names
+    self.input_names_original, self.output_names_original = self.input_names.copy(), self.output_names.copy()
 
     self.input_output_names = np.unique(self.input_names + self.output_names).tolist()
     self.input_output_names_original = self.input_output_names
