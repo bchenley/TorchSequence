@@ -333,6 +333,7 @@ class SequenceModel(torch.nn.Module):
         if self.output_flatten[i] == 'time':
           output_in_features_i = 1
           output_out_features_i = 1 
+          self.output_size[i] = 1
         elif self.output_flatten[i] == 'feature':                    
           output_in_features_i = output_in_features_i * self.max_base_seq_len 
           output_out_features_i = self.output_size[i] * self.max_output_len
