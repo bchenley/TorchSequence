@@ -126,6 +126,8 @@ class SequenceModel(torch.nn.Module):
 
     self.max_input_len, self.max_output_len = np.max(self.input_len), np.max(self.output_len)
 
+    output_size_original = self.output_size.copy()
+    
     self.seq_base, self.hidden_layer = torch.nn.ModuleList([]), torch.nn.ModuleList([])
     for i in range(self.num_inputs):
 
@@ -327,23 +329,23 @@ class SequenceModel(torch.nn.Module):
             elif self.base_type[j] == 'cnn':
               output_in_features_i += self.base_hidden_size[j]
       
-      if self.output_flatten[i]:
+      if self.output_flatten[i] is not None:
         self.Flatten.append(torch.nn.Flatten(1, 2))
 
         if self.output_flatten[i] == 'time':
           # output_in_features_i = 1
           output_out_features_i = 1 
-          self.output_size[i] = 1 
-        elif self.output_flatten[i] == 'feature':                    
-          output_in_features_i = output_in_features_i * self.max_base_seq_len 
-          output_out_features_i = self.output_size[i] * self.max_output_len
+          self.output_size[i] = 1
+        elif self.output_flatten[i] == 'feature': 
+          # output_in_features_i = output_in_features_i * self.max_base_seq_len 
+          output_out_features_i = self.output_size[i] * self.max_output_len          
+          # self.output_size[i] = output_out_features_i
 
       else:
         self.Flatten.append(None)
-
         output_out_features_i = self.output_size[i]
-
-      if self.output_size[i] > 0:
+      
+      if output_size_original[i] > 0:
         output_layer_i = HiddenLayer(# linear transformation
                                      in_features = output_in_features_i,
                                      out_features = output_out_features_i,
@@ -361,7 +363,9 @@ class SequenceModel(torch.nn.Module):
                                      device = self.device, dtype = self.dtype)
       else:
         output_layer_i = torch.nn.Identity()
-        if sum(self.hidden_out_features) > 0:
+        if self.output_flatten[i] == 'time':
+          self.output_size[i] = 1
+        elif sum(self.hidden_out_features) > 0:
           self.output_size[i] = self.hidden_out_features[i]
         elif self.interaction_out_features > 0:
           self.output_size[i] = self.interaction_out_features
@@ -371,7 +375,7 @@ class SequenceModel(torch.nn.Module):
           self.output_size[i] = 0
           for j in range(self.num_inputs):
             self.output_size[i] += (1 + int(self.base_rnn_bidirectional[j]))*self.base_hidden_size[j]
-        self.output_size = (np.array(self.output_size) * self.max_output_len).tolist() if self.output_flatten else self.output_size
+        # self.output_size = (np.array(self.output_size) * self.max_output_len).tolist() if self.output_flatten else self.output_size
 
       self.output_layer.append(output_layer_i)
 
@@ -498,13 +502,13 @@ class SequenceModel(torch.nn.Module):
       
       # Generate output of the ith output layer      
       output_i = self.output_layer[i](output_input_i)
-
+      
       # Flatten input for output layer if necessary
       if self.output_flatten[i] == 'time':
         output_i = self.Flatten[i](output_i).unsqueeze(2)
-      elif self.output_flatten[i] == 'feature':
-        output_i = self.Flatten[i](output_i).unsqueeze(1).reshape(num_samples, self.max_output_len, self.output_size[i])
-
+      elif self.output_flatten[i] == 'feature':        
+        output_i = self.Flatten[i](output_i).reshape(num_samples, self.max_output_len, self.output_size[i])
+        
       output.append(output_i)
 
       # Store the output of the output layer if required
@@ -604,17 +608,17 @@ class SequenceModel(torch.nn.Module):
                                                    hiddens = hiddens,
                                                    encoder_output = encoder_output)
         
-    else:
-      input = torch.nn.functional.pad(input,
-                                      (0, 0, np.max([self.max_output_len - input_len, 0]), 0),
-                                      "constant", 0).to(input)
-      
+    else:        
+      # input = torch.nn.functional.pad(input,
+      #                                 (0, 0, np.max([self.max_output_len - input_len, 0]), 0),
+      #                                 "constant", 0).to(input)
+
       output, hiddens = self.process(input = input,
                                      input_window_idx = input_window_idx,
                                      steps = steps[:, unique_input_window_idx] if steps is not None else None,
                                      hiddens = hiddens,
                                      encoder_output = encoder_output)
-    
+
     # Only keep the outputs for the maximum output sequence length  
     output = output[:, -self.max_output_len:]
     
