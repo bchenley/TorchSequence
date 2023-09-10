@@ -119,7 +119,18 @@ class CNN1D(torch.nn.Module):
                                                 groups=self.groups[i],
                                                 bias=self.bias[i],
                                                 device=self.device, dtype=self.dtype))
-            # 2) Add activation
+            
+            # 2) Add batch normalization layer if specified
+            if self.batch_norm:
+                batch_norm_i = torch.nn.BatchNorm1d(self.out_channels[i], 
+                                                    affine = self.batch_norm_learn,
+                                                    device = self.device, dtype = self.dtype)
+            else:
+                batch_norm_i = torch.nn.Identity()
+            
+            self.cnn[-1].append(batch_norm_i)
+
+            # 3) Add activation
             if (self.activation[i] == 'identity') or (self.activation[i] is None):
               activation_fn = torch.nn.Identity()
             elif self.activation[i] == 'relu':
@@ -136,7 +147,7 @@ class CNN1D(torch.nn.Module):
             
             self.cnn[-1].append(activation_fn)
             
-            # 3) Add pooling layer if specified
+            # 4) Add pooling layer if specified
             if self.pool_type[i] is None:
                 pool_i = torch.nn.Identity()
             if self.pool_type[i] == 'max':
@@ -147,22 +158,12 @@ class CNN1D(torch.nn.Module):
                                             stride=self.pool_stride[i])     
             
             self.cnn[-1].append(pool_i)
-
-            # 4) Add batch normalization layer if specified
-            if self.batch_norm:
-                batch_norm_i = torch.nn.BatchNorm1d(self.out_channels[i], 
-                                                    affine=self.batch_norm_learn,
-                                                    device = self.device, dtype = self.dtype)
-            else:
-                batch_norm_i = torch.nn.Identity()
-
-            self.cnn[-1].append(batch_norm_i)
         
         # Determine the number of output features after passing through the layers
         with torch.no_grad():             
           X = torch.zeros((2, self.input_len, in_channels)).to(device=self.device, dtype=self.dtype)
           self.output_len = self.forward(X).shape[1]
-
+    
     def forward(self, input):
         """ 
         Forward pass method that applies the 1D convolutional layers and pooling layers to the input tensor.
@@ -178,14 +179,14 @@ class CNN1D(torch.nn.Module):
           # Apply padding to the input tensor if pad_front is True
           input_i = torch.nn.functional.pad(output, (self.kernel_size[i][0] - 1, 0)) if self.pad_front else output # .transpose(1, 2)
           # Apply the current CNN layer to the input tensor
-          output = self.cnn[i][0](input_i)
-          # Apply activation
-          output = self.cnn[i][1](output.transpose(1, 2)).transpose(1, 2)
-          # Apply pooling
-          output = self.cnn[i][2](output)
+          output = self.cnn[i][0](input_i)          
           # Apply batch normalization
+          output = self.cnn[i][1](output)
+          # Apply activation
+          output = self.cnn[i][2](output.transpose(1, 2)).transpose(1, 2)
+          # Apply pooling
           output = self.cnn[i][3](output)
-        
+          
         # Transpose back the output tensor to the original shape
         output = output.transpose(1, 2)
 
