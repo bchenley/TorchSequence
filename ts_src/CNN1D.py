@@ -120,7 +120,7 @@ class CNN1D(torch.nn.Module):
                                                 bias=self.bias[i],
                                                 device=self.device, dtype=self.dtype))
             # 2) Add activation
-            if self.activation[i] == 'identity':
+            if (self.activation[i] == 'identity') or (self.activation[i] is None):
               activation_fn = torch.nn.Identity()
             elif self.activation[i] == 'relu':
               activation_fn = torch.nn.ReLU()
