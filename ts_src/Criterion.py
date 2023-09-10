@@ -61,5 +61,8 @@ class Criterion():
       
       error_var = torch.var(y_true - y_pred)      
       criterion = N*torch.log(error_var) + num_params*torch.log(N)
+    elif self.name == 'r2':
+        if self.dims is not None: criterion = 1 - (y_true - y_pred).pow(2).sum(dim = self.dims)/(y_true - y_true.mean(dim = self.dims)).pow(2).sum(dim = self.dims)
+        else: criterion = 1 - (y_true - y_pred).pow(2)/(y_true - y_true.mean(dim = self.dims)).pow(2)
         
     return criterion
