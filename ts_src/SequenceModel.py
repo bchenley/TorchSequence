@@ -914,5 +914,5 @@ class SequenceModel(torch.nn.Module):
 
     # Calculate forecast time steps
     forecast_time = forecast_steps * self.dt if forecast_steps is not None else None
-
+    
     return forecast, forecast_time
