@@ -26,7 +26,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                time_unit = 's',
                input_unit = [None], output_unit = [None],
                pad_data = False,
-               shuffle_train_batch = False,
+               shuffle_train = False,
                print_summary = False,
                device = 'cpu', dtype = torch.float32):
 
@@ -52,7 +52,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         dt (Optional[float]): Time step between data points.
         time_unit (str): Time unit for period-based slicing.
         pad_data (bool): Whether to pad data with NaN values.
-        shuffle_train_batch (bool): Whether to shuffle batches during training.
+        shuffle_train (bool): Whether to shuffle batches during training.
         print_summary (bool): Whether to print data summary.
         device (str): Device for data storage.
         dtype (torch.dtype): Data type for tensors.
@@ -529,7 +529,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             shift=self.shift,
             stride=self.stride,
             init_input=self.train_init_input,
-            shuffle_batch=self.shuffle_train_batch,
+            shuffle=self.shuffle_train,
             print_summary=self.print_summary,
             device=self.device,
             dtype=self.dtype
@@ -580,7 +580,6 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
       # Store information about validation batches
       self.num_val_batches = self.val_dl.num_batches
-      self.val_batch_shuffle_idx = self.val_dl.batch_shuffle_idx
       self.val_output_mask = self.val_dl.output_mask
       self.val_input_window_idx, self.val_output_window_idx = self.val_dl.input_window_idx, self.val_dl.output_window_idx
       self.val_max_input_len, self.val_max_output_len = self.val_dl.max_input_len, self.val_dl.max_output_len
@@ -611,7 +610,6 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                                           shift=self.shift,
                                           stride=self.stride,
                                           init_input=self.test_init_input,
-                                          shuffle_batch=self.shuffle_train_batch,
                                           print_summary=self.print_summary,
                                           device=self.device,
                                           dtype=self.dtype)
@@ -619,7 +617,6 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         # Store test batch size
         self.test_batch_size = self.test_dl.batch_size
         self.num_test_batches = self.test_dl.num_batches
-        self.test_batch_shuffle_idx = self.test_dl.batch_shuffle_idx
         self.test_output_mask = self.test_dl.output_mask
         self.test_input_window_idx, self.test_output_window_idx = self.test_dl.input_window_idx, self.test_dl.output_window_idx
         self.test_max_input_len, self.test_max_output_len = self.test_dl.max_input_len, self.test_dl.max_output_len
