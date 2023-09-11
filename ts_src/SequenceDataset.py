@@ -27,7 +27,7 @@ class SequenceDataset(torch.utils.data.Dataset):
                input_names, output_names, step_name='steps',
                input_len=[1], output_len=[1], shift=[0], stride=1,
                init_input=None,
-               shuffle_batch = False,
+               # shuffle_batch = False,
                forecast = False,
                print_summary=False,
                device='cpu', dtype=torch.float32):
@@ -203,10 +203,10 @@ class SequenceDataset(torch.utils.data.Dataset):
 
     self.num_samples = num_samples
 
-    self.batch_shuffle_idx = None
-    if self.shuffle_batch:
-      self.batch_shuffle_idx = torch.randperm(self.num_samples)
-      input_samples, output_samples, steps_samples = input_samples[self.batch_shuffle_idx], output_samples[self.batch_shuffle_idx], steps_samples[self.batch_shuffle_idx]
+    # self.batch_shuffle_idx = None
+    # if self.shuffle_batch:
+    #   self.batch_shuffle_idx = torch.randperm(self.num_samples)
+    #   input_samples, output_samples, steps_samples = input_samples[self.batch_shuffle_idx], output_samples[self.batch_shuffle_idx], steps_samples[self.batch_shuffle_idx]
 
     return input_samples, output_samples, steps_samples, [self.data['id']]*self.num_samples
 
