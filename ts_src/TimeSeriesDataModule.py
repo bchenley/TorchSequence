@@ -26,7 +26,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                time_unit = 's',
                input_unit = [None], output_unit = [None],
                pad_data = False,
-               shuffle_train = False,
+               # shuffle_train = False,
                print_summary = False,
                device = 'cpu', dtype = torch.float32):
 
@@ -506,7 +506,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
     return self.forecast_dl.dl
 
-  def train_dataloader(self):
+  def train_dataloader(self, shuffle = False):
     """
     Creates and returns a dataloader for training data.
 
@@ -529,7 +529,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             shift=self.shift,
             stride=self.stride,
             init_input=self.train_init_input,
-            shuffle=self.shuffle_train,
+            shuffle=shuffle_train,
             print_summary=self.print_summary,
             device=self.device,
             dtype=self.dtype
