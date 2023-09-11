@@ -168,7 +168,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
 
     dl = torch.utils.data.DataLoader(ds,
                                      batch_size=self.batch_size,
-                                     shuffle = shuffle,
+                                     shuffle = self.shuffle,
                                      # sampler = sampler,
                                      collate_fn=self.collate_fn)
 
