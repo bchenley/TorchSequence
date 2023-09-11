@@ -32,7 +32,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
                input_len=[1], output_len=[1], shift=[0], stride=1,
                init_input=None,
                forecast = False,
-               shuffle_batch = False,
+               shuffle = False,
                print_summary=False,
                device='cpu', dtype=torch.float32):
 
@@ -107,7 +107,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
                                shift=self.shift, stride=self.stride,
                                init_input=self.init_input,
                                forecast = self.forecast,
-                               # shuffle_batch = self.shuffle_batch,
+                               # shuffle = self.shuffle,
                                print_summary=self.print_summary,
                                device=self.device, dtype=self.dtype)
 
@@ -126,7 +126,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
                            shift=self.shift, stride=self.stride,
                            init_input=self.init_input,
                            forecast = self.forecast,
-                           # shuffle_batch = self.shuffle_batch,
+                           # shuffle = self.shuffle,
                            print_summary=self.print_summary,
                            device=self.device, dtype=self.dtype)
 
@@ -160,7 +160,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
       ds = NoDataset()
 
     self.batch_shuffle_idx, sampler = None, None
-    if self.shuffle_batch:
+    if self.shuffle:
       self.batch_shuffle_idx = torch.randperm(len(ds))
       sampler = torch.utils.data.SubsetRandomSampler(self.batch_shuffle_idx)
       
@@ -168,6 +168,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
 
     dl = torch.utils.data.DataLoader(ds,
                                      batch_size=self.batch_size,
+                                     shuffle = self.shuffle,
                                      sampler = sampler,
                                      collate_fn=self.collate_fn)
 
