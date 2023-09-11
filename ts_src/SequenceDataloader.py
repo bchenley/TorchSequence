@@ -32,7 +32,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
                input_len=[1], output_len=[1], shift=[0], stride=1,
                init_input=None,
                forecast = False,
-               shuffle = False,
+               # shuffle = False,
                print_summary=False,
                device='cpu', dtype=torch.float32):
 
@@ -89,7 +89,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
     return input, output, steps, batch_size, id
 
   @property
-  def get_dataloader(self):
+  def get_dataloader(self, shuffle):
     '''
     Property function that returns the dataloader.
 
@@ -159,17 +159,17 @@ class SequenceDataloader(torch.utils.data.Dataset):
 
       ds = NoDataset()
 
-    self.batch_shuffle_idx, sampler = None, None
-    if self.shuffle:
-      self.batch_shuffle_idx = torch.randperm(len(ds))
-      sampler = torch.utils.data.SubsetRandomSampler(self.batch_shuffle_idx)
+    # self.batch_shuffle_idx, sampler = None, None
+    # if self.shuffle:
+    #   self.batch_shuffle_idx = torch.randperm(len(ds))
+    #   sampler = torch.utils.data.SubsetRandomSampler(self.batch_shuffle_idx)
       
     self.batch_size = len(ds) if self.batch_size == -1 else self.batch_size
 
     dl = torch.utils.data.DataLoader(ds,
                                      batch_size=self.batch_size,
-                                     shuffle = self.shuffle,
-                                     sampler = sampler,
+                                     shuffle = shuffle,
+                                     # sampler = sampler,
                                      collate_fn=self.collate_fn)
 
     self.num_batches = len(dl)
