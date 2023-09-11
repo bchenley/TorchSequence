@@ -53,7 +53,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
         self.data[step_name] = torch.arange(self.data[self.output_names[0]].shape[0]).to(device = self.device, dtype = torch.long)
 
     self.dl = self.get_dataloader
-
+  
   def collate_fn(self, batch):
 
     '''
@@ -107,7 +107,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
                                shift=self.shift, stride=self.stride,
                                init_input=self.init_input,
                                forecast = self.forecast,
-                               shuffle_batch = self.shuffle_batch,
+                               # shuffle_batch = self.shuffle_batch,
                                print_summary=self.print_summary,
                                device=self.device, dtype=self.dtype)
 
@@ -126,7 +126,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
                            shift=self.shift, stride=self.stride,
                            init_input=self.init_input,
                            forecast = self.forecast,
-                           shuffle_batch = self.shuffle_batch,
+                           # shuffle_batch = self.shuffle_batch,
                            print_summary=self.print_summary,
                            device=self.device, dtype=self.dtype)
 
@@ -159,16 +159,16 @@ class SequenceDataloader(torch.utils.data.Dataset):
 
       ds = NoDataset()
 
-    # self.batch_shuffle_idx, sampler = None, None
-    # if self.shuffle_batch:
-    #   self.batch_shuffle_idx = torch.randperm(len(ds))
-    #   sampler = torch.utils.data.SubsetRandomSampler(self.batch_shuffle_idx)
+    self.batch_shuffle_idx, sampler = None, None
+    if self.shuffle_batch:
+      self.batch_shuffle_idx = torch.randperm(len(ds))
+      sampler = torch.utils.data.SubsetRandomSampler(self.batch_shuffle_idx)
       
     self.batch_size = len(ds) if self.batch_size == -1 else self.batch_size
 
     dl = torch.utils.data.DataLoader(ds,
                                      batch_size=self.batch_size,
-                                     # sampler = sampler,
+                                     sampler = sampler,
                                      collate_fn=self.collate_fn)
 
     self.num_batches = len(dl)
