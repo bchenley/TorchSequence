@@ -26,7 +26,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                time_unit = 's',
                input_unit = [None], output_unit = [None],
                pad_data = False,
-               shuffle_train = False,
+               # shuffle_train = False,
                print_summary = False,
                device = 'cpu', dtype = torch.float32):
 
@@ -52,7 +52,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         dt (Optional[float]): Time step between data points.
         time_unit (str): Time unit for period-based slicing.
         pad_data (bool): Whether to pad data with NaN values.
-        shuffle_train (bool): Whether to shuffle batches during training.
+        # shuffle_train (bool): Whether to shuffle batches during training.
         print_summary (bool): Whether to print data summary.
         device (str): Device for data storage.
         dtype (torch.dtype): Data type for tensors.
@@ -506,7 +506,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
     return self.forecast_dl.dl
 
-  def train_dataloader(self):
+  def train_dataloader(self, shuffle):
     """
     Creates and returns a dataloader for training data.
 
@@ -529,7 +529,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             shift=self.shift,
             stride=self.stride,
             init_input=self.train_init_input,
-            shuffle=self.shuffle_train,
+            shuffle=shuffle,
             print_summary=self.print_summary,
             device=self.device,
             dtype=self.dtype
@@ -540,7 +540,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
         # Store information about training batches
         self.num_train_batches = self.train_dl.num_batches
-        self.train_batch_shuffle_idx = self.train_dl.batch_shuffle_idx
+        # self.train_batch_shuffle_idx = self.train_dl.batch_shuffle_idx
         self.train_output_mask = self.train_dl.output_mask
         self.train_input_window_idx, self.train_output_window_idx = self.train_dl.input_window_idx, self.train_dl.output_window_idx
         self.train_max_input_len, self.train_max_output_len = self.train_dl.max_input_len, self.train_dl.max_output_len
