@@ -179,18 +179,18 @@ class CNN1D(torch.nn.Module):
         Returns:
             torch.Tensor: Output tensor after passing through the CNN1D module.
         """
-        output = input.clone().transpose(1, 2)
+        output = input.clone()
         for i in range(self.num_layers):   
           # Apply padding to the input tensor if causal_pad is True
-          input_i = torch.nn.functional.pad(output, (self.kernel_size[i][0] - 1, 0)) if self.causal_pad else output # .transpose(1, 2)
+          input_i = torch.nn.functional.pad(output, (0, 0, self.kernel_size[i][0] - 1, 0, 0, 0)) if self.causal_pad else output
           # Apply the current CNN layer to the input tensor
-          output = self.cnn[i][0](input_i)          
+          output = self.cnn[i][0](input_i.permute(0, 2, 1)).permute(0, 2, 1) 
           # Apply batch normalization
-          output = self.cnn[i][1](output)
+          output = self.cnn[i][1](output.permute(0, 2, 1)).permute(0, 2, 1)
           # Apply activation
-          output = self.cnn[i][2](output.permute(0, 2, 1)).permute(0, 2, 1)
+          output = self.cnn[i][2](output)
           # Apply pooling
-          output = self.cnn[i][3](output)
+          output = self.cnn[i][3](output.permute(0, 2, 1)).permute(0, 2, 1)
           # Apply dropout
           output = self.cnn[i][4](output)
           
