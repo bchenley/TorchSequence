@@ -22,13 +22,13 @@ class CNN1D(torch.nn.Module):
         pool_stride (list, optional): List of tuples specifying the pooling stride for each layer. Default is [(1,)].
         batch_norm (bool, optional): If True, applies batch normalization after each convolutional layer. Default is False.
         batch_norm_learn (bool, optional): If True, allows the batch normalization layers to learn affine parameters. Default is False.
-        pad_front (bool, optional): If True, pads the front of the input tensor with zeros before applying the convolutional layers. Default is False.
+        causal_pad (bool, optional): If True, pads the front of the input tensor with zeros before applying the convolutional layers. Default is False.
         device (str, optional): Device on which the model parameters should be stored. Default is None.
         dtype (torch.dtype, optional): Data type for the model parameters. Default is None.
 
     Methods:
         __init__(self, in_channels, out_channels, kernel_size, kernel_stride, padding, dilation, groups, bias, 
-                  pool_type, pool_size, pool_stride, batch_norm, batch_norm_learn, pad_front, device, dtype):
+                  pool_type, pool_size, pool_stride, batch_norm, batch_norm_learn, causal_pad, device, dtype):
             Constructor method for initializing the CNN1D module and its attributes.
 
         forward(self, input):
@@ -43,7 +43,7 @@ class CNN1D(torch.nn.Module):
     """
     def __init__(self, 
                  in_channels, out_channels, input_len = 1,
-                 pad_front = False,
+                 causal_pad = False,
                  kernel_size = [(1,)], kernel_stride = [(1,)], padding = [(0,)], 
                  dilation = [(1,)], groups = [1], bias = [False], 
                  pool_type = [None], pool_size = [(2,)], pool_stride = [(1,)],
@@ -70,7 +70,7 @@ class CNN1D(torch.nn.Module):
             pool_stride (list, optional): List of tuples specifying the pooling stride for each layer. Default is [(1,)].
             batch_norm (bool, optional): If True, applies batch normalization after each convolutional layer. Default is False.
             batch_norm_learn (bool, optional): If True, allows the batch normalization layers to learn affine parameters. Default is False.
-            pad_front (bool, optional): If True, pads the front of the input tensor with zeros before applying the convolutional layers. Default is False.
+            causal_pad (bool, optional): If True, pads the front of the input tensor with zeros before applying the convolutional layers. Default is False.
             device (str, optional): Device on which the model parameters should be stored. Default is None.
             dtype (torch.dtype, optional): Data type for the model parameters. Default is None.
         """
@@ -176,8 +176,8 @@ class CNN1D(torch.nn.Module):
         """
         output = input.clone().transpose(1, 2)
         for i in range(self.num_layers):   
-          # Apply padding to the input tensor if pad_front is True
-          input_i = torch.nn.functional.pad(output, (self.kernel_size[i][0] - 1, 0)) if self.pad_front else output # .transpose(1, 2)
+          # Apply padding to the input tensor if causal_pad is True
+          input_i = torch.nn.functional.pad(output, (self.kernel_size[i][0] - 1, 0)) if self.causal_pad else output # .transpose(1, 2)
           # Apply the current CNN layer to the input tensor
           output = self.cnn[i][0](input_i)          
           # Apply batch normalization
