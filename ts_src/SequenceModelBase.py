@@ -110,7 +110,7 @@ class SequenceModelBase(torch.nn.Module):
               rnn_weight_reg=[0.001, 1], rnn_weight_norm=None,
               relax_init=[0.5], relax_train=True, relax_minmax=[0.1, 0.9], num_filterbanks=1,
               cnn_out_channels = None, 
-              cnn_pad_front = False,
+              cnn_causal_pad = False,
               cnn_kernel_size = [(1,)], cnn_kernel_stride = [(1,)], cnn_padding = [(0,)], cnn_dilation = [(1,)], cnn_groups = [1],
               cnn_bias = [False], cnn_pool_type = [None], cnn_pool_size = [(2,)], cnn_pool_stride = [(0,)],
               cnn_batch_norm = False, cnn_batch_norm_learn = False,
@@ -191,7 +191,7 @@ class SequenceModelBase(torch.nn.Module):
     elif self.base_type == 'cnn':
       self.base = CNN1D(in_channels = self.input_size, 
                         out_channels = self.cnn_out_channels, 
-                        pad_front = self.cnn_pad_front,
+                        causal_pad = self.cnn_causal_pad,
                         input_len = input_len,
                         kernel_size = self.cnn_kernel_size, 
                         kernel_stride = self.cnn_kernel_stride, 
