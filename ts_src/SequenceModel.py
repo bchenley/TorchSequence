@@ -41,7 +41,7 @@ class SequenceModel(torch.nn.Module):
                base_cnn_degree = [[2]], base_cnn_coef_init = [[None]], base_cnn_coef_train = [[True]], base_cnn_coef_reg = [[[0.001, 1]]], base_cnn_zero_order = [[False]],
                base_cnn_pool_type = [[None]], base_cnn_pool_size = [[(2,)]], base_cnn_pool_stride = [[(1,)]],
                base_cnn_batch_norm = [False], base_cnn_batch_norm_learn = [False],
-               base_cnn_pad_front = [False],
+               base_cnn_causal_pad = [False],
                # Transformer parameters
                base_seq_type = ['encoder'],
                base_transformer_embedding_type = ['time'], base_transformer_embedding_bias = [False], base_transformer_embedding_activation = ['identity'],
@@ -152,7 +152,7 @@ class SequenceModel(torch.nn.Module):
                                      relax_init = self.base_relax_init[i], relax_train = self.base_relax_train[i], relax_minmax = self.base_relax_minmax[i], num_filterbanks = self.base_num_filterbanks[i],
                                      # CNN parameters
                                      cnn_out_channels = self.base_cnn_out_channels[i],
-                                     cnn_pad_front = self.base_cnn_pad_front[i],
+                                     cnn_causal_pad = self.base_cnn_causal_pad[i],
                                      cnn_kernel_size = self.base_cnn_kernel_size[i], cnn_kernel_stride = self.base_cnn_kernel_stride[i], cnn_padding = self.base_cnn_padding[i], cnn_dilation = self.base_cnn_dilation[i], cnn_groups = self.base_cnn_groups[i], cnn_bias = self.base_cnn_bias[i],
                                      cnn_activation = self.base_cnn_activation[i],
                                      cnn_degree = self.base_cnn_degree[i], cnn_coef_init = self.base_cnn_coef_init[i], cnn_coef_train = self.base_cnn_coef_train[i], cnn_coef_reg = self.base_cnn_coef_reg[i] , cnn_zero_order = self.base_cnn_zero_order[i],
