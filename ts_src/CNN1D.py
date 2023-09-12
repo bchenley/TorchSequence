@@ -188,7 +188,7 @@ class CNN1D(torch.nn.Module):
           # Apply batch normalization
           output = self.cnn[i][1](output)
           # Apply activation
-          output = self.cnn[i][2](output.transpose(1, 2)).transpose(1, 2)
+          output = self.cnn[i][2](output.permute(0, 2, 1)).permute(0, 2, 1)
           # Apply pooling
           output = self.cnn[i][3](output)
           # Apply dropout
