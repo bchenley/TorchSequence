@@ -49,7 +49,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
           self.data[i][step_name] = torch.arange(self.data[i][self.output_names[0]].shape[0]).to(device = self.device, dtype = torch.long)
 
     else:
-      if step_name not in data:
+      if step_name not in self.data:
         self.data[step_name] = torch.arange(self.data[self.output_names[0]].shape[0]).to(device = self.device, dtype = torch.long)
 
     self.dl = self.get_dataloader
