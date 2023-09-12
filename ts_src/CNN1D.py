@@ -195,6 +195,6 @@ class CNN1D(torch.nn.Module):
           output = self.cnn[i][4](output)
           
         # Transpose back the output tensor to the original shape
-        output = output.transpose(1, 2)
+        output = output
 
         return output
