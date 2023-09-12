@@ -383,7 +383,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
           # Split data based on specified percentages
           train_len = int(self.pct_train_val[0] * self.data_len)
-          test_len = self.num_datasets - train_len
+          test_len = self.data_len - train_len
           val_len = 0
           
           if self.pct_train_val[1] > 0:
