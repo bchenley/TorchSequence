@@ -116,6 +116,7 @@ class SequenceModelBase(torch.nn.Module):
               cnn_batch_norm = False, cnn_batch_norm_learn = False,
               cnn_activation = ['identity'],
               cnn_degree = [2], cnn_coef_init = [None], cnn_coef_train = [True], cnn_coef_reg = [[0.001, 1]] , cnn_zero_order = [False], 
+              cnn_dropout_p = [0.],
               encoder_output_size = None, seq_type = 'encoder',
               transformer_embedding_type='time', transformer_embedding_bias=False,
               transformer_embedding_activation='identity',
@@ -208,8 +209,9 @@ class SequenceModelBase(torch.nn.Module):
                         pool_type = self.cnn_pool_type, 
                         pool_size = self.cnn_pool_size,
                         pool_stride = self.cnn_pool_stride,
-                        batch_norm = cnn_batch_norm, 
-                        batch_norm_learn = cnn_batch_norm_learn,
+                        batch_norm = self.cnn_batch_norm, 
+                        batch_norm_learn = self.cnn_batch_norm_learn,
+                        dropout_p = self.cnn_dropout_p,
                         device = self.device, dtype = self.dtype)
 
     elif self.base_type == 'transformer':
