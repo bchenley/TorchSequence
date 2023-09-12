@@ -1814,6 +1814,7 @@ class SequenceModule(pl.LightningModule):
 
   ##
   def plot_backtest(self, id = None, figsize = None, num_backtests = 1):
+    
     """
     Plot the backtest results for a specific ID.
 
@@ -1855,15 +1856,15 @@ class SequenceModule(pl.LightningModule):
 
     # Iterate through each output and backtest step
     for i in range(self.trainer.datamodule.num_outputs):
-      for j, (time_i, target_i, prediction_i) in enumerate(zip(forecast_time,
-                                                                backtest_data_idx[f"{output_names[i]}_target"][-num_backtests:].cpu(),
-                                                                backtest_data_idx[f"{output_names[i]}_prediction"][-num_backtests:].cpu())):
+      for j, (time_i, target_i, prediction_i) in enumerate(zip(forecast_time[-num_backtests:],
+                                                               backtest_data_idx[f"{output_names[i]}_target"][-num_backtests:].cpu(),
+                                                               backtest_data_idx[f"{output_names[i]}_prediction"][-num_backtests:].cpu())):
           ax_ji = (ax[i, j]
                   if self.model.num_outputs > 1
                   else ax[j]
                   if num_backtests > 1
                   else ax)
-
+          
           # Plot time series data
           ax_ji.plot(time_i, target_i, "k", label="Target")
           ax_ji.plot(time_i, prediction_i, "r", label="Prediction")
