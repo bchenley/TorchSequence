@@ -101,7 +101,7 @@ class CNN1D(torch.nn.Module):
         if len(self.pool_type) == 1: self.pool_type = self.pool_type * self.num_layers
         if len(self.pool_size) == 1: self.pool_size = self.pool_size * self.num_layers
         if len(self.pool_stride) == 1: self.pool_stride = self.pool_stride * self.num_layers
-        if len(self.dropout_p) == 1: self.dropout = self.dropout_p * self.num_layers
+        if len(self.dropout_p) == 1: self.dropout_p = self.dropout_p * self.num_layers
             
         # Create the CNN layers
         self.cnn = torch.nn.ModuleList()  
