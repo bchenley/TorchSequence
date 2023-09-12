@@ -41,7 +41,7 @@ class SequenceModel(torch.nn.Module):
                base_cnn_degree = [[2]], base_cnn_coef_init = [[None]], base_cnn_coef_train = [[True]], base_cnn_coef_reg = [[[0.001, 1]]], base_cnn_zero_order = [[False]],
                base_cnn_pool_type = [[None]], base_cnn_pool_size = [[(2,)]], base_cnn_pool_stride = [[(1,)]],
                base_cnn_batch_norm = [False], base_cnn_batch_norm_learn = [False],
-               base_cnn_causal_pad = [False],
+               base_cnn_causal_pad = [False], base_cnn_dropout_p = [[0.]],
                # Transformer parameters
                base_seq_type = ['encoder'],
                base_transformer_embedding_type = ['time'], base_transformer_embedding_bias = [False], base_transformer_embedding_activation = ['identity'],
@@ -158,6 +158,7 @@ class SequenceModel(torch.nn.Module):
                                      cnn_degree = self.base_cnn_degree[i], cnn_coef_init = self.base_cnn_coef_init[i], cnn_coef_train = self.base_cnn_coef_train[i], cnn_coef_reg = self.base_cnn_coef_reg[i] , cnn_zero_order = self.base_cnn_zero_order[i],
                                      cnn_pool_type = self.base_cnn_pool_type[i], cnn_pool_size = self.base_cnn_pool_size[i], cnn_pool_stride = self.base_cnn_pool_stride[i],
                                      cnn_batch_norm = self.base_cnn_batch_norm[i], cnn_batch_norm_learn = self.base_cnn_batch_norm_learn[i],
+                                     cnn_dropout_p = self.base_cnn_dropout_p[i],
                                      # Transformer parameters
                                      encoder_output_size = self.encoder_output_size, seq_type = self.base_seq_type[i],
                                      transformer_embedding_type = self.base_transformer_embedding_type[i], transformer_embedding_bias = self.base_transformer_embedding_bias[i], transformer_embedding_activation = self.base_transformer_embedding_activation[i],
