@@ -340,8 +340,12 @@ class TimeSeriesDataModule(pl.LightningDataModule):
       if isinstance(self.data, list):
         # Split the data into train, validation, and test sets
         train_len = int(self.pct_train_val_test[0] * self.num_datasets)
-        val_len = int(self.pct_train_val_test[1] * self.num_datasets)
-
+        test_len = self.num_datasets - train_len
+        
+        if self.pct_train_val_test[1] > 0:
+          val_len = int(self.pct_train_val_test[1] * train_len)
+          train_len -= val_len
+          
         train_data = self.data[:train_len]
         val_data = self.data[train_len:(train_len + val_len)]
         test_data = self.data[(train_len + val_len):]
@@ -378,7 +382,11 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
           # Split data based on specified percentages
           train_len = int(self.pct_train_val_test[0] * self.data_len)
-          val_len = int(self.pct_train_val_test[1] * self.data_len)
+          test_len = self.num_datasets - train_len
+        
+          if self.pct_train_val_test[1] > 0:
+            val_len = int(self.pct_train_val_test[1] * train_len)
+            train_len -= val_len
 
           train_data = {name: self.data[name][:train_len] for name in ([self.time_name, 'steps'] + self.input_output_names)}
           train_data['id'] = self.data['id']
