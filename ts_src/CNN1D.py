@@ -50,6 +50,7 @@ class CNN1D(torch.nn.Module):
                  activation = ['identity'],
                  degree = [2], coef_init = [None], coef_train = [True], coef_reg = [[0.001, 1]] , zero_order = [False],
                  batch_norm = False, batch_norm_learn = False,
+                 dropout_p = [0.],
                  device = None, dtype = None):
 
         """
@@ -100,12 +101,13 @@ class CNN1D(torch.nn.Module):
         if len(self.pool_type) == 1: self.pool_type = self.pool_type * self.num_layers
         if len(self.pool_size) == 1: self.pool_size = self.pool_size * self.num_layers
         if len(self.pool_stride) == 1: self.pool_stride = self.pool_stride * self.num_layers
-        
+        if len(self.dropout_p) == 1: self.dropout = self.dropout_p * self.num_layers
+            
         # Create the CNN layers
         self.cnn = torch.nn.ModuleList()  
         for i in range(self.num_layers):
             self.cnn.append(torch.nn.Sequential())
-
+            
             # Determine the input channels for the current layer
             in_channels_i = self.in_channels if i == 0 else self.out_channels[i - 1]
 
@@ -156,9 +158,12 @@ class CNN1D(torch.nn.Module):
             elif self.pool_type[i] == 'avg':
                 pool_i = torch.nn.AvgPool1d(kernel_size=self.pool_size[i],
                                             stride=self.pool_stride[i])     
-            
+
             self.cnn[-1].append(pool_i)
-        
+
+            # 5) Dropout
+            self.cnn[-1].append(torch.nn.Dropout(self.dropout_p[i]))
+                     
         # Determine the number of output features after passing through the layers
         with torch.no_grad():             
           X = torch.zeros((2, self.input_len, in_channels)).to(device=self.device, dtype=self.dtype)
@@ -186,6 +191,8 @@ class CNN1D(torch.nn.Module):
           output = self.cnn[i][2](output.transpose(1, 2)).transpose(1, 2)
           # Apply pooling
           output = self.cnn[i][3](output)
+          # Apply dropout
+          output = self.cnn[i][4](output)
           
         # Transpose back the output tensor to the original shape
         output = output.transpose(1, 2)
