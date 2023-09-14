@@ -64,7 +64,7 @@ class SequenceModule(pl.LightningModule):
       self.test_epoch_loss, self.test_epoch_metric = [], []
 
       self.hiddens = None
-
+      
       self.track_performance, self.track_params = track_performance, track_params
 
       self.model_dir = model_dir
@@ -152,7 +152,9 @@ class SequenceModule(pl.LightningModule):
     input_batch, output_batch, steps_batch, batch_size, id = batch
 
     # Keep the first `batch_size` batches of hiddens
-    if self.hiddens is not None:
+    if not self.stateful:
+      self.hiddens = None
+    elif self.hiddens is not None:
       for i in range(self.model.num_inputs):
         if (self.model.base_type[i] in ['gru', 'lstm', 'lru']) & (self.hiddens[i] is not None):
           if self.model.base_type[i] == 'lstm':
@@ -319,7 +321,9 @@ class SequenceModule(pl.LightningModule):
     input_batch, output_batch, steps_batch, batch_size, id = batch
 
     # Keep the first `batch_size` batches of hiddens
-    if self.hiddens is not None:
+    if not self.stateful:
+      self.hiddens = None
+    elif self.hiddens is not None:
       for i in range(self.model.num_inputs):
         if (self.model.base_type[i] in ['gru', 'lstm', 'lru']) & (self.hiddens[i] is not None):
           if self.model.base_type[i] == 'lstm':
@@ -421,7 +425,9 @@ class SequenceModule(pl.LightningModule):
     input_batch, output_batch, steps_batch, batch_size, id = batch
 
     # Keep the first `batch_size` batches of hiddens
-    if self.hiddens is not None:
+    if not self.stateful:
+      self.hiddens = None
+    elif self.hiddens is not None:
       for i in range(self.model.num_inputs):
         if (self.model.base_type[i] in ['gru', 'lstm', 'lru']) & (self.hiddens[i] is not None):
           if self.model.base_type[i] == 'lstm':
@@ -570,7 +576,9 @@ class SequenceModule(pl.LightningModule):
     input_batch, output_batch, steps_batch, batch_size, id = batch
 
     # Keep the first `batch_size` batches of hiddens
-    if self.hiddens is not None:
+    if not self.stateful:
+      self.hiddens = None
+    elif self.hiddens is not None:
       for i in range(self.model.num_inputs):
         if (self.model.base_type[i] in ['gru', 'lstm', 'lru']) & (self.hiddens[i] is not None):
           if self.model.base_type[i] == 'lstm':
@@ -652,6 +660,7 @@ class SequenceModule(pl.LightningModule):
     self.output_pred_batch, self.step_target = [], []  # Initialize lists for predictions and targets
     self.output_steps_batch = []  # Initialize list for output steps
     self.id = []  # Initialize list for IDs
+    self.hiddens = None
 
   def predict(self, reduction='mean'):
     """
