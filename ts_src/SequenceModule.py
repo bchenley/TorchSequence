@@ -707,7 +707,7 @@ class SequenceModule(pl.LightningModule):
       self.predict_output_mask = self.trainer.datamodule.train_output_mask
       self.predict_input_window_idx = self.trainer.datamodule.train_input_window_idx
       self.predict_output_window_idx = self.trainer.datamodule.train_output_window_idx
-
+      
       shuffle_train_original = self.trainer.datamodule.shuffle_train
       if shuffle_train_original == True:
         self.trainer.datamodule.shuffle_train = False
@@ -717,7 +717,7 @@ class SequenceModule(pl.LightningModule):
       self.trainer.predict(self, self.trainer.datamodule.train_dl.dl)
       self.trainer.datamodule.shuffle_train = shuffle_train_original
       self.trainer.datamodule.predicting = True
-
+      
       self.train_prediction_data = [[] for _ in range(len(train_data))]
 
       # Process predictions for each unique ID
@@ -743,7 +743,7 @@ class SequenceModule(pl.LightningModule):
         train_target, _ = self.generate_reduced_output(target, output_steps,
                                                        reduction=reduction,
                                                        transforms=transform_idx)
-
+        
         # Retrieve train time and output steps
         if self.trainer.datamodule.num_datasets > 1:
           train_time = train_data[train_idx][time_name]
@@ -754,7 +754,7 @@ class SequenceModule(pl.LightningModule):
 
         if hasattr(train_time, 'tz'):
           train_time = train_time.dt.tz_localize(None).values
-
+        
         self.train_prediction_data[train_idx][time_name] = train_time[train_output_steps] # [start_step:]
 
         j = 0
@@ -817,8 +817,8 @@ class SequenceModule(pl.LightningModule):
                 prediction, target, output_steps = prediction.unsqueeze(0), target.unsqueeze(0), output_steps.unsqueeze(0)
 
             val_prediction, val_output_steps = self.generate_reduced_output(prediction, output_steps,
-                                                                            reduction=reduction,
-                                                                            transforms=transform_idx)
+                                                                            reduction = reduction,
+                                                                            transforms = transform_idx)
 
             val_target, _ = self.generate_reduced_output(target, output_steps,
                                                          reduction=reduction,
@@ -831,7 +831,7 @@ class SequenceModule(pl.LightningModule):
             else:
               val_time = data[data_idx][time_name]
               val_output_steps = val_output_steps.cpu().numpy() # - start_step
-
+            
             if hasattr(val_time, 'tz'):
               val_time = val_time.dt.tz_localize(None).values
 
