@@ -21,6 +21,7 @@ class SequenceModule(pl.LightningModule):
                constrain=False, penalize=False,
                shuffle_train=False,
                teach=False,
+               stateful = False,
                track_performance=False, track_params=False,
                model_dir=None):
       """
