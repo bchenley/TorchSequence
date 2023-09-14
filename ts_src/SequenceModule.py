@@ -1490,13 +1490,13 @@ class SequenceModule(pl.LightningModule):
     output_input_idx, input_output_idx = self.trainer.datamodule.output_input_idx, self.trainer.datamodule.input_output_idx
 
     num_forecast_steps = num_forecast_steps or total_output_len
-
+    
     max_input_window_idx = np.max([idx.max().cpu() for idx in input_window_idx])
     max_output_window_idx = np.max([idx.max().cpu() for idx in output_window_idx])
-
+    
     # Calculate forecast length
     forecast_len = np.max([1, max_output_window_idx - max_input_window_idx])
-
+    
     if eval:
 
       dl = None
@@ -1536,11 +1536,11 @@ class SequenceModule(pl.LightningModule):
       ids = np.concatenate(ids).tolist()
 
       id_idx = torch.tensor([id_idx for id_idx,id_ in enumerate(ids) if id_ == id]).to(device = input.device, dtype = torch.long)
-
+      
       input = input[id_idx].reshape(len(id_idx), input.shape[1], input.shape[2])
       steps = steps[id_idx].reshape(len(id_idx), steps.shape[1])
       ids = [ids[id_idx_item] for id_idx_item in id_idx.tolist()]
-
+      
       min_step, max_step = [], []
       if steps is not None:
         min_step, max_step = steps.min().item(), steps.max().item()
@@ -1561,7 +1561,7 @@ class SequenceModule(pl.LightningModule):
                                                                      dtype = self.model.dtype)
       forecast_steps = torch.empty((num_samples, 0)).to(device = self.model.device,
                                                         dtype = torch.long)
-
+      
       # Generate forecast steps
       while forecast.shape[1] < num_forecast_steps: # (total_output_len + num_forecast_steps):
         # Generate prediction for the next forecast step
@@ -1575,18 +1575,18 @@ class SequenceModule(pl.LightningModule):
                                            input_output_idx = input_output_idx)
 
         # Create input for the next forecast step
-        input_ = torch.zeros((num_samples, total_output_len, total_input_size)).to(input)
+        input_ = torch.zeros((num_samples, prediction.shape[1], total_input_size)).to(input)
         if len(output_input_idx) > 0:
-          input_[:, :, output_input_idx] = prediction[:, -total_output_len:, input_output_idx]
-
+          input_[:, :, output_input_idx] = prediction[:, -prediction.shape[1]:, input_output_idx]
+        
         # Concatenate input for the next forecast step
-        input = torch.cat((input[:, total_output_len:], input_), 1)
+        input = torch.cat((input[:, prediction.shape[1]:], input_), 1)
 
         # Append prediction to forecast
-        forecast = torch.cat((forecast, prediction[:, -total_output_len:]), 1)
+        forecast = torch.cat((forecast, prediction), 1)
         if steps is not None:
-          forecast_steps = torch.cat((forecast_steps, steps[:, -total_output_len:]), 1)
-          steps += total_output_len
+          forecast_steps = torch.cat((forecast_steps, steps[:, -prediction.shape[1]:]), 1)
+          steps += prediction.shape[1]
 
       # Extract the relevant portion of the forecast
       forecast, forecast_steps = forecast[:, -num_forecast_steps:], forecast_steps[:, -num_forecast_steps:]
@@ -1598,19 +1598,22 @@ class SequenceModule(pl.LightningModule):
 
       target = torch.cat([data[name] for name in output_names], -1)
       time = data[time_name]
-      start_step = self.trainer.datamodule.start_step*self.trainer.datamodule.pad_data
+      start_step = 0 # self.trainer.datamodule.start_step*self.trainer.datamodule.pad_data
 
       idx = (forecast_steps <= max_step).all(dim=1)
-
+      
       forecast = forecast[idx] # .reshape(len(idx), -1, total_output_size)
       forecast_steps = forecast_steps[idx] # .reshape(len(idx), -1)
-
-      if forecast.shape[0] <= 1:
+      
+      if forecast.shape[0] <= 1:        
         forecast = forecast.unsqueeze(0)
         forecast_steps = forecast_steps.unsqueeze(0)
-
+      
       forecast_target = target[forecast_steps - start_step] # target[idx].reshape(len(idx), -1, total_output_size) #
 
+      # plt.plot(forecast[0].cpu())
+      # plt.plot(forecast_target[0].cpu())
+      
       # Convert steps to forecasted time
       forecast_time = []
       for steps_ in forecast_steps:
