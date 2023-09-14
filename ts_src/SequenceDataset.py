@@ -99,7 +99,7 @@ class SequenceDataset(torch.utils.data.Dataset):
     self.total_window_idx = torch.arange(self.total_window_size).to(device = 'cpu',
                                                                     dtype = torch.long)
 
-    self.start_step = np.max([0, (self.max_input_len - self.max_output_len + self.max_shift + int(self.has_ar)]).item()
+    self.start_step = np.max([0, self.max_input_len - self.max_output_len + self.max_shift + int(self.has_ar)]).item()
     
     if self.print_summary:
       print('\n'.join([f'Data length: {self.data_len}',
