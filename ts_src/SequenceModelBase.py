@@ -404,8 +404,7 @@ class SequenceModelBase(torch.nn.Module):
     '''
     num_samples, input_len, input_size = input.shape
 
-    if (hiddens is None):
-        hiddens = self.init_hiddens(num_samples)
+    hiddens = hiddens or self.init_hiddens(num_samples)
     
     if self.encoder_block is not None:
         encoder_output = self.encoder_block(encoder_output)
