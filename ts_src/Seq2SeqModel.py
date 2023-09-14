@@ -144,6 +144,7 @@ class Seq2SeqModel(torch.nn.Module):
       # Perform encoder forward pass
       encoder_output, encoder_hiddens = self.encoder(input = input,
                                                      steps = encoder_steps,
+                                                     input_window_idx = input_window_idx,
                                                      hiddens = hiddens,
                                                      input_mask = input_mask)
       
@@ -183,7 +184,7 @@ class Seq2SeqModel(torch.nn.Module):
       
       elif self.enc2dec_hiddens_type == 'identity':
         # Use encoder hidden states as decoder hidden states
-        decoder_hiddens = encoder_hiddens[-self.decoder.num_outputs:]
+        decoder_hiddens = encoder_hiddens[:self.decoder.num_outputs]
         for i in range(self.decoder.num_inputs):
           if self.decoder.base_type[i] == 'lstm':
             decoder_hiddens[i] = (decoder_hiddens[i][0], torch.zeros_like(decoder_hiddens[i][1]))
@@ -192,7 +193,7 @@ class Seq2SeqModel(torch.nn.Module):
         decoder_input = encoder_output.clone()
         decoder_steps = None # steps
       else:
-        input_slice = input.clone()[:, -1:]
+        input_slice = input.clone()[:, -1:, :self.decoder.total_output_size]
         if len(output_input_idx) > 0:
           input_slice = input_slice[:, :, output_input_idx]          
         if self.enc2dec_input_block is not None:
@@ -204,7 +205,7 @@ class Seq2SeqModel(torch.nn.Module):
         
         # Pad decoder input
         decoder_input = torch.nn.functional.pad(decoder_input, (0, 0, 0, self.decoder.max_output_len - 1), "constant", 0)
-    
+
       # Perform decoder forward pass
       decoder_output, decoder_hiddens = self.decoder(input = decoder_input,
                                                      steps = decoder_steps,
@@ -214,15 +215,15 @@ class Seq2SeqModel(torch.nn.Module):
                                                      output_input_idx = output_input_idx,
                                                      input_output_idx = input_output_idx,
                                                      encoder_output = encoder_output)
-
+      
       # if target is not None:
       #   plt.figure(num=2)
-      #   plt.plot(encoder_steps[0].cpu(), input[0].cpu(), '-*b', label = 'input')
+      #   plt.plot(encoder_steps[0].cpu(), input[0][:, :1].cpu(), '-*b', label = 'input')
       #   plt.plot(decoder_steps[0].cpu(), target[0].cpu(), '-*k', label = 'target')
       #   plt.plot(decoder_steps[0].cpu(), decoder_input[0].detach().cpu(), '-*g', label = 'decoder input')
       #   plt.plot(decoder_steps[0].cpu(), decoder_output[0].detach().cpu(), '-*r', label = 'decoder output')
       #   plt.legend()
-
+      
       return decoder_output, hiddens
 
     def constrain(self):
