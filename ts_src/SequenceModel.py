@@ -71,13 +71,13 @@ class SequenceModel(torch.nn.Module):
                base_constrain = [False], base_penalize = [False],
                ##
                # hidden layer parameters
-               hidden_out_features = [-1], hidden_bias = [False], hidden_activation = ['identity'], hidden_degree = [1],
+               hidden_out_features = [0], hidden_bias = [False], hidden_activation = ['identity'], hidden_degree = [1],
                hidden_coef_init = [None], hidden_coef_train = [True], hidden_coef_reg = [[0.001, 1]], hidden_zero_order = [False],
                hidden_softmax_dim = [-1],
                hidden_constrain = [False], hidden_penalize = [False],
                hidden_dropout_p = [0.],
                # interaction layer
-               interaction_out_features = -1, interaction_bias = False, interaction_activation = 'identity',
+               interaction_out_features = 0, interaction_bias = False, interaction_activation = 'identity',
                interaction_degree = 1, interaction_coef_init = None, interaction_coef_train = True,
                interaction_coef_reg = [0.001, 1], interaction_zero_order = False, interaction_softmax_dim = -1,
                interaction_constrain = False, interaction_penalize = False,
@@ -476,9 +476,9 @@ class SequenceModel(torch.nn.Module):
       # Store the output of the hidden layer if required
       if self.store_layer_outputs:
         self.hidden_layer_output[i].append(hidden_output_i)
-
+    
     output_ = torch.cat(hidden_output, -1)
-
+    
     # Generate interaction layer output
     output_ = self.interaction_layer(output_)
 
