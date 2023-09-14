@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import pandas as pd
 import pickle
-import copy 
+import copy
 
 from ts_src.SequenceDataloader import SequenceDataloader
 from ts_src.FeatureTransform import FeatureTransform
@@ -99,7 +99,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         self.transforms[name] = copy.deepcopy(self.transforms['all'])
       elif name not in self.transforms:
         self.transforms[name] = FeatureTransform(transform_type = 'identity')
-
+    
     if 'all' in self.transforms: del self.transforms['all']
 
     self.has_ar = np.isin(self.output_names, self.input_names).any()
@@ -107,7 +107,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     self.max_input_len = np.max(input_len).item()
     self.max_output_len = np.max(output_len).item()
     self.max_shift = np.max(shift).item()
-    self.start_step = np.max([0, self.max_input_len - self.max_output_len + self.max_shift + int(self.has_ar)]).item()
+    self.start_step = np.max([0, self.max_input_len - self.max_output_len + self.max_shift]).item() # + int(self.has_ar)
 
     self.predicting, self.data_prepared = False, False
 
@@ -351,7 +351,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         val_data = self.data[train_len:(train_len + val_len)]
         test_data = self.data[(train_len + val_len):]
         test_len = len(test_data)
-
+          
         self.train_len, self.val_len, self.test_len = train_len, val_len, test_len
         train_init_input, val_init_input, test_init_input = None, None, None
 
@@ -385,9 +385,9 @@ class TimeSeriesDataModule(pl.LightningDataModule):
           train_len = int((1-self.pct_test_val[0]) * self.data_len)
           test_len = self.data_len - train_len
           val_len = 0
-          
-          if self.pct_test_val[1] > 0:
-            val_len = int((1-self.pct_test_val[1]) * train_len)
+
+          if self.pct_test_val[1] > 0:            
+            val_len = int(self.pct_test_val[1] * train_len)            
             train_len -= val_len
 
           train_data = {name: self.data[name][:train_len] for name in ([self.time_name, 'steps'] + self.input_output_names)}
