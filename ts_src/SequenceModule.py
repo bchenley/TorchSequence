@@ -54,7 +54,9 @@ class SequenceModule(pl.LightningModule):
       self.constrain, self.penalize = constrain, penalize
 
       self.teach = teach
-
+      self.stateful = stateful
+      self.hiddens = None
+                 
       input_size, output_size = self.model.input_size, self.model.output_size
 
       self.train_history, self.val_history = None, None
@@ -64,8 +66,6 @@ class SequenceModule(pl.LightningModule):
       self.val_epoch_loss, self.val_epoch_metric = [], []
       self.test_epoch_loss, self.test_epoch_metric = [], []
 
-      self.hiddens = None
-      
       self.track_performance, self.track_params = track_performance, track_params
 
       self.model_dir = model_dir
