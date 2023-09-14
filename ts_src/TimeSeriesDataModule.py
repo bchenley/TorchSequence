@@ -18,7 +18,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                step_shifts = None,
                combine_inputs = None, combine_outputs = None,
                transforms = None,
-               pct_train_val = [1., 0.],
+               pct_test_val = [0., 0.],
                train_val_test_periods = None,
                batch_size = -1,
                input_len = [1], output_len = [1], shift = [0], stride = 1,
@@ -42,7 +42,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         combine_inputs (Optional[List[List[str]]]): List of input feature names to be combined.
         combine_outputs (Optional[List[List[str]]]): List of output target names to be combined.
         transforms (Optional[dict]): Dictionary of FeatureTransform instances.
-        pct_train_val (List[float]): Percentage of data for train, validation, and test sets.
+        pct_test_val (List[float]): Percentage of data for train, validation, and test sets.
         train_val_test_periods (Optional[List[List[str]]]): List of periods for train, validation, and test sets.
         batch_size (int): Batch size for DataLoader.
         input_len (List[int]): Input sequence lengths.
@@ -339,12 +339,12 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     if (stage == 'fit') and (not self.predicting):
       if isinstance(self.data, list):
         # Split the data into train, validation, and test sets
-        train_len = int(self.pct_train_val[0] * self.num_datasets)
+        train_len = int((1-self.pct_test_val[0]) * self.num_datasets)
         test_len = self.num_datasets - train_len
         val_len = 0
         
-        if self.pct_train_val[1] > 0:
-          val_len = int(self.pct_train_val[1] * train_len)
+        if self.pct_test_val[1] > 0:
+          val_len = int((1-self.pct_test_val[1]) * train_len)
           train_len -= val_len
           
         train_data = self.data[:train_len]
@@ -382,12 +382,12 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         else:
 
           # Split data based on specified percentages
-          train_len = int(self.pct_train_val[0] * self.data_len)
+          train_len = int((1-self.pct_test_val[0]) * self.data_len)
           test_len = self.data_len - train_len
           val_len = 0
           
-          if self.pct_train_val[1] > 0:
-            val_len = int(self.pct_train_val[1] * train_len)
+          if self.pct_test_val[1] > 0:
+            val_len = int((1-self.pct_test_val[1]) * train_len)
             train_len -= val_len
 
           train_data = {name: self.data[name][:train_len] for name in ([self.time_name, 'steps'] + self.input_output_names)}
