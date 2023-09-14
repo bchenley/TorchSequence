@@ -100,7 +100,6 @@ class SequenceModelBase(torch.nn.Module):
   def __init__(self,
               input_size, hidden_size, input_len,
               base_type='gru', num_layers=1,
-              stateful = False,
               use_last_step = False,
               encoder_bias=False, decoder_bias=False,
               rnn_bias = True,
@@ -405,7 +404,7 @@ class SequenceModelBase(torch.nn.Module):
     '''
     num_samples, input_len, input_size = input.shape
 
-    if (hiddens is None) | (not self.stateful): # (self.base_type in ['lru', 'lstm', 'gru']):
+    if (hiddens is None):
         hiddens = self.init_hiddens(num_samples)
     
     if self.encoder_block is not None:
