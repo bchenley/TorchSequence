@@ -332,30 +332,32 @@ class SequenceModelBase(torch.nn.Module):
 
     self.attn_mechanism, self.decoder_block = None, None
     if self.rnn_attn:
-        self.attn_mechanism = Attention(embed_dim = self.hidden_size,
-                                        num_heads = self.num_heads,
-                                        query_dim = self.query_dim, key_dim = self.key_dim, value_dim = self.value_dim,
-                                        attn_type = self.multihead_attn_type,
-                                        query_weight_reg = self.query_weight_reg, query_weight_norm = self.query_weight_norm,
-                                        query_bias = self.query_bias,
-                                        key_weight_reg = self.key_weight_reg, key_weight_norm = self.key_weight_norm, key_bias = self.key_bias,
-                                        value_weight_reg = self.value_weight_reg, value_weight_norm = self.value_weight_norm, value_bias = self.value_bias,
-                                        is_causal = self.tgt_is_causal, dropout_p = self.attn_dropout_p,
-                                        device = self.device, dtype = self.dtype)
-
-        if (self.encoder_output_size != self.hidden_size * (1 + self.rnn_bidirectional)):
-            self.encoder_block = HiddenLayer(in_features = self.encoder_output_size,
-                                        out_features = (self.hidden_size * (1 + self.rnn_bidirectional) if self.base_type in ('lstm', 'gru') else len(self.relax_init)) * self.hidden_size * (1 + self.rnn_bidirectional),
+      self.attn_mechanism = Attention(embed_dim = self.hidden_size,
+                                      num_heads = self.num_heads,
+                                      query_dim = self.query_dim, key_dim = self.key_dim, value_dim = self.value_dim,
+                                      attn_type = self.multihead_attn_type,
+                                      query_weight_reg = self.query_weight_reg, query_weight_norm = self.query_weight_norm,
+                                      query_bias = self.query_bias,
+                                      key_weight_reg = self.key_weight_reg, key_weight_norm = self.key_weight_norm, key_bias = self.key_bias,
+                                      value_weight_reg = self.value_weight_reg, value_weight_norm = self.value_weight_norm, value_bias = self.value_bias,
+                                      is_causal = self.tgt_is_causal, dropout_p = self.attn_dropout_p,
+                                      device = self.device, dtype = self.dtype)
+      
+      ecoder_target_size = self.hidden_size * (1 + self.rnn_bidirectional) if self.base_type in ['lstm', 'gru'] else self.num_filterbanks*self.hidden_size
+      
+      if (self.encoder_output_size != ecoder_target_size):
+          self.encoder_block = HiddenLayer(in_features = self.encoder_output_size,
+                                           out_features = ecoder_target_size,
+                                           activation = 'identity',
+                                           bias = self.encoder_bias,
+                                           device = self.device, dtype = self.dtype)
+          
+      self.decoder_block = HiddenLayer(in_features = 2 * self.hidden_size,
+                                        out_features = self.hidden_size,
                                         activation = 'identity',
-                                        bias = self.encoder_bias,
+                                        bias = self.decoder_bias,
                                         device = self.device, dtype = self.dtype)
-
-        self.decoder_block = HiddenLayer(in_features = 2 * self.hidden_size,
-                                         out_features = self.hidden_size,
-                                         activation = 'identity',
-                                         bias = self.decoder_bias,
-                                         device = self.device, dtype = self.dtype)
-
+      
     with torch.no_grad():            
       X = torch.empty((2, self.input_len, input_size)).to(device = self.device,
                                                           dtype = self.dtype)
