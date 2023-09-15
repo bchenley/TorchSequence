@@ -1604,7 +1604,7 @@ class SequenceModule(pl.LightningModule):
       
       forecast = forecast[idx] # .reshape(len(idx), -1, total_output_size)
       forecast_steps = forecast_steps[idx] # .reshape(len(idx), -1)
-      
+
       if forecast.shape[0] <= 1:        
         forecast = forecast.unsqueeze(0)
         forecast_steps = forecast_steps.unsqueeze(0)
@@ -1692,23 +1692,25 @@ class SequenceModule(pl.LightningModule):
     figsize = figsize or (10, 5*num_outputs)
     fig, ax = plt.subplots(num_outputs, 1, figsize = figsize)
 
-    time = pd.concat([data[time_name][-2*total_output_len:], forecast_time])
+    time = data[time_name][-total_input_len:] # pd.concat([data[time_name][-total_input_len:], forecast_time])
 
     for i in range(num_outputs):
       ax_i = ax[i] if num_outputs > 1 else ax
 
       if self.forecast_data['inverted']:
-        output = transforms[output_names[i]].inverse_transform(data[output_names[i]])
+        output_i = transforms[output_names[i]].inverse_transform(data[output_names[i]][-total_input_len:])
       else:
-        output = data[output_names[i]]
+        output_i = data[output_names[i]][-total_input_len:]
 
-      output_i = torch.cat((output[-2*total_output_len:], self.forecast_data[output_names[i]]), 0)
+      # output_i = torch.cat((output_i, self.forecast_data[output_names[i]]), 0)
 
-      ax_i.plot(time, output_i.cpu(), '-*')
+      ax_i.plot(time, output_i.cpu(), '-*k', label = output_names[i])
+      ax_i.plot(forecast_time, self.forecast_data[output_names[i]].cpu(), '-*b', label = f"{output_names[i]} forecast")
       ax_i.grid()
+      ax_i.legend()
 
-      ax_i.axvspan(forecast_time.values.min(), forecast_time.values.max(),
-                   facecolor='black', alpha=0.1, label = 'Forecast')
+      # ax_i.axvspan(forecast_time.values.min(), forecast_time.values.max(),
+      #              facecolor='black', alpha=0.1, label = 'Forecast')
 
       # Customize x-axis based on time unit
       if hasattr(time, "dt"):
