@@ -344,7 +344,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         val_len = 0
         
         if self.pct_test_val[1] > 0:
-          val_len = int((1-self.pct_test_val[1]) * train_len)
+          val_len = int(self.pct_test_val[1] * train_len)
           train_len -= val_len
           
         train_data = self.data[:train_len]
