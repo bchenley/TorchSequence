@@ -1662,7 +1662,8 @@ class SequenceModule(pl.LightningModule):
 
   ##
   def plot_forecast(self,
-                    figsize = None):
+                    figsize = None,
+                    window_len = 10):
 
     id = self.forecast_data['id']
 
@@ -1692,15 +1693,15 @@ class SequenceModule(pl.LightningModule):
     figsize = figsize or (10, 5*num_outputs)
     fig, ax = plt.subplots(num_outputs, 1, figsize = figsize)
 
-    time = data[time_name][-total_input_len:] # pd.concat([data[time_name][-total_input_len:], forecast_time])
+    time = data[time_name][-window_len:] # pd.concat([data[time_name][-window_len:], forecast_time])
 
     for i in range(num_outputs):
       ax_i = ax[i] if num_outputs > 1 else ax
 
       if self.forecast_data['inverted']:
-        output_i = transforms[output_names[i]].inverse_transform(data[output_names[i]][-total_input_len:])
+        output_i = transforms[output_names[i]].inverse_transform(data[output_names[i]][-window_len:])
       else:
-        output_i = data[output_names[i]][-total_input_len:]
+        output_i = data[output_names[i]][-window_len:]
 
       # output_i = torch.cat((output_i, self.forecast_data[output_names[i]]), 0)
 
