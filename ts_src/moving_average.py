@@ -14,8 +14,9 @@ def moving_average(X, window):
     '''
     
     if not isinstance(window, torch.Tensor):
-        window = torch.tensor(window).to(X)
-    elif isinstance(X, torch.Tensor):
+        window = torch.tensor(window)
+        
+    if isinstance(X, torch.Tensor):
         window = window.to(X)
         
     len_window = window.shape[0]
