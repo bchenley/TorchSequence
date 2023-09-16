@@ -300,13 +300,11 @@ class Beat2BeatAnalyzer():
     elif window_type == 'hamming':
       window = sc.signal.windows.hamming(moving_average_window_len)
 
-    self.moving_average_window = sbp_ma = moving_average(self.sbp, window)
+    self.sbp_ma, self.dbp_ma = moving_average(self.sbp, window).numpy(), moving_average(self.dbp, window).numpy()
+    self.mabp_ma = moving_average(self.mabp, window).numpy()
 
-    self.sbp_ma, self.dbp_ma = moving_average(self.sbp, window), moving_average(self.dbp, window)
-    self.mabp_ma = moving_average(self.mabp, window)
-
-    self.hr_ma = moving_average(self.hr, window)
-    self.interval_ma = moving_average(self.interval, window)
+    self.hr_ma = moving_average(self.hr, window).numpy()
+    self.interval_ma = moving_average(self.interval, window).numpy()
 
     self.sbpv, self.dbpv = self.sbp - self.sbp_ma, self.dbp - self.dbp_ma
     self.mabpv = self.mabp - self.mabp_ma
