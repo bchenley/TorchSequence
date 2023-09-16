@@ -12,10 +12,10 @@ def moving_average(X, window):
     Returns:
         y: The output signal after applying the moving average filter.
     '''
-
+    
     if not isinstance(window, torch.Tensor):
         window = torch.tensor(window).to(X)
-    else:
+    elif isinstance(X, torch.Tensor):
         window = window.to(X)
         
     len_window = window.shape[0]
