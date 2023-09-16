@@ -1,4 +1,4 @@
-print("Initializing Diabetes project...")
+print("Initializing Cardio project...")
 
 import importlib
 
