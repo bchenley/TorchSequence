@@ -1795,12 +1795,16 @@ class SequenceModule(pl.LightningModule):
                                                                         invert = invert,
                                                                         eval = True)
 
-      idx = [idx for idx in range(len(forecast_id)-1, -1, -stride)]
-      idx.reverse()
+      # idx = [idx for idx in range(len(forecast_id)-1, -1, -stride)]
+      # idx.reverse()
 
-      forecast_id = forecast_id[idx]
-      forecast_time_id = [forecast_time_id[i] for i in idx]
-      forecast_target_id = forecast_target_id[idx]
+      # forecast_id = forecast_id[idx]
+      # forecast_time_id = [forecast_time_id[i] for i in idx]
+      # forecast_target_id = forecast_target_id[idx]
+
+      forecast_id = forecast_id[::-stride][::-1]
+      forecast_time_id = forecast_time_id[::-stride][::-1]
+      forecast_target_id = forecast_target_id[::-stride][::-1]
 
       if len(idx) == 1:
         forecast_id = forecast_id.unsqueeze(0)
