@@ -1,5 +1,7 @@
 import torch
 
+from ts_src.HiddenLayer import HiddenLayer
+
 class LRU(torch.nn.Module):
     """
     Linear Recurrent Unit (LRU) module.
@@ -46,10 +48,12 @@ class LRU(torch.nn.Module):
             self.relax_init.to(device=self.device, dtype=self.dtype), requires_grad=self.relax_train)
 
         if self.input_size > 1:
-            self.input_block = torch.nn.Linear(
-                in_features=self.input_size,
-                out_features=self.num_filterbanks, bias=self.bias,
-                device=self.device, dtype=self.dtype)
+            self.input_block = HiddenLayer(in_features = self.input_size, 
+                                           out_features = self.num_filters,
+                                           bias = self.bias,
+                                           device = self.device, 
+                                           dtype = self.dtype)
+
         else:
             self.input_block = torch.nn.Identity()
 
