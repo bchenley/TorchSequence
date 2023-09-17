@@ -62,13 +62,20 @@ class Beat2BeatAnalyzer():
     ecg_d3 = np.diff(np.pad(ecg, (3, 0), mode='edge'), 3)
 
     i_ecg_peaks, p_ecg_peaks  = sc.signal.find_peaks(ecg, prominence = 0)
+    i_ecg_troughs, _  = sc.signal.find_peaks(-ecg, prominence = 0)
     p_ecg_peaks = p_ecg_peaks['prominences']
 
+    i_ecg_troughs = i_ecg_troughs[i_ecg_troughs > i_ecg_peaks.min()]
+    p_ecg_peaks = p_ecg_peaks[i_ecg_peaks < i_ecg_troughs.max()]
+    i_ecg_peaks = i_ecg_peaks[i_ecg_peaks < i_ecg_troughs.max()]
+
+    i_ecg_troughs = i_ecg_troughs[ecg_d2[i_ecg_peaks] < 0]
     p_ecg_peaks = p_ecg_peaks[(ecg_d2[i_ecg_peaks] < 0)]
     i_ecg_peaks = i_ecg_peaks[ecg_d2[i_ecg_peaks] < 0]
 
-    i_ecg_peaks_all = i_ecg_peaks
+    i_ecg_peaks_all, i_ecg_troughs_all = i_ecg_peaks, i_ecg_troughs
 
+    i_ecg_troughs = i_ecg_troughs[p_ecg_peaks > min_prominence]
     i_ecg_peaks = i_ecg_peaks[p_ecg_peaks > min_prominence]
     p_ecg_peaks = p_ecg_peaks[p_ecg_peaks > min_prominence]
 
@@ -85,6 +92,7 @@ class Beat2BeatAnalyzer():
 
     centers = centers[valid_cluster_idx]
 
+    i_ecg_troughs = i_ecg_troughs[np.isin(labels, valid_cluster_idx)]
     i_ecg_peaks = i_ecg_peaks[np.isin(labels, valid_cluster_idx)]
     p_ecg_peaks = p_ecg_peaks[np.isin(labels, valid_cluster_idx)]
 
@@ -119,32 +127,34 @@ class Beat2BeatAnalyzer():
 
     # plt.tight_layout()
 
+    i_ecg_troughs = i_ecg_troughs[p_ecg_peaks > threshold] # [labels == max_center_idx] #
     i_ecg_peaks = i_ecg_peaks[p_ecg_peaks > threshold] # [labels == max_center_idx] #
     p_ecg_peaks = p_ecg_peaks[p_ecg_peaks > threshold] # [labels == max_center_idx] #
 
-    # plt.close()
+    # plt.close(fig = 1)
+    # plt.figure(num = 1)
     # plt.plot(np.arange(len(ecg)), ecg, '-') ;
     # plt.plot(i_ecg_peaks, ecg[i_ecg_peaks], '.b', label = f'{len(i_ecg_peaks)} ecg peaks') ;
-    # # plt.set_xlim([100000, 110000]) ;
+    # plt.plot(i_ecg_troughs, ecg[i_ecg_troughs], '.r', label = f'{len(i_ecg_troughs)} ecg troughs') ;
+    # plt.xlim(np.array([15, 25])/self.dt) ;
     # plt.legend() ;
 
-    i_ecg_r = i_ecg_peaks
-
     ##
-    interval = np.diff(i_ecg_r)*self.dt
+    interval = np.diff(i_ecg_peaks)*self.dt
     z_interval = (interval - interval.mean())/interval.std()
     y_interval = interval/np.median(interval)
-    i_near =np.where((interval < min_interval) | (y_interval < 1/y_interval_critical))[0]
+    i_near = np.where((interval < min_interval) | (y_interval < 1/y_interval_critical))[0]
 
     while i_near.size != 0:
 
       i_nears = i_near[0] + [0, 1]
 
-      i_discard = i_nears[ecg[i_ecg_r[i_nears]].argmin()]
+      i_discard = i_nears[(ecg[i_ecg_peaks[i_nears]] - ecg[i_ecg_troughs[i_nears]]).argmin()]
 
-      i_ecg_r = np.delete(i_ecg_r, i_discard)
+      i_ecg_troughs = np.delete(i_ecg_troughs, i_discard)
+      i_ecg_peaks = np.delete(i_ecg_peaks, i_discard)
 
-      interval = np.diff(i_ecg_r)*self.dt
+      interval = np.diff(i_ecg_peaks)*self.dt
       z_interval = (interval - interval.mean())/interval.std()
       y_interval = interval/np.median(interval)
       i_near =np.where((interval < min_interval) | (y_interval < 1/y_interval_critical))[0]
@@ -152,16 +162,20 @@ class Beat2BeatAnalyzer():
 
     hr = 60/interval
 
-    # plt.close()
-    # fig, ax = plt.subplots(2, 1, figsize = (20, 5)) ;
-    # xlim = [15, 25]
-    # ax[0].plot(np.arange(len(ecg))*self.dt, ecg) ;
-    # ax[0].plot(i_ecg_r*self.dt, ecg[i_ecg_r],'.') ;
+    # plt.close(fig = 2)
+    # fig, ax = plt.subplots(2, 1, figsize = (20, 5), num = 2) ;
+    # xlim = np.array([15, 25])/self.dt
+    # ax[0].plot(np.arange(len(ecg)), ecg) ;
+    # ax[0].plot(i_ecg_peaks, ecg[i_ecg_peaks],'.b') ;
+    # ax[0].plot(i_ecg_troughs, ecg[i_ecg_troughs],'.r') ;
     # ax[0].set_xlim(xlim)
 
-    # ax[1].plot(i_ecg_r[1:]*self.dt, interval) ;
-    # ax[1].set_xlim(xlim)
+    # # ax[1].plot(i_ecg_peaks[1:]*self.dt, interval) ;
+    # # ax[1].set_xlim(xlim)
 
+    i_ecg_r = i_ecg_peaks
+
+    i_ecg_troughs_fill = i_ecg_troughs_all[~np.isin(i_ecg_peaks_all, i_ecg_r)]
     i_ecg_peaks_fill = i_ecg_peaks_all[~np.isin(i_ecg_peaks_all, i_ecg_r)]
 
     ##
@@ -469,19 +483,19 @@ class Beat2BeatAnalyzer():
     ax[1,0].plot(self.t[self.i_sbp], self.abp[self.i_sbp], '.g', label = 'SBP')
     ax[1,0].legend()
     ax[1,0].set_xlabel('Time [s]')
-    
+
     ax[0,1].plot(self.t, self.ecg, label = 'ECG')
     ax[0,1].plot(self.t[self.i_ecg_r], self.ecg[self.i_ecg_r], '.g', label = 'R-peak')
     ax[0,1].legend()
     ax[0,1].set_xlim(zoom_window)
-    
+
     ax[1,1].plot(self.t, self.abp, label = 'ABP')
     ax[1,1].plot(self.t[self.i_dbp], self.abp[self.i_dbp], '.r', label = 'DBP')
     ax[1,1].plot(self.t[self.i_sbp], self.abp[self.i_sbp], '.g', label = 'SBP')
     ax[1,1].legend()
     ax[1,1].set_xlim(zoom_window)
     ax[1,1].set_xlabel('Time [s]')
-    
+
     fig.tight_layout()
 
   def plot_beat2beat(self, fig_num = 1, flim = [0, None]):
@@ -502,10 +516,10 @@ class Beat2BeatAnalyzer():
     ax[1,0].plot(self.beat_t, self.interval, 'b', alpha = 0.5) ; ax[1,0].set_ylabel('I')
     ax[1,0].plot(self.beat_t, self.interval_ma, 'b')
     ax[1,0].set_xlabel('Time [s]')
-    
+
     ax[1,1].plot(self.beat_t, self.intervalv, 'b')
     ax[1,1].set_xlabel('Time [s]')
-    
+
     ax[1,2].plot(self.f_psd, self.interval_psd, 'b')
     ax[1,2].set_xlim(flim)
     ax[1,2].set_xlabel('Frequence [Hz]')
