@@ -190,6 +190,10 @@ class SequenceModel(torch.nn.Module):
                                      #
                                      device = self.device, dtype = self.dtype)
 
+      if self.base_type[i] == 'lru':
+        self.base_relax_init[i] = seq_base_i.base.relax_init
+        self.base_relax_minmax[i] = seq_base_i.base.relax_minmax
+      
       self.seq_base.append(seq_base_i)
       #
       
@@ -325,7 +329,7 @@ class SequenceModel(torch.nn.Module):
             if self.base_type[j] in ['lstm', 'gru']:
               output_in_features_i += (1 + int(self.base_rnn_bidirectional[j]))*self.base_hidden_size[j]
             elif self.base_type[j] == 'lru':
-              output_in_features_i += len(self.base_relax_init[j])*self.base_hidden_size[j]
+              output_in_features_i += self.base_num_filterbanks[j]*self.base_hidden_size[j]
             else: # elif self.base_type[j] == 'cnn':
               output_in_features_i += self.base_hidden_size[j]
             
