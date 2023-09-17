@@ -194,7 +194,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
               if not isinstance(time_idx, pd.Series):
                 if isinstance(time_idx, torch.Tensor):
                     time_idx = time_idx.cpu().numpy()
-                data[self.time_name] = pd.Series(time_idx * self.dt)
+                data[self.time_name] = pd.Series(time_idx.squeeze() * self.dt)
             
             # Iterate over input and output feature names
             for name in self.input_output_names_original:
