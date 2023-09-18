@@ -49,7 +49,7 @@ class LRU(torch.nn.Module):
 
         if self.input_size > 1:
             self.input_block = HiddenLayer(in_features = self.input_size, 
-                                           out_features = self.num_filters,
+                                           out_features = self.num_filterbanks,
                                            bias = self.bias,
                                            device = self.device, 
                                            dtype = self.dtype)
