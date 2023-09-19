@@ -3,6 +3,7 @@ import torch
 from ts_src.HiddenLayer import HiddenLayer
 
 class LRU(torch.nn.Module):
+  
     """
     Linear Recurrent Unit (LRU) module.
 
@@ -148,6 +149,6 @@ class LRU(torch.nn.Module):
             return output.squeeze(0)
 
     def clamp_relax(self):
-        """Clamp relaxation factors within specified range."""
-        for i in range(self.num_filterbanks):
-            self.relax[i].data.clamp_(self.relax_minmax[i][0], self.relax_minmax[i][1])
+      """Clamp relaxation factors within specified range."""
+      for i in range(self.num_filterbanks):
+          self.relax[i].data.clamp_(self.relax_minmax[i][0], self.relax_minmax[i][1])
