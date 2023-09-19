@@ -151,4 +151,4 @@ class LRU(torch.nn.Module):
     def clamp_relax(self):
       """Clamp relaxation factors within specified range."""
       for i in range(self.num_filterbanks):
-          self.relax[i] = self.relax[i].clamp(self.relax_minmax[i][0], self.relax_minmax[i][1])
+          self.relax[i] = self.relax[i].clamp(self.relax_minmax[i][0], self.relax_minmax[i][1]).detach()
