@@ -147,7 +147,9 @@ class SequenceModule(pl.LightningModule):
         dict: Dictionary containing the loss and metric values for the current batch.
     """
     # Constrain model if desired
-    if self.constrain: self.model.constrain()
+    if self.constrain: 
+      with torch.no_grad(): 
+        self.model.constrain()
 
     # Unpack batch
     input_batch, output_batch, steps_batch, batch_size, id = batch
