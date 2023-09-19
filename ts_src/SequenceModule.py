@@ -22,6 +22,7 @@ class SequenceModule(pl.LightningModule):
                shuffle_train=False,
                teach=False,
                stateful = False,
+               aggregate_losses = True,
                track_performance=False, track_params=False,
                model_dir=None):
       """
@@ -195,11 +196,11 @@ class SequenceModule(pl.LightningModule):
     if self.penalize: loss += self.model.penalize()
 
     self.opt.zero_grad()
-    if len(loss) > 1:
+    if self.aggregate_losses:
+      loss.sum().backward()
+    else:      
       for i in range(len(loss)):
         loss[i].backward(retain_graph=True)
-    else:
-      loss.backward()
     self.opt.step()
 
     # Store loss to be used later in `on_train_epoch_end`
