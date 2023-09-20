@@ -56,7 +56,7 @@ class SequenceDataset(torch.utils.data.Dataset):
       if not isinstance(self.data[name], torch.Tensor):
         self.data[name] = torch.tensor(self.data[name]).to(device = self.device,
                                                            dtype = self.dtype)
-        if self.max_len is not None: self.data[name] = self.data[name][:self.max_len]
+      if self.max_len is not None: self.data[name] = self.data[name][:self.max_len]
     
     if self.max_len is not None: self.data[self.step_name] = self.data[self.step_name][:self.max_len]
       
