@@ -24,7 +24,7 @@ class SequenceDataset(torch.utils.data.Dataset):
 
   def __init__(self,
                data: dict,
-               input_names, output_names, step_name='steps',
+               input_names, output_names, step_name='step',
                input_len=[1], output_len=[1], shift=[0], stride=1,
                init_input=None,
                # shuffle = False,
