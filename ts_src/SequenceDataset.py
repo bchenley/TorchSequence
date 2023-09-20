@@ -25,7 +25,8 @@ class SequenceDataset(torch.utils.data.Dataset):
   def __init__(self,
                data: dict,
                input_names, output_names, step_name='step',
-               input_len=[1], output_len=[1], shift=[0], stride=1,
+               input_len=[1], output_len=[1], max_len = None,
+               shift=[0], stride=1,
                init_input=None,
                # shuffle = False,
                forecast = False,
@@ -55,7 +56,10 @@ class SequenceDataset(torch.utils.data.Dataset):
       if not isinstance(self.data[name], torch.Tensor):
         self.data[name] = torch.tensor(self.data[name]).to(device = self.device,
                                                            dtype = self.dtype)
-
+        if self.max_len is not None: self.data[name] = self.data[name][:self.max_len]
+    
+    if self.max_len is not None: self.data[self.step_name] = self.data[self.step_name][:self.max_len]
+      
     self.data_len = self.data[self.input_names[0]].shape[0]
 
     if step_name not in data: self.data[step_name] = torch.arange(self.data_len).to(device = self.device,
