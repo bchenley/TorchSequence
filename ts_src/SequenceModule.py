@@ -362,7 +362,7 @@ class SequenceModule(pl.LightningModule):
 
     output_names = self.trainer.datamodule.output_names
 
-    # Log and display the sum of batch loss
+    # Log and display the mean of batch loss
     for i,loss_value in enumerate(train_epoch_loss):
       if isinstance(self.loss_fn, list):
         loss_name_i = self.loss_fn[i].name + '_' + output_names[i]
@@ -370,7 +370,7 @@ class SequenceModule(pl.LightningModule):
         loss_name_i = self.loss_fn.name + '_' + output_names[i]
         
       self.log(f"train_epoch_{loss_name_i}", train_epoch_loss[i], on_epoch=True, prog_bar=True)
-    self.log(f"train_epoch_loss", train_epoch_loss.sum(), on_epoch=True, prog_bar=False)
+    self.log(f"train_epoch_loss", train_epoch_loss.mean(), on_epoch=True, prog_bar=False)
     #
 
     # Clear the list of train step loss for the next epoch
@@ -615,7 +615,7 @@ class SequenceModule(pl.LightningModule):
     self.test_step_metric.clear()
 
     # Log the test epoch loss
-    self.log('test_epoch_loss', test_epoch_loss.sum(), on_epoch=True, prog_bar=True)
+    self.log('test_epoch_loss', test_epoch_loss.mean(), on_epoch=True, prog_bar=True)
   ## End of Testing
 
   ## plot history
