@@ -292,7 +292,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             self.data_len.append(self.data[data_idx][self.input_output_names[0]].shape[0])
 
             # Create a tensor of step indices
-            self.data[data_idx]['steps'] = torch.arange(self.data_len[data_idx]).to(device=self.device, dtype=torch.long)
+            self.data[data_idx]['step'] = torch.arange(self.data_len[data_idx]).to(device=self.device, dtype=torch.long)
 
         # # Initialize variables for indexing input/output features
         # j = 0
@@ -390,17 +390,17 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             val_len = int(self.pct_test_val[1] * train_len)            
             train_len -= val_len
 
-          train_data = {name: self.data[name][:train_len] for name in ([self.time_name, 'steps'] + self.input_output_names)}
+          train_data = {name: self.data[name][:train_len] for name in ([self.time_name, 'step'] + self.input_output_names)}
           train_data['id'] = self.data['id']
 
           if val_len > 0:
-            val_data = {name: self.data[name][train_len:(train_len + val_len)] for name in ([self.time_name, 'steps'] + self.input_output_names)}
+            val_data = {name: self.data[name][train_len:(train_len + val_len)] for name in ([self.time_name, 'step'] + self.input_output_names)}
             val_data['id'] = self.data['id']
           else:
             val_data, val_len = {}, 0
 
           if test_len > 0:
-            test_data = {name: self.data[name][(train_len + val_len):] for name in ([self.time_name, 'steps'] + self.input_output_names)}
+            test_data = {name: self.data[name][(train_len + val_len):] for name in ([self.time_name, 'step'] + self.input_output_names)}
             test_data['id'] = self.data['id']
             test_len = len(next(iter(test_data.values())))
           else:
@@ -411,8 +411,8 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
         if self.pad_data and (self.start_step > 0):
 
-          # train_data['steps'] = torch.cat((train_data['steps'],
-          #                                  torch.arange(1, 1 + self.start_step).to(device=self.device, dtype=torch.long) + train_data['steps'][-1]),0)
+          # train_data['step'] = torch.cat((train_data['step'],
+          #                                  torch.arange(1, 1 + self.start_step).to(device=self.device, dtype=torch.long) + train_data['step'][-1]),0)
 
           # for name in self.input_output_names:
           #   train_data[name] = torch.nn.functional.pad(train_data[name], (0, 0, self.start_step, 0), mode='constant', value=0)
@@ -420,7 +420,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
           data_ = val_data if len(val_data) > 0 else train_data
 
           if len(val_data) > 0:
-            val_data['steps'] = torch.cat((train_data['steps'][-self.start_step:], torch.arange(1, 1 + len(val_data['steps'])).to(train_data['steps']) + train_data['steps'][-1]))
+            val_data['step'] = torch.cat((train_data['step'][-self.start_step:], torch.arange(1, 1 + len(val_data['step'])).to(train_data['step']) + train_data['step'][-1]))
             for name in self.input_output_names:
               val_data[name] = torch.cat((train_data[name][-self.start_step:], val_data[name]), 0)
             val_init_input = val_init_input or []
@@ -430,7 +430,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
           if len(test_data) > 0:
             data_ = val_data if len(val_data) > 0 else train_data
-            test_data['steps'] = torch.cat((data_['steps'][-self.start_step:], torch.arange(1, 1 + len(test_data['steps'])).to(data_['steps']) + data_['steps'][-1]))
+            test_data['step'] = torch.cat((data_['step'][-self.start_step:], torch.arange(1, 1 + len(test_data['step'])).to(data_['step']) + data_['step'][-1]))
             for name in self.input_output_names:
               test_data[name] = torch.cat((data_[name][-self.start_step:], test_data[name]), 0)
             test_init_input = test_init_input or []
@@ -493,7 +493,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
       # Create a SequenceDataloader for forecasting
       self.forecast_dl = SequenceDataloader(input_names = self.input_names,
                                             output_names = self.output_names,
-                                            step_name = 'steps',
+                                            step_name = 'step',
                                             data = data,
                                             batch_size = 1,
                                             input_len = input_len,
@@ -531,7 +531,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         self.train_dl = SequenceDataloader(
             input_names=self.input_names,
             output_names=self.output_names,
-            step_name='steps',
+            step_name='step',
             data=self.train_data,
             batch_size=self.batch_size,
             input_len=self.input_len,
@@ -573,7 +573,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
       # Create a SequenceDataloader for validation
       self.val_dl = SequenceDataloader(input_names=self.input_names,
                                         output_names=self.output_names,
-                                        step_name='steps',
+                                        step_name='step',
                                         data=self.val_data,
                                         batch_size=self.batch_size,
                                         input_len=self.input_len,
@@ -612,7 +612,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         # Create a SequenceDataloader for test data
         self.test_dl = SequenceDataloader(input_names=self.input_names,
                                           output_names=self.output_names,
-                                          step_name='steps',
+                                          step_name='step',
                                           data=self.test_data,
                                           batch_size=self.batch_size,
                                           input_len=self.input_len,
