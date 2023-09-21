@@ -11,7 +11,7 @@ from ts_src.FeatureTransform import FeatureTransform
 from datetime import datetime, timedelta
 
 class TimeSeriesDataModule(pl.LightningDataModule):
-  
+
   def __init__(self,
                data,
                time_name, input_names, output_names,
@@ -21,7 +21,8 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                pct_test_val = [0., 0.],
                train_val_test_periods = None,
                batch_size = -1,
-               input_len = [1], output_len = [1], shift = [0], stride = 1,
+               input_len = [1], output_len = [1], max_len = None,
+               shift = [0], stride = 1,
                dt = None,
                time_unit = 's',
                input_unit = [None], output_unit = [None],
@@ -63,7 +64,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     locals_ = locals().copy()
 
     num_inputs, num_outputs = len(input_names), len(output_names)
- 
+
     for arg in locals_:
       if arg != 'self':
         value = locals_[arg]
@@ -90,7 +91,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
     if not isinstance(self.dt, timedelta):
       self.dt = timedelta(seconds = self.dt)
-      
+
     if self.transforms is None:
       self.transforms = {'all': FeatureTransform(transform_type = 'identity')}
 
@@ -99,7 +100,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         self.transforms[name] = copy.deepcopy(self.transforms['all'])
       elif name not in self.transforms:
         self.transforms[name] = FeatureTransform(transform_type = 'identity')
-    
+
     if 'all' in self.transforms: del self.transforms['all']
 
     self.has_ar = np.isin(self.output_names, self.input_names).any()
@@ -173,7 +174,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
         # Store the length of each dataset
         self.data_len = []
-        
+
         # Loop over each dataset
         for data_idx in range(self.num_datasets):
             # Add an 'id' column to the data if it doesn't exist
@@ -195,7 +196,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                 if isinstance(time_idx, torch.Tensor):
                     time_idx = time_idx.cpu().numpy()
                 data[self.time_name] = pd.Series(time_idx.squeeze() * self.dt)
-            
+
             # Iterate over input and output feature names
             for name in self.input_output_names_original:
                 # Convert non-Tensor data to Tensor
@@ -245,7 +246,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
             # Combine input features if specified
             if self.combine_inputs:
-                
+
               inputs_combined = []
               new_input_names = []
               for i, input_names in enumerate(self.combine_inputs):
@@ -342,16 +343,16 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         train_len = int((1-self.pct_test_val[0]) * self.num_datasets)
         test_len = self.num_datasets - train_len
         val_len = 0
-        
+
         if self.pct_test_val[1] > 0:
           val_len = int(self.pct_test_val[1] * train_len)
           train_len -= val_len
-          
+
         train_data = self.data[:train_len]
         val_data = self.data[train_len:(train_len + val_len)]
         test_data = self.data[(train_len + val_len):]
         test_len = len(test_data)
-          
+
         self.train_len, self.val_len, self.test_len = train_len, val_len, test_len
         train_init_input, val_init_input, test_init_input = None, None, None
 
@@ -386,8 +387,8 @@ class TimeSeriesDataModule(pl.LightningDataModule):
           test_len = self.data_len - train_len
           val_len = 0
 
-          if self.pct_test_val[1] > 0:            
-            val_len = int(self.pct_test_val[1] * train_len)            
+          if self.pct_test_val[1] > 0:
+            val_len = int(self.pct_test_val[1] * train_len)
             train_len -= val_len
 
           train_data = {name: self.data[name][:train_len] for name in ([self.time_name, 'step'] + self.input_output_names)}
@@ -498,6 +499,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                                             batch_size = 1,
                                             input_len = input_len,
                                             output_len = output_len,
+                                            max_len = self.max_len,
                                             shift = self.shift,
                                             stride = self.stride,
                                             init_input = init_input,
@@ -526,7 +528,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     if not self.predicting:
         # Set the training batch size
         self.train_batch_size = self.batch_size
-        
+
         # Create a SequenceDataloader for training
         self.train_dl = SequenceDataloader(
             input_names=self.input_names,
@@ -536,6 +538,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             input_len=self.input_len,
             output_len=self.output_len,
+            max_len = self.max_len,
             shift=self.shift,
             stride=self.stride,
             init_input=self.train_init_input,
@@ -578,6 +581,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                                         batch_size=self.batch_size,
                                         input_len=self.input_len,
                                         output_len=self.output_len,
+                                        max_len = self.max_len,
                                         shift=self.shift,
                                         stride=self.stride,
                                         init_input=self.val_init_input,
@@ -617,6 +621,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                                           batch_size=self.batch_size,
                                           input_len=self.input_len,
                                           output_len=self.output_len,
+                                          max_len = self.max_len,
                                           shift=self.shift,
                                           stride=self.stride,
                                           init_input=self.test_init_input,
