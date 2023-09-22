@@ -740,7 +740,7 @@ class SequenceModel(torch.nn.Module):
         impulse_response[i] = [[_]*self.hidden_out_features[i] for _ in range(self.input_size[i])]
   
         for f in range(self.input_size[i]):
-          impulse_response[i][f] = [[] for _ in range(self.hidden_out_features[i])]
+          # impulse_response[i][f] = [[] for _ in range(self.hidden_out_features[i])]
   
           # Create impulse input signal for the current feature
           impulse_i = torch.zeros((1, seq_len, self.input_size[i])).to(device=self.device,
@@ -752,12 +752,7 @@ class SequenceModel(torch.nn.Module):
           base_output_if, _ = self.seq_base[i].forward(input = impulse_i)
           base_output_if = base_output_if.reshape(seq_len, -1)
   
-          for h in range(self.hidden_out_features[i]):
-            weight_ih = self.hidden_layer[i].F[0].weight[h:(h+1)]
-  
-            impulse_response[i][f][h] = (base_output_if @ weight_ih.t())
-  
-          impulse_response[i][f] = torch.cat(impulse_response[i][f], -1)
+          impulse_response[i][f] = self.hidden_layer[0].F[0](base_output_if)
 
     return impulse_response
 
