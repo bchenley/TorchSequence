@@ -92,11 +92,11 @@ class HiddenLayer(torch.nn.Module):
             f2 = Polynomial(in_features=self.out_features, degree=self.degree, coef_init=self.coef_init,
                             coef_train=self.coef_train, coef_reg=self.coef_reg, zero_order=self.zero_order,
                             device=self.device, dtype=self.dtype)
-
+            
         elif self.activation == 'tanh':
             f2 = torch.nn.Tanh()
         elif self.activation == 'sigmoid':
-            f2 = Sigmoid(in_features, 
+            f2 = Sigmoid(in_features = self.out_features, 
                          slope_init=self.sigmoid_slope_init, slope_train=self.sigmoid_slope_train, slope_reg=self.sigmoid_slope_reg,
                          shift_init=self.sigmoid_shift_init, shift_train=self.sigmoid_shift_train, shift_reg=self.sigmoid_shift_reg,
                          bias=self.sigmoid_bias,
