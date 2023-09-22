@@ -1,6 +1,7 @@
 import torch
 
 from ts_src.Polynomial import Polynomial
+from ts_src.Sigmoid import Sigmoid
 
 class HiddenLayer(torch.nn.Module):
     '''
@@ -31,6 +32,7 @@ class HiddenLayer(torch.nn.Module):
                  weights_to_1=False, weight_reg=[0.001, 1], weight_norm=2, 
                  degree=1, coef_init=None, coef_train=True,
                  coef_reg=[0.001, 1], zero_order=False, softmax_dim=-1, dropout_p=0.0,
+                 sigmoid_bias = False,
                  norm_type = None, affine_norm = False,
                  device='cpu', dtype=torch.float32):
         '''
