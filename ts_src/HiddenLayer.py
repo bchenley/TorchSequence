@@ -4,29 +4,7 @@ from ts_src.Polynomial import Polynomial
 from ts_src.Sigmoid import Sigmoid
 
 class HiddenLayer(torch.nn.Module):
-    '''
-    Hidden layer module with various activation functions and regularization options.
 
-    Args:
-        in_features (int): Number of input features.
-        out_features (int or None): Number of output features. If None or 0, output features will be the same as input features.
-        bias (bool): If True, adds a learnable bias to the output.
-        activation (str): Activation function to use. Options: 'identity', 'polynomial', 'tanh', 'sigmoid', 'softmax', 'relu'.
-        weight_reg (list): Regularization parameters for the weights. [Regularization weight, regularization exponent]
-        weight_norm (int): Norm to be used for weight regularization.
-        degree (int): Degree of the polynomial activation function.
-        coef_init (torch.Tensor): Initial coefficients for the polynomial activation function. If None, coefficients are initialized randomly.
-        coef_train (bool): Whether to train the coefficients.
-        coef_reg (list): Regularization parameters for the coefficients. [Regularization weight, regularization exponent]
-        zero_order (bool): Whether to include the zeroth-order term (constant) in the polynomial activation function.
-        softmax_dim (int): Dimension along which to apply softmax activation.
-        dropout_p (float): Dropout probability.
-        batch_norm (bool): If True, applies batch normalization to the output of the hidden layer.
-        affine_norm (bool): If True, allows batch normalization to learn affine parameters (scale and shift).
-        device (str): Device to use for computation ('cpu' or 'cuda').
-        dtype (torch.dtype): Data type of the model parameters.
-
-    '''
     def __init__(self, in_features, out_features=None, 
                  bias=True, activation='identity',
                  weights_to_1=False, weight_reg=[0.001, 1], weight_norm=2, 
@@ -37,29 +15,7 @@ class HiddenLayer(torch.nn.Module):
                  sigmoid_bias = True,
                  norm_type = None, affine_norm = False,
                  device='cpu', dtype=torch.float32):
-        '''
-        Constructor method for initializing the HiddenLayer module and its attributes.
 
-        Args:
-            in_features (int): Number of input features.
-            out_features (int or None): Number of output features. If None or 0, output features will be the same as input features.
-            bias (bool): If True, adds a learnable bias to the output.
-            activation (str): Activation function to use. Options: 'identity', 'polynomial', 'tanh', 'sigmoid', 'softmax', 'relu'.
-            weights_to_1 (bool): If True, set the weights to 1.0 for Linear or Bilinear layers with input and output features equal to 1.
-            weight_reg (list): Regularization parameters for the weights. [Regularization weight, regularization exponent]
-            weight_norm (int): Norm to be used for weight regularization.
-            degree (int): Degree of the polynomial activation function.
-            coef_init (torch.Tensor): Initial coefficients for the polynomial activation function. If None, coefficients are initialized randomly.
-            coef_train (bool): Whether to train the coefficients.
-            coef_reg (list): Regularization parameters for the coefficients. [Regularization weight, regularization exponent]
-            zero_order (bool): Whether to include the zeroth-order term (constant) in the polynomial activation function.
-            softmax_dim (int): Dimension along which to apply softmax activation.
-            dropout_p (float): Dropout probability.
-            norm_type (bool): If True, applies batch normalization to the output of the hidden layer.
-            affine_norm (bool): If True, allows batch normalization to learn affine parameters (scale and shift).
-            device (str): Device to use for computation ('cpu' or 'cuda').
-            dtype (torch.dtype): Data type of the model parameters.
-        '''
         super(HiddenLayer, self).__init__()
 
         locals_ = locals().copy()
@@ -102,9 +58,11 @@ class HiddenLayer(torch.nn.Module):
         elif self.activation == 'tanh':
             f2 = torch.nn.Tanh()
         elif self.activation == 'sigmoid':
-            f2 = Sigmoid(                 sigmoid_slope_init = None, sigmoid_slope_train = True, sigmoid_slope_reg=[0.001, 1],
-                 sigmoid_shift_init = None, sigmoid_shift_train = True, sigmoid_shift_reg=[0.001, 1],
-                 sigmoid_bias = True,
+            f2 = Sigmoid(in_features, 
+                         slope_init = sigmoid_slope_init, slope_train = sigmoid_slope_train, slope_reg=sigmoid_slope_reg,
+                         shift_init = sigmoid_shift_init, shift_train = sigmoid_shift_train, shift_reg=sigmoid_shift_reg,
+                         bias = sigmoid_bias,
+                         device=self.device, dtype=self.dtype)            
         elif self.activation == 'softmax':
             f2 = torch.nn.Softmax(dim=self.softmax_dim)
         elif self.activation == 'relu':
@@ -128,16 +86,7 @@ class HiddenLayer(torch.nn.Module):
             self.norm_layer = torch.nn.Identity()
 
     def forward(self, input):
-        '''
-        Perform a forward pass through the hidden layer.
 
-        Args:
-            input (torch.Tensor): Input tensor.
-
-        Returns:
-            torch.Tensor: Output tensor.
-
-        '''
         output = self.dropout(self.F(input))
 
         if self.norm_type == 'batch':
@@ -148,22 +97,13 @@ class HiddenLayer(torch.nn.Module):
         return output
 
     def constrain(self):
-        '''
-        Constrain the weights of the hidden layer.
 
-        '''
         for name, param in self.named_parameters():
             if 'weight' in name:
                 param = torch.nn.functional.normalize(param, p=self.weight_norm, dim=1).contiguous()
 
     def penalize(self):
-        '''
-        Compute the regularization loss for the hidden layer.
 
-        Returns:
-            torch.Tensor: Regularization loss.
-
-        '''
         loss = 0
         for name, param in self.named_parameters():
             if 'weight' in name:
