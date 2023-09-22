@@ -158,11 +158,7 @@ class SequenceModule(pl.LightningModule):
     Returns:
         dict: Dictionary containing the loss and metric values for the current batch.
     """
-    # Constrain model if desired
-    if self.constrain: 
-      with torch.no_grad(): 
-        self.model.constrain()
-
+    
     # Unpack batch
     input_batch, target_batch, steps_batch, batch_size, id = batch
 
@@ -274,6 +270,11 @@ class SequenceModule(pl.LightningModule):
         batch: The input batch from the dataloader.
         batch_idx: Index of the current batch.
     """
+
+    # Constrain model if desired
+    if self.constrain: 
+      with torch.no_grad(): 
+        self.model.constrain()
 
     # Get the loss and metric values of the current batch
     train_step_loss = outputs['loss'].detach()
@@ -443,7 +444,7 @@ class SequenceModule(pl.LightningModule):
       
     else:
       loss = self.loss_fn(prediction_batch_masked, target_batch_masked)
-      
+
       if self.metric_fn is not None:
         metric = self.metric_fn(prediction_batch_masked, target_batch_masked)
 
@@ -2151,7 +2152,7 @@ class SequenceModule(pl.LightningModule):
   def fit(self, datamodule, max_epochs=20, callbacks=[None]):
     """
     Fit the model using the specified datamodule and training configuration.
-
+    
     Args:
         datamodule (pl.LightningDataModule): The data module for training.
         max_epochs (int, optional): The maximum number of epochs for training. Defaults to 20.
