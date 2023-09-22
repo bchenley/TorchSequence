@@ -733,18 +733,18 @@ class SequenceModel(torch.nn.Module):
     """
 
     with torch.no_grad():
-      impulse_response = [None for _ in range(self.num_inputs)]
+      self.impulse_response = [None for _ in range(self.num_inputs)]
   
       # Generate impulse response for each input and each feature
       for i in range(self.num_inputs):
-        impulse_response[i] = [[_]*self.hidden_out_features[i] for _ in range(self.input_size[i])]
+        self.impulse_response[i] = [[_]*self.hidden_out_features[i] for _ in range(self.input_size[i])]
   
         for f in range(self.input_size[i]):
-          # impulse_response[i][f] = [[] for _ in range(self.hidden_out_features[i])]
+          # self.impulse_response[i][f] = [[] for _ in range(self.hidden_out_features[i])]
   
           # Create impulse input signal for the current feature
           impulse_i = torch.zeros((1, seq_len, self.input_size[i])).to(device=self.device,
-                                                                        dtype=self.dtype)
+                                                                       dtype=self.dtype)
   
           impulse_i[0, 0, f] = 1.
   
@@ -752,9 +752,7 @@ class SequenceModel(torch.nn.Module):
           base_output_if, _ = self.seq_base[i].forward(input = impulse_i)
           base_output_if = base_output_if.reshape(seq_len, -1)
   
-          impulse_response[i][f] = self.hidden_layer[0].F[0](base_output_if)
-
-    return impulse_response
+          self.impulse_response[i][f] = self.hidden_layer[0].F[0](base_output_if)
 
   def predict(self,
             input, steps=None,
