@@ -733,20 +733,31 @@ class SequenceModel(torch.nn.Module):
     """
 
     with torch.no_grad():
-        impulse_response = [None for _ in range(self.num_inputs)]
-
-        # Generate impulse response for each input and each feature
-        for i in range(self.num_inputs):
-            impulse_response[i] = [None for _ in range(self.input_size[i])]
-            for f in range(self.input_size[i]):
-                # Create impulse input signal for the current feature
-                impulse_i = torch.zeros((1, seq_len, self.input_size[i])).to(device=self.device,
-                                                                              dtype=self.dtype)
-                impulse_i[0, 0, f] = 1.
-
-                # Pass the impulse input through sequence base and hidden layer
-                base_output_if, _ = self.seq_base[i](input=impulse_i)
-                impulse_response[i][f] = self.hidden_layer[i].F[0](base_output_if)[0]
+      impulse_response = [None for _ in range(self.num_inputs)]
+  
+      # Generate impulse response for each input and each feature
+      for i in range(self.num_inputs):
+        impulse_response[i] = [[_]*self.hidden_out_features[i] for _ in range(self.input_size[i])]
+  
+        for f in range(self.input_size[i]):
+          impulse_response[i][f] = [[] for _ in range(self.hidden_out_features[i])]
+  
+          # Create impulse input signal for the current feature
+          impulse_i = torch.zeros((1, seq_len, self.input_size[i])).to(device=self.device,
+                                                                        dtype=self.dtype)
+  
+          impulse_i[0, 0, f] = 1.
+  
+          # Pass the impulse input through sequence base and hidden layer
+          base_output_if, _ = self.seq_base[i].forward(input = impulse_i)
+          base_output_if = base_output_if.reshape(seq_len, -1)
+  
+          for h in range(self.hidden_out_features[i]):
+            weight_ih = self.hidden_layer[i].F[0].weight[h:(h+1)]
+  
+            impulse_response[i][f][h] = (base_output_if @ weight_ih.t())
+  
+          impulse_response[i][f] = torch.cat(impulse_response[i][f], -1)
 
     return impulse_response
 
