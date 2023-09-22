@@ -328,7 +328,11 @@ class Beat2BeatAnalyzer():
     self.sbpv, self.dbpv, self.mabpv = self.sbpv - self.sbpv.mean(), self.dbpv - self.dbpv.mean(), self.mabpv - self.mabpv.mean()
     self.hrv, self.intervalv = self.hrv - self.hrv.mean(), self.intervalv - self.intervalv.mean()
 
-  def remove_outliers(self, z_abp_change_critical = 4, z_hr_change_critical = 4, interp_type = 'linear'):
+  def remove_outliers(self,
+                      max_sbp_change = 20, z_sbp_change_critical = 4,
+                      max_dbp_change = 20, z_dbp_change_critical = 4,
+                      max_hr_change = 0.1, z_hr_change_critical = 4,
+                      interp_type = 'linear'):
 
     hr, interval, dbp, sbp = self.hr.copy(), self.interval.copy(), self.dbp.copy(), self.sbp.copy()
 
@@ -336,10 +340,10 @@ class Beat2BeatAnalyzer():
     i_hr_all = np.arange(len(hr),  dtype = np.compat.long)
     i_hr = i_hr_all
 
-    hr_diff = np.diff(hr)
+    hr_diff = np.diff(hr,1,0)
     z_hr_diff = (hr_diff - hr_diff.mean())/hr_diff.std()
 
-    i_discard = np.where(np.abs(z_hr_diff) > z_hr_change_critical)[0]
+    i_discard = np.where((np.abs(z_hr_diff) > z_hr_change_critical) | (np.abs(hr_diff) > max_hr_change))[0]
 
     if len(i_discard):
       hr_interpolator = Interpolator(kind = interp_type)
@@ -358,10 +362,10 @@ class Beat2BeatAnalyzer():
       interval = np.delete(interval, j_discard)
       i_hr = np.delete(i_hr, j_discard)
 
-      hr_diff = np.diff(hr)
+      hr_diff = np.diff(hr,1,0)
       z_hr_diff = (hr_diff - hr_diff.mean())/hr_diff.std()
 
-      i_discard = np.where(np.abs(z_hr_diff) > z_hr_change_critical)[0]
+      i_discard = np.where((np.abs(z_hr_diff) > z_hr_change_critical) | (np.abs(hr_diff) > max_hr_change))[0]
     ##
 
     # plt.figure(1)
@@ -372,10 +376,10 @@ class Beat2BeatAnalyzer():
     i_dbp_all = np.arange(len(dbp),  dtype = np.compat.long)
     i_dbp = i_dbp_all
 
-    dbp_diff = np.diff(dbp)
+    dbp_diff = np.diff(dbp,1,0)
     z_dbp_diff = (dbp_diff - dbp_diff.mean())/dbp_diff.std()
 
-    i_discard = np.where(np.abs(z_dbp_diff) > z_abp_change_critical)[0]
+    i_discard = np.where((np.abs(z_dbp_diff) > z_dbp_change_critical) | (np.abs(dbp_diff) > max_dbp_change))[0]
 
     if len(i_discard):
       dbp_interpolator = Interpolator(kind = interp_type)
@@ -391,10 +395,10 @@ class Beat2BeatAnalyzer():
       dbp = np.delete(dbp, j_discard)
       i_dbp = np.delete(i_dbp, j_discard)
 
-      dbp_diff = np.diff(dbp)
+      dbp_diff = np.diff(dbp,1,0)
       z_dbp_diff = (dbp_diff - dbp_diff.mean())/dbp_diff.std()
 
-      i_discard = np.where(np.abs(z_dbp_diff) > z_abp_change_critical)[0]
+      i_discard = np.where((np.abs(z_dbp_diff) > z_dbp_change_critical) | (np.abs(dbp_diff) > max_dbp_change))[0]
 
     # plt.figure(2)
     # plt.plot(i_dbp_all, self.dbp)
@@ -405,10 +409,10 @@ class Beat2BeatAnalyzer():
     i_sbp_all = np.arange(len(sbp),  dtype = np.compat.long)
     i_sbp = i_sbp_all
 
-    sbp_diff = np.diff(sbp)
+    sbp_diff = np.diff(sbp,1,0)
     z_sbp_diff = (sbp_diff - sbp_diff.mean())/sbp_diff.std()
 
-    i_discard = np.where(np.abs(z_sbp_diff) > z_abp_change_critical)[0]
+    i_discard = np.where((np.abs(z_sbp_diff) > z_sbp_change_critical) | (np.abs(sbp_diff) > max_sbp_change))[0]
 
     if len(i_discard):
       sbp_interpolator = Interpolator(kind = interp_type)
@@ -424,10 +428,10 @@ class Beat2BeatAnalyzer():
       sbp = np.delete(sbp, j_discard)
       i_sbp = np.delete(i_sbp, j_discard)
 
-      sbp_diff = np.diff(sbp)
+      sbp_diff = np.diff(sbp,1,0)
       z_sbp_diff = (sbp_diff - sbp_diff.mean())/sbp_diff.std()
 
-      i_discard = np.where(np.abs(z_sbp_diff) > z_abp_change_critical)[0]
+      i_discard = np.where((np.abs(z_sbp_diff) > z_sbp_change_critical) | (np.abs(sbp_diff) > max_sbp_change))[0]
 
     # plt.figure(3)
     # plt.plot(i_sbp_all, self.sbp)
@@ -468,60 +472,75 @@ class Beat2BeatAnalyzer():
   def generate_periodogram(self, window_type = 'hann'):
     self.f_psd, self.sbp_psd = periodogram(self.sbpv, fs = 1./self.beat_dt, window = window_type)
     _, self.dbp_psd = periodogram(self.dbpv, fs =  1./self.beat_dt, window = window_type)
+    _, self.mabp_psd = periodogram(self.mabpv, fs =  1./self.beat_dt, window = window_type)
+    
     _, self.interval_psd = periodogram(self.intervalv, fs = 1./self.beat_dt, window = window_type)
+    _, self.hr_psd = periodogram(self.hrv, fs = 1./self.beat_dt, window = window_type)
 
-  def plot_realtime(self, fig_num = 1, zoom_window = [0, 120]):
+  def plot_realtime(self, fig_num = 1, tlim = [0, 120]):
 
     fig, ax = plt.subplots(2, 2, figsize=(20,10), num = fig_num)
 
-    ax[0,0].plot(self.t, self.ecg, label = 'ECG')
-    ax[0,0].plot(self.t[self.i_ecg_r], self.ecg[self.i_ecg_r], '.g', label = 'R-peak')
-    ax[0,0].legend()
+    ax[0,0].plot(self.t, self.ecg)
+    ax[0,0].plot(self.t[self.i_ecg_r], self.ecg[self.i_ecg_r], '.g')
+    ax[0,0].grid()
 
-    ax[1,0].plot(self.t, self.abp, label = 'ABP')
-    ax[1,0].plot(self.t[self.i_dbp], self.abp[self.i_dbp], '.r', label = 'DBP')
-    ax[1,0].plot(self.t[self.i_sbp], self.abp[self.i_sbp], '.g', label = 'SBP')
-    ax[1,0].legend()
-    ax[1,0].set_xlabel('Time [s]')
+    ax[1,0].plot(self.t, self.abp)
+    ax[1,0].plot(self.t[self.i_dbp], self.abp[self.i_dbp], '.r')
+    ax[1,0].plot(self.t[self.i_sbp], self.abp[self.i_sbp], '.g')
+    ax[1,0].grid()
+    ax[1,0].set_xlabel('Time [s]', fontsize = 20)
 
     ax[0,1].plot(self.t, self.ecg, label = 'ECG')
     ax[0,1].plot(self.t[self.i_ecg_r], self.ecg[self.i_ecg_r], '.g', label = 'R-peak')
-    ax[0,1].legend()
-    ax[0,1].set_xlim(zoom_window)
+    ax[0,1].legend(fontsize = 20, loc = 'upper left', bbox_to_anchor = (1.02, 1), ncol = 1)
+    ax[0,1].set_xlim(tlim)
+    ax[0,1].grid()
 
     ax[1,1].plot(self.t, self.abp, label = 'ABP')
-    ax[1,1].plot(self.t[self.i_dbp], self.abp[self.i_dbp], '.r', label = 'DBP')
+    ax[1,1].plot(self.t[self.i_dbp], self.abp[self.i_dbp], '.r', label = 'DBP' )
     ax[1,1].plot(self.t[self.i_sbp], self.abp[self.i_sbp], '.g', label = 'SBP')
-    ax[1,1].legend()
-    ax[1,1].set_xlim(zoom_window)
-    ax[1,1].set_xlabel('Time [s]')
+    ax[1,1].grid()
+    ax[1,1].legend(fontsize = 20, loc = 'upper left', bbox_to_anchor = (1.02, 1), ncol = 1)
+    ax[1,1].set_xlim(tlim)
+    ax[1,1].set_xlabel('Time [s]', fontsize = 20)
 
     fig.tight_layout()
 
-  def plot_beat2beat(self, fig_num = 1, flim = [0, None]):
+  def plot_beat2beat(self, fig_num = 1, tlim = [None, None], flim = [0, None]):
 
     fig, ax = plt.subplots(2,3, figsize=(20,10), num = fig_num)
-    ax[0,0].plot(self.beat_t, self.dbp, 'r', alpha = 0.5) ; ax[0,0].set_ylabel('SBP & DBP') ; ax[0,0].set_title('Before MA Removal')
-    ax[0,0].plot(self.beat_t, self.dbp_ma, 'r') ; ax[0,1].set_title('120-Beat Moving Average (Hann)')
-    ax[0,0].plot(self.beat_t, self.sbp, 'g', alpha = 0.5) ;
-    ax[0,0].plot(self.beat_t, self.sbp_ma, 'g') ;
+    ax[0,0].plot(self.beat_t, self.mabp, 'b', alpha = 0.5) ; 
+    ax[0,0].grid()
+    ax[0,0].set_ylabel('MABP', fontsize = 20) ; 
+    ax[0,0].set_title('Before MA Removal', fontsize = 20)
+    
+    ax[0,0].plot(self.beat_t, self.mabp_ma, 'b') ; 
+    ax[0,0].set_xlim(tlim)
 
-    ax[0,1].plot(self.beat_t, self.sbpv, 'g') ; ax[0,1].set_title('After MA Removal')
-    ax[0,1].plot(self.beat_t, self.dbpv, 'r') ;
+    ax[0,1].plot(self.beat_t, self.mabpv, 'b') ; 
+    ax[0,1].grid()
+    ax[0,1].set_title('After MA Removal', fontsize = 20)
+    ax[0,1].set_xlim(tlim)
 
-    ax[0,2].plot(self.f_psd, self.dbp_psd, 'r') ; ax[0,2].set_title('Power Spectrum')
-    ax[0,2].plot(self.f_psd, self.sbp_psd, 'g') ;
+    ax[0,2].plot(self.f_psd, self.mabp_psd, 'b') ; 
+    ax[0,2].grid()
+    ax[0,2].set_title('Power Spectrum', fontsize = 20)    
     ax[0,2].set_xlim(flim)
 
-    ax[1,0].plot(self.beat_t, self.interval, 'b', alpha = 0.5) ; ax[1,0].set_ylabel('I')
-    ax[1,0].plot(self.beat_t, self.interval_ma, 'b')
-    ax[1,0].set_xlabel('Time [s]')
+    ax[1,0].plot(self.beat_t, self.hr, 'b', alpha = 0.5) ; 
+    ax[1,0].grid()
+    ax[1,0].set_ylabel('HR', fontsize = 20)
+    ax[1,0].plot(self.beat_t, self.hr_ma, 'b')
+    ax[1,0].set_xlabel('Time [s]', fontsize = 20)
 
-    ax[1,1].plot(self.beat_t, self.intervalv, 'b')
-    ax[1,1].set_xlabel('Time [s]')
+    ax[1,1].plot(self.beat_t, self.hrv, 'b')
+    ax[1,1].grid()
+    ax[1,1].set_xlabel('Time [s]', fontsize = 20)
 
-    ax[1,2].plot(self.f_psd, self.interval_psd, 'b')
+    ax[1,2].plot(self.f_psd, self.hr_psd, 'b')
+    ax[1,2].grid()
     ax[1,2].set_xlim(flim)
-    ax[1,2].set_xlabel('Frequence [Hz]')
-
+    ax[1,2].set_xlabel('Frequence [Hz]', fontsize = 20)
+    
     fig.tight_layout()
