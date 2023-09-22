@@ -32,7 +32,9 @@ class HiddenLayer(torch.nn.Module):
                  weights_to_1=False, weight_reg=[0.001, 1], weight_norm=2, 
                  degree=1, coef_init=None, coef_train=True,
                  coef_reg=[0.001, 1], zero_order=False, softmax_dim=-1, dropout_p=0.0,
-                 sigmoid_bias = False,
+                 sigmoid_slope_init = None, sigmoid_slope_train = True, sigmoid_slope_reg=[0.001, 1],
+                 sigmoid_shift_init = None, sigmoid_shift_train = True, sigmoid_shift_reg=[0.001, 1],
+                 sigmoid_bias = True,
                  norm_type = None, affine_norm = False,
                  device='cpu', dtype=torch.float32):
         '''
@@ -100,7 +102,9 @@ class HiddenLayer(torch.nn.Module):
         elif self.activation == 'tanh':
             f2 = torch.nn.Tanh()
         elif self.activation == 'sigmoid':
-            f2 = torch.nn.Sigmoid()
+            f2 = Sigmoid(                 sigmoid_slope_init = None, sigmoid_slope_train = True, sigmoid_slope_reg=[0.001, 1],
+                 sigmoid_shift_init = None, sigmoid_shift_train = True, sigmoid_shift_reg=[0.001, 1],
+                 sigmoid_bias = True,
         elif self.activation == 'softmax':
             f2 = torch.nn.Softmax(dim=self.softmax_dim)
         elif self.activation == 'relu':
