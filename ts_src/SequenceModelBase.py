@@ -449,7 +449,7 @@ class SequenceModelBase(torch.nn.Module):
     '''
     if self.base_type == 'lru':
         self.base.clamp_relax()
-    elif self.weight_norm is not None:
+    elif self.rnn_weight_norm is not None:
         for name, param in self.named_parameters():
             if 'weight' in name:
                 param = torch.nn.functional.normalize(param, p=self.rnn_weight_norm, dim=1).contiguous()
