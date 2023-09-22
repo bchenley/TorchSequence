@@ -26,7 +26,7 @@ class Sigmoid(torch.nn.Module):
     self.shift = torch.nn.Parameter(data = self.shift_init.to(device=device, dtype = self.dtype), requires_grad = self.shift_train)
 
     if self.bias:
-      self.bias = torch.nn.Parameter(data = torch.zeros(self.in_features,), requires_grad = True)
+      self.bias = torch.nn.Parameter(data = torch.zeros(self.in_features,).to(device = self.device, dtype = self.dtype), requires_grad = True)
     else:
       self.bias = None
 
