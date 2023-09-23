@@ -327,7 +327,7 @@ class Beat2BeatAnalyzer():
 
     self.sbpv, self.dbpv, self.mabpv = self.sbpv - self.sbpv.mean(), self.dbpv - self.dbpv.mean(), self.mabpv - self.mabpv.mean()
     self.hrv, self.intervalv = self.hrv - self.hrv.mean(), self.intervalv - self.intervalv.mean()
-
+  
   def remove_outliers(self,
                       max_sbp_change = 20, z_sbp_change_critical = 4,
                       max_dbp_change = 20, z_dbp_change_critical = 4,
@@ -469,6 +469,26 @@ class Beat2BeatAnalyzer():
     self.mabp = self.mabp[i_all]
     ##
 
+  def interpolate(self, 
+                  beat_dt_new, 
+                  kind = 'linear'):
+
+    beat_t_new = np.arange(self.beat_t.min(), self.beat_t.max(), beat_dt_new)
+    
+    interpolator = Interpolator(kind = kind)
+                    
+    interp_sbpv = interpolator.copy().fit(t, self.sbpv)
+    interp_dbpv = interpolator.copy().fit(t, self.dbpv)
+    interp_mabpv = interpolator.copy().fit(t, self.mabpv)
+    interp_intervalv = interpolator.copy().fit(t, self.intervalv)
+    interp_hrv = interpolator.copy().fit(t, self.hrv)                
+
+    self.sbpv = interp_sbpv.interp_fn(beat_t_new)
+    self.dbpv = interp_dbpv.interp_fn(beat_t_new)
+    self.mabpv = interp_mabpv.interp_fn(beat_t_new)
+    self.intervalv = interp_intervalv.interp_fn(beat_t_new)
+    self.hrv = interp_hrv.interp_fn(beat_t_new)
+                    
   def generate_periodogram(self, window_type = 'hann'):
     self.f_psd, self.sbp_psd = periodogram(self.sbpv, fs = 1./self.beat_dt, window = window_type)
     _, self.dbp_psd = periodogram(self.dbpv, fs =  1./self.beat_dt, window = window_type)
