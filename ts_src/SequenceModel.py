@@ -1,10 +1,12 @@
 import torch
 import numpy as np
+import matplotlib.dates as mdates
 
 from ts_src.SequenceModelBase import SequenceModelBase
 from ts_src.LRU import LRU
 from ts_src.HiddenLayer import HiddenLayer
 from ts_src.ModulationLayer import ModulationLayer
+from ts_src.fft import fft
 
 class SequenceModel(torch.nn.Module):
   def __init__(self,
@@ -715,44 +717,82 @@ class SequenceModel(torch.nn.Module):
 
     return loss
 
-  def generate_impulse_response(self, seq_len):
-    """
-    Generate impulse responses for each input feature.
+  def generate_impulse_response(self, seq_len = None, dt = timedelta(seconds = 1)):
 
-    This method generates impulse responses for each input feature of the model.
-    It creates an impulse input signal for each feature, passes it through the
-    sequence base and hidden layer, and collects the corresponding impulse responses.
-
-    Args:
-        seq_len (int): Length of the sequence for which impulse responses are generated.
-
-    Returns:
-        impulse_response (list): A list containing impulse responses for each input feature.
-                                Each entry in the list is a tensor representing the
-                                impulse response for a specific input feature.
-    """
+    seq_len = seq_len or self.max_base_seq_len
+    self.lag = []
+    self.impulse_response = [None for _ in range(self.num_inputs)]
 
     with torch.no_grad():
-      self.impulse_response = [None for _ in range(self.num_inputs)]
-  
+
       # Generate impulse response for each input and each feature
       for i in range(self.num_inputs):
         self.impulse_response[i] = [[_]*self.hidden_out_features[i] for _ in range(self.input_size[i])]
-  
+
         for f in range(self.input_size[i]):
           # self.impulse_response[i][f] = [[] for _ in range(self.hidden_out_features[i])]
-  
+
           # Create impulse input signal for the current feature
           impulse_i = torch.zeros((1, seq_len, self.input_size[i])).to(device=self.device,
-                                                                       dtype=self.dtype)
-  
+                                                                        dtype=self.dtype)
+
           impulse_i[0, 0, f] = 1.
-  
+
           # Pass the impulse input through sequence base and hidden layer
           base_output_if, _ = self.seq_base[i].forward(input = impulse_i)
           base_output_if = base_output_if.reshape(seq_len, -1)
-  
+
           self.impulse_response[i][f] = self.hidden_layer[0].F[0](base_output_if)
+
+        self.lag.append(np.arange(self.impulse_response[i][0].shape[0])*dt)
+
+  def plot_impulse_response(self, 
+                            dim = (0), time_unit = 'S',
+                            nfft = None, figsize = None):
+    
+    fig, ax = plt.subplots(self.num_inputs, 2, figsize = figsize or (10, 5*self.num_inputs))
+    for i in range(model.num_inputs):
+
+      lag_i = [lag.total_seconds() for lag in self.lag[i]]
+      dt = np.diff(model.lag[0],1,0).mean()
+      
+      for f in range(model.input_size[i]):
+        ir_if = self.impulse_response[i][f]
+
+        ax_if_time = ax[i,0] if self.num_inputs > 1 else ax[0]
+        
+        ax_if_time.plot(lag_i, ir_if.cpu(), 'b')
+        ax_if_time.grid()
+
+
+        if time_unit == "M":
+          interval = dt.seconds/60
+          ax_if_time.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
+          ax_if_time.xaxis.set_major_locator(mdates.MinuteLocator(interval=int(interval)))
+        elif time_unit == "H":
+          interval = dt.seconds/3600
+          ax_if_time.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+          ax_if_time.xaxis.set_major_locator(mdates.HourLocator(interval=int(interval)))
+        elif time_unit == "d":
+          interval = dt.seconds/(3600*24)
+          ax_if_time.xaxis.set_major_formatter(mdates.DateFormatter("%y-%m-%d"))
+          ax_if_time.xaxis.set_major_locator(mdates.DayLocator(interval=int(interval)))
+        else: # time_unit == "S":
+          interval = dt.seconds
+          ax_if_time.xaxis.set_major_formatter(mdates.DateFormatter("%S"))
+          ax_if_time.xaxis.set_major_locator(mdates.SecondLocator(interval=int(interval)))
+
+        freq_if, x_fft_mag_if, _ = fft(x = ir_if,
+                                      fs = 1/interval, dim = dim, nfft = nfft, norm = 'backward',
+                                      device = self.device, dtype = torch.complex64)
+
+        ax_if_freq = ax[i,1] if self.num_inputs > 1 else ax[1]
+
+        ax_if_freq.plot(freq_if.cpu(), x_fft_mag_if.cpu(), 'b', label = {f"Mode f{h+1}" for h in range(self.hidden_out_features[i])})
+        ax_if_freq.grid()
+        ax_if_freq.legend(fontsize = 20, loc = 'upper left', bbox_to_anchor = (1.02, 1), ncol = 1)
+        
+    fig.tight_layout()
 
   def predict(self,
             input, steps=None,
