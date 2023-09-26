@@ -613,31 +613,31 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         DataLoader: Test dataloader.
     """
     if self.predicting and not hasattr(self, 'test_dl'):
-        # Create a SequenceDataloader for test data
-        self.test_dl = SequenceDataloader(input_names=self.input_names,
-                                          output_names=self.output_names,
-                                          step_name='step',
-                                          data=self.test_data,
-                                          batch_size=self.batch_size,
-                                          input_len=self.input_len,
-                                          output_len=self.output_len,
-                                          max_len = self.max_len,
-                                          shift=self.shift,
-                                          stride=self.stride,
-                                          init_input=self.test_init_input,
-                                          print_summary=self.print_summary,
-                                          device=self.device,
-                                          dtype=self.dtype)
+      # Create a SequenceDataloader for test data
+      self.test_dl = SequenceDataloader(input_names=self.input_names,
+                                        output_names=self.output_names,
+                                        step_name='step',
+                                        data=self.test_data,
+                                        batch_size=self.batch_size,
+                                        input_len=self.input_len,
+                                        output_len=self.output_len,
+                                        max_len = self.max_len,
+                                        shift=self.shift,
+                                        stride=self.stride,
+                                        init_input=self.test_init_input,
+                                        print_summary=self.print_summary,
+                                        device=self.device,
+                                        dtype=self.dtype)
+      
+      # Store test batch size
+      self.test_batch_size = self.test_dl.batch_size
+      self.num_test_batches = self.test_dl.num_batches
+      self.test_output_mask = self.test_dl.output_mask
+      self.test_input_window_idx, self.test_output_window_idx = self.test_dl.input_window_idx, self.test_dl.output_window_idx
+      self.test_max_input_len, self.test_max_output_len = self.test_dl.max_input_len, self.test_dl.max_output_len
+      self.test_unique_output_window_idx = self.test_dl.unique_output_window_idx
 
-        # Store test batch size
-        self.test_batch_size = self.test_dl.batch_size
-        self.num_test_batches = self.test_dl.num_batches
-        self.test_output_mask = self.test_dl.output_mask
-        self.test_input_window_idx, self.test_output_window_idx = self.test_dl.input_window_idx, self.test_dl.output_window_idx
-        self.test_max_input_len, self.test_max_output_len = self.test_dl.max_input_len, self.test_dl.max_output_len
-        self.test_unique_output_window_idx = self.test_dl.unique_output_window_idx
-
-        print("Test Dataloader Created.")
+      print("Test Dataloader Created.")
 
         return self.test_dl.dl
     else:
