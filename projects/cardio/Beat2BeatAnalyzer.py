@@ -327,7 +327,7 @@ class Beat2BeatAnalyzer():
 
     self.sbpv, self.dbpv, self.mabpv = self.sbpv - self.sbpv.mean(), self.dbpv - self.dbpv.mean(), self.mabpv - self.mabpv.mean()
     self.hrv, self.intervalv = self.hrv - self.hrv.mean(), self.intervalv - self.intervalv.mean()
-  
+
   def remove_outliers(self,
                       max_sbp_change = 20, z_sbp_change_critical = 4,
                       max_dbp_change = 20, z_dbp_change_critical = 4,
@@ -469,31 +469,37 @@ class Beat2BeatAnalyzer():
     self.mabp = self.mabp[i_all]
     ##
 
-  def interpolate(self, 
-                  beat_dt_new, 
-                  kind = 'linear'):
+  def interpolate(self, beat_dt_new, kind='linear'):
 
     beat_t_new = np.arange(self.beat_t.min(), self.beat_t.max(), beat_dt_new)
-    
-    interpolator = Interpolator(kind = kind)
-                    
-    interp_sbpv = interpolator.copy().fit(t, self.sbpv)
-    interp_dbpv = interpolator.copy().fit(t, self.dbpv)
-    interp_mabpv = interpolator.copy().fit(t, self.mabpv)
-    interp_intervalv = interpolator.copy().fit(t, self.intervalv)
-    interp_hrv = interpolator.copy().fit(t, self.hrv)                
 
-    self.sbpv = interp_sbpv.interp_fn(beat_t_new)
-    self.dbpv = interp_dbpv.interp_fn(beat_t_new)
-    self.mabpv = interp_mabpv.interp_fn(beat_t_new)
-    self.intervalv = interp_intervalv.interp_fn(beat_t_new)
-    self.hrv = interp_hrv.interp_fn(beat_t_new)
-                    
+    self.beat_t_original = self.beat_t
+
+    self.sbp_original = self.sbp
+    self.dbp_original = self.dbp
+    self.mabp_original = self.mabp
+    self.interval_original = self.interval
+    self.hr_original = self.hr
+
+    def interp(x):
+      interpolator = Interpolator(kind = kind)
+      interpolator.fit(self.beat_t, x)
+      return interpolator.interp_fn(beat_t_new)
+
+    # Create a new Interpolator object for each attribute
+    self.sbp = interp(self.sbp)
+    self.dbp = interp(self.dbp)
+    self.mabp = interp(self.mabp)
+    self.interval = interp(self.interval)
+    self.hr = interp(self.hr)
+
+    self.beat_t, self.beat_dt = beat_t_new, beat_dt_new
+
   def generate_periodogram(self, window_type = 'hann'):
     self.f_psd, self.sbp_psd = periodogram(self.sbpv, fs = 1./self.beat_dt, window = window_type)
     _, self.dbp_psd = periodogram(self.dbpv, fs =  1./self.beat_dt, window = window_type)
     _, self.mabp_psd = periodogram(self.mabpv, fs =  1./self.beat_dt, window = window_type)
-    
+
     _, self.interval_psd = periodogram(self.intervalv, fs = 1./self.beat_dt, window = window_type)
     _, self.hr_psd = periodogram(self.hrv, fs = 1./self.beat_dt, window = window_type)
 
@@ -530,25 +536,25 @@ class Beat2BeatAnalyzer():
   def plot_beat2beat(self, fig_num = 1, tlim = [None, None], flim = [0, None]):
 
     fig, ax = plt.subplots(2,3, figsize=(20,10), num = fig_num)
-    ax[0,0].plot(self.beat_t, self.mabp, 'b', alpha = 0.5) ; 
+    ax[0,0].plot(self.beat_t, self.mabp, 'b', alpha = 0.5) ;
     ax[0,0].grid()
-    ax[0,0].set_ylabel('MABP', fontsize = 20) ; 
+    ax[0,0].set_ylabel('MABP', fontsize = 20) ;
     ax[0,0].set_title('Before MA Removal', fontsize = 20)
-    
-    ax[0,0].plot(self.beat_t, self.mabp_ma, 'b') ; 
+
+    ax[0,0].plot(self.beat_t, self.mabp_ma, 'b') ;
     ax[0,0].set_xlim(tlim)
 
-    ax[0,1].plot(self.beat_t, self.mabpv, 'b') ; 
+    ax[0,1].plot(self.beat_t, self.mabpv, 'b') ;
     ax[0,1].grid()
     ax[0,1].set_title('After MA Removal', fontsize = 20)
     ax[0,1].set_xlim(tlim)
 
-    ax[0,2].plot(self.f_psd, self.mabp_psd, 'b') ; 
+    ax[0,2].plot(self.f_psd, self.mabp_psd, 'b') ;
     ax[0,2].grid()
-    ax[0,2].set_title('Power Spectrum', fontsize = 20)    
+    ax[0,2].set_title('Power Spectrum', fontsize = 20)
     ax[0,2].set_xlim(flim)
 
-    ax[1,0].plot(self.beat_t, self.hr, 'b', alpha = 0.5) ; 
+    ax[1,0].plot(self.beat_t, self.hr, 'b', alpha = 0.5) ;
     ax[1,0].grid()
     ax[1,0].set_ylabel('HR', fontsize = 20)
     ax[1,0].plot(self.beat_t, self.hr_ma, 'b')
@@ -562,5 +568,5 @@ class Beat2BeatAnalyzer():
     ax[1,2].grid()
     ax[1,2].set_xlim(flim)
     ax[1,2].set_xlabel('Frequence [Hz]', fontsize = 20)
-    
+
     fig.tight_layout()
