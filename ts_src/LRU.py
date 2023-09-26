@@ -73,33 +73,33 @@ class LRU(torch.nn.Module):
         return torch.zeros((self.num_filterbanks, num_samples, self.hidden_size)).to(device=self.device, dtype=self.dtype)
 
     def cell(self, input, hiddens=None):
-        """
-        LRU cell operation.
+      """
+      LRU cell operation.
 
-        Args:
-            input (torch.Tensor): Input tensor.
-            hiddens (torch.Tensor, optional): Hidden states. Default is None.
+      Args:
+          input (torch.Tensor): Input tensor.
+          hiddens (torch.Tensor, optional): Hidden states. Default is None.
 
-        Returns:
-            torch.Tensor: Output tensor.
-            torch.Tensor: Updated hidden states.
-        """
-        num_samples, input_size = input.shape
+      Returns:
+          torch.Tensor: Output tensor.
+          torch.Tensor: Updated hidden states.
+      """
+      num_samples, input_size = input.shape
 
-        hiddens = hiddens if hiddens is not None else self.init_hiddens(num_samples)
+      hiddens = hiddens if hiddens is not None else self.init_hiddens(num_samples)
 
-        sq_relax = torch.sqrt(self.relax)
+      sq_relax = torch.sqrt(self.relax)
 
-        hiddens_new = torch.zeros_like(hiddens).to(hiddens)
+      hiddens_new = torch.zeros_like(hiddens).to(hiddens)
 
-        hiddens_new[..., 0] = sq_relax[:, None] * hiddens[..., 0] + (1 - sq_relax ** 2).sqrt()[:, None] * self.input_block(input).t()
+      hiddens_new[..., 0] = sq_relax[:, None] * hiddens[..., 0] + (1 - sq_relax ** 2).sqrt()[:, None] * self.input_block(input).t()
 
-        for i in range(1, self.hidden_size):
-            hiddens_new[..., i] = sq_relax[:, None] * (hiddens[..., i] + hiddens_new[..., i - 1]) - hiddens[..., i - 1]
+      for i in range(1, self.hidden_size):
+        hiddens_new[..., i] = sq_relax[:, None] * (hiddens[..., i] + hiddens_new[..., i - 1]) - hiddens[..., i - 1]
 
-        output = hiddens_new.permute(1, 0, 2)
+      output = hiddens_new.permute(1, 0, 2)
 
-        return output, hiddens_new
+      return output, hiddens_new
 
     def forward(self, input, hiddens=None):
         """
