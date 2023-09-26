@@ -72,7 +72,7 @@ class LRU(torch.nn.Module):
         """
         return torch.zeros((self.num_filterbanks, num_samples, self.hidden_size)).to(device=self.device, dtype=self.dtype)
 
-    def cell(self, input, hiddens=None):
+    def cell(self, input, hiddens):
       """
       LRU cell operation.
 
@@ -85,8 +85,6 @@ class LRU(torch.nn.Module):
           torch.Tensor: Updated hidden states.
       """
       num_samples, input_size = input.shape
-
-      hiddens = hiddens if hiddens is not None else self.init_hiddens(num_samples)
 
       sq_relax = torch.sqrt(self.relax)
 
@@ -114,7 +112,7 @@ class LRU(torch.nn.Module):
             torch.Tensor: Updated hidden states.
         """
         num_samples, input_len, input_size = input.shape
-
+        
         hiddens = self.init_hiddens(num_samples) if hiddens is None else hiddens
 
         output = []
