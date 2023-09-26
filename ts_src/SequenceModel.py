@@ -10,15 +10,13 @@ from ts_src.HiddenLayer import HiddenLayer
 from ts_src.ModulationLayer import ModulationLayer
 from ts_src.fft import fft
 
-
-
 class SequenceModel(torch.nn.Module):
   def __init__(self,
                num_inputs, num_outputs,
                #
                input_size = [1], input_len = [1],
                output_size = [1], output_len = [1],
-               base_stateful = [False], process_by_step = False, joint_prediction = False,
+               process_by_step = False, joint_prediction = False,
                dt = 1,
                norm_type = None, affine_norm = False,
                store_layer_outputs = False,
@@ -286,7 +284,7 @@ class SequenceModel(torch.nn.Module):
         else:
           modulation_in_features += self.base_transformer_dim_feedforward[i]
       #
-
+      
       self.modulation_layer = ModulationLayer(window_len = self.modulation_window_len,
                                               in_features = self.modulation_in_features,
                                               associated = self.modulation_associated,
@@ -306,7 +304,7 @@ class SequenceModel(torch.nn.Module):
                                               device = self.device, dtype = self.dtype)
       self.modulation_out_features = self.modulation_layer.num_modulators
     #
-
+    
     # output layer
     self.output_layer, self.Flatten = torch.nn.ModuleList([]), torch.nn.ModuleList([])
     for i in range(self.num_outputs):
@@ -372,7 +370,7 @@ class SequenceModel(torch.nn.Module):
                                      # softmax parameter
                                      softmax_dim = self.output_softmax_dim[i],
                                      dropout_p = self.output_dropout_p[i],
-                                     weight_to_ones = output_out_features_i == 1, # self.output_layer_weight_to_ones[i], #
+                                     weight_to_ones = (output_out_features_i == 1) & ((sum(self.hidden_out_features)>0) | (self.interaction_out_features>0) | (self.modulation_out_features>0)), # self.output_layer_weight_to_ones[i], #
                                      device = self.device, dtype = self.dtype)
 
       else:
@@ -426,7 +424,7 @@ class SequenceModel(torch.nn.Module):
               hiddens = None,
               steps = None,
               encoder_output = None):
-
+    
     """
     Process the input data through the sequence model.
 
@@ -447,10 +445,10 @@ class SequenceModel(torch.nn.Module):
 
     input_window_idx = [torch.arange(input_len).to(device=self.device, dtype=torch.long)
                         for _ in range(self.num_inputs)] if input_window_idx is None else input_window_idx
-
+    
     # Initialize hidden states if not provided
-    hiddens = hiddens if hiddens is not None else self.init_hiddens()
-
+    if hiddens is None: hiddens = self.init_hiddens()
+    
     hidden_output = []
     # Process each input in the batch individually
     for i, input_i in enumerate(input.split(self.input_size, -1)):
@@ -474,17 +472,17 @@ class SequenceModel(torch.nn.Module):
                                                    else input_i[:, input_window_idx[i]],
                                                    hiddens = hiddens[i],
                                                    encoder_output = encoder_output)
-
-      # Store the output of the base layer if required
+      
+      # Store the output of the base layer if desired
       if self.store_layer_outputs:
         self.base_layer_output[i].append(base_output_i)
 
       # Generate hidden layer outputs for the ith input
       hidden_output_i[:, -base_output_i.shape[1]:] = self.hidden_layer[i](base_output_i)
-
+      
       hidden_output.append(hidden_output_i)
 
-      # Store the output of the hidden layer if required
+      # Store the output of the hidden layer if desired
       if self.store_layer_outputs:
         self.hidden_layer_output[i].append(hidden_output_i)
 
@@ -493,7 +491,7 @@ class SequenceModel(torch.nn.Module):
     # Generate interaction layer output
     output_ = self.interaction_layer(output_)
 
-    # Store the output of the interaction layer if required
+    # Store the output of the interaction layer if desired
     if self.store_layer_outputs:
       self.interaction_layer_output.append(output_)
 
@@ -501,7 +499,7 @@ class SequenceModel(torch.nn.Module):
     if self.modulation_layer is not None:
       output_ = self.modulation_layer(output_, steps)
 
-      # Store the output of the modulation layer if required
+      # Store the output of the modulation layer if desired
       if self.store_layer_outputs:
         self.modulation_layer_output.append(output_)
 
@@ -596,13 +594,8 @@ class SequenceModel(torch.nn.Module):
     total_output_size = sum(self.output_size)
 
     # Initiate hiddens if None
-    if hiddens is None:
-      hiddens = self.init_hiddens()
-    else:
-      for i in range(len(hiddens)):
-        if (not self.base_stateful[i]):
-          hiddens[i] = None
-
+    if hiddens is None: hiddens = self.init_hiddens()
+    
     # Process output and update hiddens
     # if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder
 
@@ -723,7 +716,7 @@ class SequenceModel(torch.nn.Module):
 
     return loss
 
-  def generate_impulse_response(self, seq_len = None, dt = timedelta(seconds = 1)):
+  def generate_impulse_response(self, seq_len = None):
 
     seq_len = seq_len or self.max_base_seq_len
     self.lag = []
@@ -737,7 +730,7 @@ class SequenceModel(torch.nn.Module):
 
         for f in range(self.input_size[i]):
           # self.impulse_response[i][f] = [[] for _ in range(self.hidden_out_features[i])]
-
+          
           # Create impulse input signal for the current feature
           impulse_i = torch.zeros((1, seq_len, self.input_size[i])).to(device=self.device,
                                                                         dtype=self.dtype)
@@ -745,58 +738,46 @@ class SequenceModel(torch.nn.Module):
           impulse_i[0, 0, f] = 1.
 
           # Pass the impulse input through sequence base and hidden layer
-          base_output_if, _ = self.seq_base[i].forward(input = impulse_i)
+          base_output_if, _ = self.seq_base[i](input = impulse_i)
           base_output_if = base_output_if.reshape(seq_len, -1)
 
           self.impulse_response[i][f] = self.hidden_layer[0].F[0](base_output_if)
 
-        self.lag.append(np.arange(self.impulse_response[i][0].shape[0])*dt)
+        self.lag.append(np.arange(self.impulse_response[i][0].shape[0])*self.dt)
 
   def plot_impulse_response(self, 
-                            dim = (0), time_unit = 'S',
-                            nfft = None, figsize = None):
+                            dim = (0),
+                            nfft = None, figsize = None, 
+                            input_names = None):
     
     fig, ax = plt.subplots(self.num_inputs, 2, figsize = figsize or (10, 5*self.num_inputs))
     for i in range(model.num_inputs):
 
-      lag_i = [lag.total_seconds() for lag in self.lag[i]]
-      dt = np.diff(model.lag[0],1,0).mean()
+      lag_i = self.lag[i]
       
       for f in range(model.input_size[i]):
         ir_if = self.impulse_response[i][f]
-
+        
         ax_if_time = ax[i,0] if self.num_inputs > 1 else ax[0]
         
-        ax_if_time.plot(lag_i, ir_if.cpu(), 'b')
+        ax_if_time.plot(lag_i, ir_if.cpu())
         ax_if_time.grid()
 
-
-        if time_unit == "M":
-          interval = dt.seconds/60
-          ax_if_time.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
-          ax_if_time.xaxis.set_major_locator(mdates.MinuteLocator(interval=int(interval)))
-        elif time_unit == "H":
-          interval = dt.seconds/3600
-          ax_if_time.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-          ax_if_time.xaxis.set_major_locator(mdates.HourLocator(interval=int(interval)))
-        elif time_unit == "d":
-          interval = dt.seconds/(3600*24)
-          ax_if_time.xaxis.set_major_formatter(mdates.DateFormatter("%y-%m-%d"))
-          ax_if_time.xaxis.set_major_locator(mdates.DayLocator(interval=int(interval)))
-        else: # time_unit == "S":
-          interval = dt.seconds
-          ax_if_time.xaxis.set_major_formatter(mdates.DateFormatter("%S"))
-          ax_if_time.xaxis.set_major_locator(mdates.SecondLocator(interval=int(interval)))
+        if f == 0:
+          ax_if_time.set_ylabel(input_names[i] if input_names is not None else f"Input {i}",
+                                fontsize = 20)
 
         freq_if, x_fft_mag_if, _ = fft(x = ir_if,
-                                      fs = 1/interval, dim = dim, nfft = nfft, norm = 'backward',
+                                      fs = 1/self.dt, dim = dim, nfft = nfft, norm = 'backward',
                                       device = self.device, dtype = torch.complex64)
 
         ax_if_freq = ax[i,1] if self.num_inputs > 1 else ax[1]
 
-        ax_if_freq.plot(freq_if.cpu(), x_fft_mag_if.cpu(), 'b', label = {f"Mode f{h+1}" for h in range(self.hidden_out_features[i])})
+        for h,x_fft_mag_if_h in enumerate(x_fft_mag_if.split(1, 1)):
+          ax_if_freq.plot(freq_if.cpu(), x_fft_mag_if_h.cpu(), label = f"Feature {f+1}, Mode {h+1}")
+          
         ax_if_freq.grid()
-        ax_if_freq.legend(fontsize = 20, loc = 'upper left', bbox_to_anchor = (1.02, 1), ncol = 1)
+        ax_if_freq.legend(fontsize = 14, loc = 'upper left', bbox_to_anchor = (1.02, 1), ncol = 1)
         
     fig.tight_layout()
 
