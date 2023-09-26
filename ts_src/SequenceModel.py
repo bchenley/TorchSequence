@@ -38,6 +38,7 @@ class SequenceModel(torch.nn.Module):
                base_rnn_weight_reg = [[0.001, 1]], base_rnn_weight_norm = [None],
                # LRU parameters
                base_relax_init = [[0.5]], base_relax_train = [True], base_relax_minmax = [[[0.1, 0.9]]], base_num_filterbanks = [1],
+               base_lru_input_block_weights_to_1 = [False], 
                # CNN parameters
                base_cnn_out_channels = [[1]],
                base_cnn_kernel_size = [[(1,)]], base_cnn_kernel_stride = [[(1,)]],
@@ -104,7 +105,7 @@ class SequenceModel(torch.nn.Module):
                output_coef_init = [None], output_coef_train = [True], output_coef_reg = [[0.001, 1]], output_zero_order = [False], output_softmax_dim = [-1],
                output_constrain = [False], output_penalize = [False],
                output_dropout_p = [0.],
-               output_layer_w_to_1 = [False],
+               output_layer_weights_to_1 = [False],
                output_flatten = [None],
                #
                device = 'cpu', dtype = torch.float32):
@@ -155,6 +156,7 @@ class SequenceModel(torch.nn.Module):
                                      rnn_weight_reg = self.base_rnn_weight_reg[i], rnn_weight_norm = self.base_rnn_weight_norm[i],
                                      # LRU parameters
                                      relax_init = self.base_relax_init[i], relax_train = self.base_relax_train[i], relax_minmax = self.base_relax_minmax[i], num_filterbanks = self.base_num_filterbanks[i],
+                                     lru_input_block_weights_to_1 = self.base_lru_input_block_weights_to_1[i],
                                      # CNN parameters
                                      cnn_out_channels = self.base_cnn_out_channels[i],
                                      cnn_causal_pad = self.base_cnn_causal_pad[i],
@@ -370,7 +372,7 @@ class SequenceModel(torch.nn.Module):
                                      # softmax parameter
                                      softmax_dim = self.output_softmax_dim[i],
                                      dropout_p = self.output_dropout_p[i],
-                                     weights_to_1 = output_out_features_i == 1, # self.output_layer_w_to_1[i], #
+                                     weights_to_1 = output_out_features_i == 1, # self.output_layer_weights_to_1[i], #
                                      device = self.device, dtype = self.dtype)
 
       else:
