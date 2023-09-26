@@ -11,7 +11,7 @@ class HiddenLayer(torch.nn.Module):
         out_features (int, optional): Number of output features. If not specified, defaults to `in_features`.
         bias (bool, optional): Whether to include bias terms. Default is True.
         activation (str, optional): Activation function for the layer ('identity', 'polynomial', 'tanh', 'sigmoid', 'softmax', 'relu'). Default is 'identity'.
-        weights_to_1 (bool, optional): If True, initializes weights to 1. Default is False.
+        weight_to_ones (bool, optional): If True, initializes weights to 1. Default is False.
         weight_reg (list, optional): Regularization parameters for weights: [lambda, p]. Default is [0.001, 1].
         weight_norm (int, optional): Norm for weight normalization. Default is 2.
         degree (int, optional): Degree for polynomial activation. Default is 1.
@@ -41,7 +41,7 @@ class HiddenLayer(torch.nn.Module):
 
     def __init__(self, in_features, out_features=None, 
                  bias=True, activation='identity',
-                 weights_to_1=False, weight_reg=[0.001, 1], weight_norm=2, 
+                 weight_to_ones=False, weight_reg=[0.001, 1], weight_norm=2, 
                  degree=1, coef_init=None, coef_train=True,
                  coef_reg=[0.001, 1], zero_order=False, softmax_dim=-1, dropout_p=0.0,
                  sigmoid_slope_init=None, sigmoid_slope_train=True, sigmoid_slope_reg=[0.001, 1],
@@ -81,7 +81,7 @@ class HiddenLayer(torch.nn.Module):
                 f1 = torch.nn.Linear(in_features=self.in_features, out_features=self.out_features,
                                      bias=self.bias, device=self.device, dtype=self.dtype)
 
-                if self.weights_to_1:
+                if self.weight_to_ones:
                     f1.weight.data.fill_(1.0)
                     f1.weight.requires_grad = False
 
