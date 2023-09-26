@@ -27,6 +27,7 @@ class LRU(torch.nn.Module):
                  weight_reg=[0.001, 1], weight_norm=2,
                  bias=False,
                  relax_init=[0.5], relax_train=True, relax_minmax=[[0.1, 0.9]],
+                 input_block_weight_to_ones=False,
                  device='cpu', dtype=torch.float32):
 
         super(LRU, self).__init__()
@@ -53,6 +54,7 @@ class LRU(torch.nn.Module):
                                            out_features = self.num_filterbanks,
                                            bias = self.bias,
                                            device = self.device, 
+                                           weight_to_ones = self.input_block_weight_to_ones,
                                            dtype = self.dtype)
 
         else:
