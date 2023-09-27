@@ -36,7 +36,9 @@ __all__ = ['ExploratoryTimeSeriesAnalysis',
            'SequenceModule',
            'ARIMA',
            'Naive',
-           'MovingAverage']
+           'MovingAverage',
+           'clear_cuda_tensors',
+           'cuda_summary']
 
 for module_name in __all__:
     module = importlib.import_module(f'.{module_name}', __name__)
