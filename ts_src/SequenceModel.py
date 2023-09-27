@@ -759,7 +759,8 @@ class SequenceModel(torch.nn.Module):
   def plot_impulse_response(self, 
                             dim = (0),
                             nfft = None, figsize = None, 
-                            input_names = None):
+                            input_names = None, 
+                            time_unit = None, freq_unit = None):
     
     fig, ax = plt.subplots(self.num_inputs, 2, figsize = figsize or (10, 5*self.num_inputs))
     for i in range(self.num_inputs):
@@ -773,7 +774,8 @@ class SequenceModel(torch.nn.Module):
         
         ax_if_time.plot(lag_i, ir_if.cpu())
         ax_if_time.grid()
-
+        ax_if_time.set_xlabel(f"Lags [{time_unit]") if time_unit is not None else f"Lags")
+        
         if f == 0:
           ax_if_time.set_ylabel(input_names[i] if input_names is not None else f"Input {i}",
                                 fontsize = 20)
@@ -789,6 +791,7 @@ class SequenceModel(torch.nn.Module):
           ax_if_freq.plot(freq_if.cpu(), x_fft_mag_if_h.cpu(), label = label)
           
         ax_if_freq.grid()
+        ax_if_greq.set_xlabel(f"Frequency [{freq_unit]") if freq_unit is not None else f"Frequency")
         ax_if_freq.legend(fontsize = 14, loc = 'upper left', bbox_to_anchor = (1.02, 1), ncol = 1)
         
     fig.tight_layout()
