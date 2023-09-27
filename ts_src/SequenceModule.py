@@ -40,7 +40,7 @@ class SequenceModule(pl.LightningModule):
           model_dir (str, optional): Directory to save model checkpoints. Default is None.
       """
       super().__init__()
-
+      
       # Set automatic optimization to False
       self.automatic_optimization = False
 
@@ -165,7 +165,7 @@ class SequenceModule(pl.LightningModule):
     # Keep the first `batch_size` batches of hiddens
     if not self.stateful:
       self.hiddens = None
-    elif self.hiddens is not None:
+    elif self.hiddens is not None:      
       for i in range(self.model.num_inputs):
         if (self.model.base_type[i] in ['gru', 'lstm', 'lru']) & (self.hiddens[i] is not None):
           if self.model.base_type[i] == 'lstm':
@@ -178,7 +178,7 @@ class SequenceModule(pl.LightningModule):
                 self.hiddens[i] = self.hiddens[i][:, :batch_size].contiguous()
               else:
                 self.hiddens[i] = torch.nn.functional.pad(self.hiddens[i].contiguous(), pad=(0, 0, 0, batch_size-self.hiddens[i].shape[1]), mode='constant', value=0)
-
+        
     input_batch = input_batch[:batch_size]
     target_batch = target_batch[:batch_size]
     steps_batch = steps_batch[:batch_size]
@@ -351,7 +351,6 @@ class SequenceModule(pl.LightningModule):
       LightningModule method called at the start of each training epoch.
       """
       # Reset the hiddens and train_step_loss
-      self.hiddens = None
       self.train_step_loss = []
 
   def on_train_epoch_end(self):
@@ -788,7 +787,7 @@ class SequenceModule(pl.LightningModule):
     self.prediction_batch, self.step_target = [], []  # Initialize lists for predictions and targets
     self.output_steps_batch = []  # Initialize list for output steps
     self.id = []  # Initialize list for IDs
-    self.hiddens = None
+    # self.hiddens = None
 
   def predict(self, reduction='mean'):
     """
@@ -887,20 +886,20 @@ class SequenceModule(pl.LightningModule):
           train_output_steps = train_output_steps.cpu().numpy()
         else:
           train_time = data[data_idx][time_name]
-          train_output_steps = train_output_steps.cpu().numpy() # - start_step
+          train_output_steps = train_output_steps.cpu().numpy() - start_step
 
         if hasattr(train_time, 'tz'):
           train_time = train_time.dt.tz_localize(None).values
         
-        self.train_prediction_data[train_idx][time_name] = train_time[train_output_steps] # [start_step:]
+        self.train_prediction_data[train_idx][time_name] = train_time[train_output_steps][start_step:]
 
         j = 0
         for i, output_name in enumerate(self.trainer.datamodule.output_names):
           train_target_i = train_target[:, j:(j + output_size[i])]
           train_prediction_i = train_prediction[:, j:(j + output_size[i])]
   
-          self.train_prediction_data[train_idx][f"{output_name}_target"] = train_target_i # [start_step:]
-          self.train_prediction_data[train_idx][f"{output_name}_prediction"] = train_prediction_i # [start_step:]
+          self.train_prediction_data[train_idx][f"{output_name}_target"] = train_target_i[start_step:]
+          self.train_prediction_data[train_idx][f"{output_name}_prediction"] = train_prediction_i[start_step:]
 
           # Compute global loss for each output
           metric_name_i = None
