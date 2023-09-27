@@ -1,3 +1,5 @@
+import torch
+
 def clear_cuda_tensors(glbs = globals()):
   vars_to_del = []
   for name, var in glbs.items():
