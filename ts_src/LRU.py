@@ -3,7 +3,7 @@ import torch
 from ts_src.HiddenLayer import HiddenLayer
 
 class LRU(torch.nn.Module):
-  
+    
     """
     Linear Recurrent Unit (LRU) module.
 
@@ -27,6 +27,7 @@ class LRU(torch.nn.Module):
                  weight_reg=[0.001, 1], weight_norm=2,
                  bias=False,
                  relax_init=[0.5], relax_train=True, relax_minmax=[[0.1, 0.9]],
+                 feature_associated=True,
                  input_block_weight_to_ones=False,
                  device='cpu', dtype=torch.float32):
 
@@ -35,8 +36,8 @@ class LRU(torch.nn.Module):
         locals_ = locals().copy()
 
         for arg in locals_:
-            if arg != 'self':
-                setattr(self, arg, locals_[arg])
+          if arg != 'self':
+            setattr(self, arg, locals_[arg])
 
         if len(relax_init) == 1:
             self.relax_init = self.relax_init * self.num_filterbanks
@@ -49,7 +50,7 @@ class LRU(torch.nn.Module):
         self.relax = torch.nn.Parameter(
             self.relax_init.to(device=self.device, dtype=self.dtype), requires_grad=self.relax_train)
 
-        if self.input_size > 1:
+        if (self.input_size > 1) & (not self.feature_associated):
             self.input_block = HiddenLayer(in_features = self.input_size, 
                                            out_features = self.num_filterbanks,
                                            bias = self.bias,
@@ -89,14 +90,14 @@ class LRU(torch.nn.Module):
       sq_relax = torch.sqrt(self.relax)
 
       hiddens_new = torch.zeros_like(hiddens).to(hiddens)
-
+      
       hiddens_new[..., 0] = sq_relax[:, None] * hiddens[..., 0] + (1 - sq_relax ** 2).sqrt()[:, None] * self.input_block(input).t()
 
       for i in range(1, self.hidden_size):
         hiddens_new[..., i] = sq_relax[:, None] * (hiddens[..., i] + hiddens_new[..., i - 1]) - hiddens[..., i - 1]
 
       output = hiddens_new.permute(1, 0, 2)
-
+      
       return output, hiddens_new
 
     def forward(self, input, hiddens=None):
@@ -113,6 +114,9 @@ class LRU(torch.nn.Module):
         """
         num_samples, input_len, input_size = input.shape
         
+        if self.feature_associated & (self.num_filterbanks != input_size):
+          raise ValueError(f"LRU is feature-associated, but the number of filterbanks ({self.num_filterbanks}) does not equal the number of input features ({input_size}).")
+
         hiddens = self.init_hiddens(num_samples) if hiddens is None else hiddens
 
         output = []
