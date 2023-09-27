@@ -202,37 +202,38 @@ class SequenceModule(pl.LightningModule):
     target_batch_masked = target_batch * self.trainer.datamodule.train_output_mask
 
     metric = None        
-    if isinstance(self.loss_fn, list):
-      loss, metric = [], []
-      j = 0
-      for i in range(len(self.loss_fn)):
-        self.opt[i].zero_grad()
+    loss, metric = [], []
+    j = 0
+    for i in range(self.model.num_outputs):
+      if isinstance(self.loss_fn, list):
+        opt_i = self.opt[i]
+        loss_fn_i = self.loss_fn[i]
+        metric_fn_i = self.metric_fn[i]
+        retain_graph = True
+      else:
+        opt_i = self.opt
+        loss_fn_i = self.loss_fn
+        metric_fn_i = self.metric_fn
+        retain_graph = False
 
-        loss_i = self.loss_fn[i](prediction_batch_masked[...,j:(j+self.model.output_size[i])], 
-                                 target_batch_masked[...,j:(j+self.model.output_size[i])]).sum() \
-               + penalty/len(self.loss_fn)
-        loss_i.backward(retain_graph = True)
-        loss.append(loss_i.unsqueeze(0))
-        self.opt[i].step()
-        
-        if self.metric_fn[i] is not None:
-          metric_i = self.metric_fn[i](prediction_batch_masked[...,j:(j+self.model.output_size[i])], 
-                                       target_batch_masked[...,j:(j+self.model.output_size[i])])                          
-          metric.append(metric_i.unsqueeze(0))
+      loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])], 
+                                target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
 
-        j += self.model.output_size[i]
+      opt_i.zero_grad()
+      loss_i.backward(retain_graph = retain_graph)
+      opt_i.step()
+
+      loss.append(loss_i.unsqueeze(0))
       
-      loss = torch.cat(loss)
-      if metric is not None: metric = torch.cat(metric)
-      
-    else:
-      self.opt.zero_grad()
-      loss = self.loss_fn(prediction_batch_masked, target_batch_masked) + penalty
-      loss.sum().backward()
-      self.opt.step()
+      if metric_fn_i is not None:
+        metric_i = metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])], 
+                               target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
+        metric.append(metric_i.unsqueeze(0))
 
-      if self.metric_fn is not None:
-        metric = self.metric_fn(prediction_batch_masked, target_batch_masked)
+      j += self.model.output_size[i]
+    
+    loss = torch.cat(loss)
+    if metric is not None: metric = torch.cat(metric)
 
     # Store loss to be used later in `on_train_epoch_end`
     self.train_step_loss.append(loss)
@@ -422,30 +423,30 @@ class SequenceModule(pl.LightningModule):
     target_batch_masked = target_batch * self.trainer.datamodule.val_output_mask
 
     metric = None        
-    if isinstance(self.loss_fn, list):
-      loss, metric = [], []
-      j = 0
-      for i in range(len(self.loss_fn)):
-
-        loss_i = self.loss_fn[i](prediction_batch_masked[...,j:(j+self.model.output_size[i])], 
-                                 target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
-        loss.append(loss_i.unsqueeze(0))
+    loss, metric = [], []
+    j = 0
+    for i in range(self.model.num_outputs):
+      if isinstance(self.loss_fn, list):
+        loss_fn_i = self.loss_fn[i]
+        metric_fn_i = self.metric_fn[i]
+      else:
+        loss_fn_i = self.loss_fn
+        metric_fn_i = self.metric_fn
         
-        if self.metric_fn[i] is not None:
-          metric_i = self.metric_fn[i](prediction_batch_masked[...,j:(j+self.model.output_size[i])], 
-                                       target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()                       
-          metric.append(metric_i.unsqueeze(0))
+      loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])], 
+                         target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
 
-        j += self.model.output_size[i]
+      loss.append(loss_i.unsqueeze(0))
       
-      loss = torch.cat(loss)
-      if metric is not None: metric = torch.cat(metric)
-      
-    else:
-      loss = self.loss_fn(prediction_batch_masked, target_batch_masked)
+      if metric_fn_i is not None:
+        metric_i = metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])], 
+                               target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
+        metric.append(metric_i.unsqueeze(0))
 
-      if self.metric_fn is not None:
-        metric = self.metric_fn(prediction_batch_masked, target_batch_masked)
+      j += self.model.output_size[i]
+    
+    loss = torch.cat(loss)
+    if metric is not None: metric = torch.cat(metric)
 
     # Store loss to be used later in `on_validation_epoch_end`
     self.val_step_loss.append(loss)
@@ -569,30 +570,30 @@ class SequenceModule(pl.LightningModule):
     target_batch_masked = target_batch * self.trainer.datamodule.val_output_mask
     
     metric = None        
-    if isinstance(self.loss_fn, list):
-      loss, metric = [], []
-      j = 0
-      for i in range(len(self.loss_fn)):
+    loss, metric = [], []
+    j = 0
+    for i in range(self.model.num_outputs):
+      if isinstance(self.loss_fn, list):
+        loss_fn_i = self.loss_fn[i]
+        metric_fn_i = self.metric_fn[i]
+      else:
+        loss_fn_i = self.loss_fn
+        metric_fn_i = self.metric_fn
         
-        loss_i = self.loss_fn[i](prediction_batch_masked[...,j:(j+self.model.output_size[i])], 
-                                 target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
-        loss.append(loss_i.unsqueeze(0))
-        
-        if self.metric_fn[i] is not None:
-          metric_i = self.metric_fn[i](prediction_batch_masked[...,j:(j+self.model.output_size[i])], 
-                                       target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()                       
-          metric.append(metric_i.unsqueeze(0))
+      loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])], 
+                         target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
 
-        j += self.model.output_size[i]
+      loss.append(loss_i.unsqueeze(0))
       
-      loss = torch.cat(loss)
-      if metric is not None: metric = torch.cat(metric)
-      
-    else:
-      loss = self.loss_fn(prediction_batch_masked, target_batch_masked)
-      
-      if self.metric_fn is not None:
-        metric = self.metric_fn(prediction_batch_masked, target_batch_masked)
+      if metric_fn_i is not None:
+        metric_i = metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])], 
+                               target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
+        metric.append(metric_i.unsqueeze(0))
+
+      j += self.model.output_size[i]
+    
+    loss = torch.cat(loss)
+    if metric is not None: metric = torch.cat(metric)
 
     # Store loss to be used later in `on_test_epoch_end`
     self.test_step_loss.append(loss)
