@@ -974,7 +974,7 @@ class SequenceModule(pl.LightningModule):
               val_output_steps = val_output_steps.cpu().numpy()
             else:
               val_time = data[data_idx][time_name]
-              val_output_steps = val_output_steps.cpu().numpy() # - start_step
+              val_output_steps = val_output_steps.cpu().numpy() - start_step
             
             if hasattr(val_time, 'tz'):
               val_time = val_time.dt.tz_localize(None).values
@@ -1065,7 +1065,7 @@ class SequenceModule(pl.LightningModule):
             test_output_steps = test_output_steps.cpu().numpy()
           else:
             test_time = data[data_idx][time_name]
-            test_output_steps = test_output_steps.cpu().numpy() # - start_step
+            test_output_steps = test_output_steps.cpu().numpy() - start_step
 
           if hasattr(test_time, 'tz'):
             test_time = test_time.dt.tz_localize(None).values
