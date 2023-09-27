@@ -6,32 +6,39 @@ class HiddenLayer(torch.nn.Module):
     """
     A configurable hidden layer for neural networks.
 
-    Args:
+    Attributes:
         in_features (int): Number of input features.
-        out_features (int, optional): Number of output features. If not specified, defaults to `in_features`.
-        bias (bool, optional): Whether to include bias terms. Default is True.
-        activation (str, optional): Activation function for the layer ('identity', 'polynomial', 'tanh', 'sigmoid', 'softmax', 'relu'). Default is 'identity'.
-        weight_to_ones (bool, optional): If True, initializes weights to 1. Default is False.
-        weight_reg (list, optional): Regularization parameters for weights: [lambda, p]. Default is [0.001, 1].
-        weight_norm (int, optional): Norm for weight normalization. Default is 2.
-        degree (int, optional): Degree for polynomial activation. Default is 1.
-        coef_init (float, optional): Initial coefficient value for polynomial activation. Default is None.
-        coef_train (bool, optional): Whether to train polynomial coefficients. Default is True.
-        coef_reg (list, optional): Regularization parameters for coefficients: [lambda, p]. Default is [0.001, 1].
-        zero_order (bool, optional): Whether to include zero-order term in polynomial activation. Default is False.
-        softmax_dim (int, optional): Dimension for softmax activation. Default is -1.
-        dropout_p (float, optional): Dropout probability. Default is 0.0.
-        sigmoid_slope_init (float, optional): Initial value for sigmoid slope. Default is None.
-        sigmoid_slope_train (bool, optional): Whether to train sigmoid slope. Default is True.
-        sigmoid_slope_reg (list, optional): Regularization parameters for sigmoid slope: [lambda, p]. Default is [0.001, 1].
-        sigmoid_shift_init (float, optional): Initial value for sigmoid shift. Default is None.
-        sigmoid_shift_train (bool, optional): Whether to train sigmoid shift. Default is True.
-        sigmoid_shift_reg (list, optional): Regularization parameters for sigmoid shift: [lambda, p]. Default is [0.001, 1].
-        sigmoid_bias (bool, optional): Whether to include bias in sigmoid activation. Default is True.
-        norm_type (str, optional): Type of normalization ('batch', 'layer', None). Default is None.
-        affine_norm (bool, optional): Whether to use affine transformation in normalization. Default is False.
-        device (str, optional): Device for computation ('cpu' or 'cuda'). Default is 'cpu'.
-        dtype (torch.dtype, optional): Data type for tensors. Default is torch.float32.
+        out_features (int): Number of output features.
+        bias (bool): Whether to include bias terms.
+        activation (str): Activation function for the layer.
+        weight_to_ones (bool): If True, initializes weights to 1.
+        weight_reg (list): Regularization parameters for weights: [lambda, p].
+        weight_norm (int): Norm for weight normalization.
+        degree (int): Degree for polynomial activation.
+        coef_init (float): Initial coefficient value for polynomial activation.
+        coef_train (bool): Whether to train polynomial coefficients.
+        coef_reg (list): Regularization parameters for coefficients: [lambda, p].
+        zero_order (bool): Whether to include zero-order term in polynomial activation.
+        softmax_dim (int): Dimension for softmax activation.
+        dropout_p (float): Dropout probability.
+        sigmoid_slope_init (float): Initial value for sigmoid slope.
+        sigmoid_slope_train (bool): Whether to train sigmoid slope.
+        sigmoid_slope_reg (list): Regularization parameters for sigmoid slope: [lambda, p].
+        sigmoid_shift_init (float): Initial value for sigmoid shift.
+        sigmoid_shift_train (bool): Whether to train sigmoid shift.
+        sigmoid_shift_reg (list): Regularization parameters for sigmoid shift: [lambda, p].
+        sigmoid_bias (bool): Whether to include bias in sigmoid activation.
+        norm_type (str): Type of normalization ('batch', 'layer', None).
+        affine_norm (bool): Whether to use affine transformation in normalization.
+        device (str): Device for computation ('cpu' or 'cuda').
+        dtype (torch.dtype): Data type for tensors.
+        F (torch.nn.Sequential): The core function of the hidden layer.
+        dropout (torch.nn.Dropout): Dropout layer.
+        norm_layer (torch.nn.Module): Normalization layer.
+        group_mask (torch.Tensor): A mask used to apply weight sparsity.
+
+    Args:
+        ... [Same as original]
 
     Methods:
         forward(input): Forward pass through the layer.
@@ -131,22 +138,22 @@ class HiddenLayer(torch.nn.Module):
         last_group_size = self.in_features % self.groups
         
         # Determine group sizes
-        group_sizes = [self.groups] * num_full_groups
+        group_sizes = [self.groups] * num_full_groups        
         if last_group_size > 0:
             group_sizes.append(last_group_size)
         
         # Generate the mask based on group sizes
-        mask_list = []
-        for idx, group_size in enumerate(group_sizes):
-            row = [0] * self.in_features
-            start_idx = sum(group_sizes[:idx])
-            for i in range(start_idx, start_idx + group_size):
-                row[i] = 1
-            mask_list.append(row)
-        self.group_mask = torch.tensor(mask_list, 
-                                       dtype=self.dtype, device=self.device,
-                                       requires_grad = False)        
+        self.group_mask = torch.zeros_like(self.F[0].weight,
+                                           requires_grad = False)       
         
+        in_idx = torch.arange(self.in_features).to(device = self.device,
+                                                   dtype = self.dtype)        
+        
+        group_size = self.in_features // self.groups
+        
+        for row,i in enumerate(range(0, self.in_features, group_size)):        
+          self.group_mask[row, i:(i+group_size)] = 1.
+
     def forward(self, input):
         """
         Forward pass through the hidden layer.
@@ -157,7 +164,6 @@ class HiddenLayer(torch.nn.Module):
         Returns:
             torch.Tensor: Output tensor.
         """
-        
         self.F[0].weight.data *= self.group_mask
         
         output = self.dropout(self.F(input))
