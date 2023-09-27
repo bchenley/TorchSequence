@@ -791,7 +791,7 @@ class SequenceModel(torch.nn.Module):
           ax_if_freq.plot(freq_if.cpu(), x_fft_mag_if_h.cpu(), label = label)
           
         ax_if_freq.grid()
-        ax_if_greq.set_xlabel(f"Frequency [{freq_unit]" if freq_unit is not None else f"Frequency")
+        ax_if_freq.set_xlabel(f"Frequency [{freq_unit]" if freq_unit is not None else f"Frequency")
         ax_if_freq.legend(fontsize = 14, loc = 'upper left', bbox_to_anchor = (1.02, 1), ncol = 1)
         
     fig.tight_layout()
