@@ -1,7 +1,5 @@
 import torch
 import numpy as np
-
-import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 from datetime import datetime, timedelta
@@ -570,6 +568,8 @@ class SequenceModel(torch.nn.Module):
       list: List of updated hidden states.
     """
 
+    self.constrain()
+
     # Initialize lists to store layer outputs
     self.base_layer_output = [[] for _ in range(self.num_inputs)]
     self.hidden_layer_output = [[] for _ in range(self.num_inputs)]
@@ -581,7 +581,7 @@ class SequenceModel(torch.nn.Module):
     input = input.to(device=self.device, dtype=self.dtype)
     steps = steps.to(device=self.device, dtype=torch.long) if steps is not None else None
     output_mask = output_mask.to(device=self.device, dtype=torch.long) if output_mask is not None else None
-
+    
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
 
