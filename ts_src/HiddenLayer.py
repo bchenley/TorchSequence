@@ -40,7 +40,7 @@ class HiddenLayer(torch.nn.Module):
     """
 
     def __init__(self, in_features, out_features=None, 
-                 bias=True, activation='identity',
+                 bias=True, activation='identity', groups = 1,
                  weight_to_ones=False, weight_reg=[0.001, 1], weight_norm=2, 
                  degree=1, coef_init=None, coef_train=True,
                  coef_reg=[0.001, 1], zero_order=False, softmax_dim=-1, dropout_p=0.0,
@@ -126,6 +126,27 @@ class HiddenLayer(torch.nn.Module):
         else:
             self.norm_layer = torch.nn.Identity()
 
+        # Calculate the number of full groups and the size of the last group
+        num_full_groups = self.in_features // self.groups
+        last_group_size = self.in_features % self.groups
+        
+        # Determine group sizes
+        group_sizes = [self.groups] * num_full_groups
+        if last_group_size > 0:
+            group_sizes.append(last_group_size)
+        
+        # Generate the mask based on group sizes
+        mask_list = []
+        for idx, group_size in enumerate(group_sizes):
+            row = [0] * self.in_features
+            start_idx = sum(group_sizes[:idx])
+            for i in range(start_idx, start_idx + group_size):
+                row[i] = 1
+            mask_list.append(row)
+        self.group_mask = torch.tensor(mask_list, 
+                                       dtype=self.dtype, device=self.device,
+                                       requires_grad = False)        
+        
     def forward(self, input):
         """
         Forward pass through the hidden layer.
@@ -136,6 +157,9 @@ class HiddenLayer(torch.nn.Module):
         Returns:
             torch.Tensor: Output tensor.
         """
+        
+        self.F[0].weight.data *= self.group_mask
+        
         output = self.dropout(self.F(input))
 
         if self.norm_type == 'batch':
