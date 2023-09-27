@@ -762,11 +762,11 @@ class SequenceModel(torch.nn.Module):
                             input_names = None):
     
     fig, ax = plt.subplots(self.num_inputs, 2, figsize = figsize or (10, 5*self.num_inputs))
-    for i in range(model.num_inputs):
+    for i in range(self.num_inputs):
 
       lag_i = self.lag[i]
       
-      for f in range(model.input_size[i]):
+      for f in range(self.input_size[i]):
         ir_if = self.impulse_response[i][f]
         
         ax_if_time = ax[i,0] if self.num_inputs > 1 else ax[0]
@@ -785,7 +785,7 @@ class SequenceModel(torch.nn.Module):
         ax_if_freq = ax[i,1] if self.num_inputs > 1 else ax[1]
 
         for h,x_fft_mag_if_h in enumerate(x_fft_mag_if.split(1, 1)):
-          label = f"Feature {f+1}, Mode {h+1}" if model.input_size[i] > 1 else f"Mode {h+1}" 
+          label = f"Feature {f+1}, Mode {h+1}" if self.input_size[i] > 1 else f"Mode {h+1}" 
           ax_if_freq.plot(freq_if.cpu(), x_fft_mag_if_h.cpu(), label = label)
           
         ax_if_freq.grid()
