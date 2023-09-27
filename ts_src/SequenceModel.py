@@ -35,7 +35,7 @@ class SequenceModel(torch.nn.Module):
                base_rnn_bidirectional = [False],
                base_rnn_attn = [False],
                base_encoder_bias = [False], base_decoder_bias = [False],
-               base_rnn_weight_reg = [[0.001, 1]], base_rnn_weight_norm = [None],
+               base_weight_reg = [[0.001, 1]], base_weight_norm = [None],
                # LRU parameters
                base_lru_relax_init = [[0.5]], base_lru_relax_train = [True], base_lru_relax_minmax = [[[0.1, 0.9]]], base_lru_num_filterbanks = [1],
                base_lru_feature_associated = [False],
@@ -157,7 +157,7 @@ class SequenceModel(torch.nn.Module):
                                      rnn_dropout_p = self.base_rnn_dropout_p[i],
                                      rnn_bidirectional = self.base_rnn_bidirectional[i],
                                      rnn_attn = self.base_rnn_attn[i],
-                                     rnn_weight_reg = self.base_rnn_weight_reg[i], rnn_weight_norm = self.base_rnn_weight_norm[i],
+                                     weight_reg = self.base_weight_reg[i], weight_norm = self.base_weight_norm[i],
                                      # LRU parameters
                                      relax_init = self.base_lru_relax_init[i], relax_train = self.base_lru_relax_train[i], relax_minmax = self.base_lru_relax_minmax[i], num_filterbanks = self.base_lru_num_filterbanks[i],
                                      lru_feature_associated = self.base_lru_feature_associated[i],
