@@ -409,14 +409,14 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 
         self.train_len, self.val_len, self.test_len = train_len, val_len, test_len
         train_init_input, val_init_input, test_init_input = None, None, None
-
+        
         if self.pad_data and (self.start_step > 0):
 
-          # train_data['step'] = torch.cat((train_data['step'],
-          #                                  torch.arange(1, 1 + self.start_step).to(device=self.device, dtype=torch.long) + train_data['step'][-1]),0)
+          train_data['step'] = torch.cat((train_data['step'],
+                                           torch.arange(1, 1 + self.start_step).to(device=self.device, dtype=torch.long) + train_data['step'][-1]),0)
 
-          # for name in self.input_output_names:
-          #   train_data[name] = torch.nn.functional.pad(train_data[name], (0, 0, self.start_step, 0), mode='constant', value=0)
+          for name in self.input_output_names:
+            train_data[name] = torch.nn.functional.pad(train_data[name], (0, 0, self.start_step, 0), mode='constant', value=0)
 
           data_ = val_data if len(val_data) > 0 else train_data
 
