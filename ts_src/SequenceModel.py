@@ -774,7 +774,8 @@ class SequenceModel(torch.nn.Module):
         ax_if_freq = ax[i,1] if self.num_inputs > 1 else ax[1]
 
         for h,x_fft_mag_if_h in enumerate(x_fft_mag_if.split(1, 1)):
-          ax_if_freq.plot(freq_if.cpu(), x_fft_mag_if_h.cpu(), label = f"Feature {f+1}, Mode {h+1}")
+          label = f"Feature {f+1}, Mode {h+1}" if model.input_size[i] > 1 else f"Mode {h+1}" 
+          ax_if_freq.plot(freq_if.cpu(), x_fft_mag_if_h.cpu(), label = label)
           
         ax_if_freq.grid()
         ax_if_freq.legend(fontsize = 14, loc = 'upper left', bbox_to_anchor = (1.02, 1), ncol = 1)
