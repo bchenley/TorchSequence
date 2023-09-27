@@ -29,7 +29,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                pad_data = False,
                shuffle_train = False,
                print_summary = False,
-               num_workers = 1,
+               num_workers = 0,
                device = 'cpu', dtype = torch.float32):
 
     """
