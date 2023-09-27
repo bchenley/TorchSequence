@@ -470,7 +470,6 @@ class SequenceModelBase(torch.nn.Module):
     else:
         for name, param in self.named_parameters():
             if 'weight' in param:
-                loss += self.weight_reg[0] * torch.norm(param, p=self.weight_reg[1]) * int(
-                    param.requires_grad)
+                loss += self.weight_reg[0] * torch.norm(param, p=self.weight_reg[1]) * int(param.requires_grad)
 
     return loss
