@@ -764,7 +764,7 @@ class SequenceModel(torch.nn.Module):
         ax_if_time.grid()
 
         if f == 0:
-          ax_if_time.set_ylabel(input_names[i] if input_names is not None else f"Input {i}",
+          ax_if_time.set_ylabel(input_names[i] if input_names is not None else f"Input {i+1}",
                                 fontsize = 20)
 
         freq_if, x_fft_mag_if, _ = fft(x = ir_if,
