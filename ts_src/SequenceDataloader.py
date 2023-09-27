@@ -35,6 +35,7 @@ class SequenceDataloader(torch.utils.data.Dataset):
                forecast = False,
                shuffle = False,
                print_summary=False,
+               num_cpus = 1,
                device='cpu', dtype=torch.float32):
 
     super(SequenceDataloader, self).__init__()
@@ -171,7 +172,8 @@ class SequenceDataloader(torch.utils.data.Dataset):
                                      batch_size=self.batch_size,
                                      shuffle = self.shuffle,
                                      # sampler = sampler,
-                                     collate_fn=self.collate_fn)
+                                     collate_fn=self.collate_fn,
+                                     num_cpus = self.num_cpus)
 
     self.num_batches = len(dl)
 
