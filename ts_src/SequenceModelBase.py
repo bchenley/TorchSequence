@@ -469,7 +469,7 @@ class SequenceModelBase(torch.nn.Module):
         loss += sum(layer.penalize() for layer in self.base[1])  # transformer layer penalties
     else:
         for name, param in self.named_parameters():
-            if 'weight' in param:
+            if 'weight' in name:
                 loss += self.weight_reg[0] * torch.norm(param, p=self.weight_reg[1]) * int(param.requires_grad)
 
     return loss
