@@ -1,3 +1,5 @@
+import torch 
+
 def cuda_summary(N=10):
   # Create a list to store tensor information
   tensor_info = []
