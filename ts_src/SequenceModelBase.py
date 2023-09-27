@@ -26,8 +26,8 @@ class SequenceModelBase(torch.nn.Module):
     rnn_dropout_p (float, optional): Dropout probability for the base model. Default is 0.
     rnn_bidirectional (bool, optional): If True, becomes a bidirectional RNN. Default is False.
     rnn_attn (bool, optional): Whether to apply attention mechanism on RNN outputs. Default is False.
-    rnn_weight_reg (list, optional): Regularization settings for RNN weights. Default is [0.001, 1].
-    rnn_weight_norm (float, optional): Norm type for RNN weights. Default is None.
+    weight_reg (list, optional): Regularization settings for RNN weights. Default is [0.001, 1].
+    weight_norm (float, optional): Norm type for RNN weights. Default is None.
     relax_init (list, optional): Initial relaxation values for LRU. Default is [0.5].
     relax_train (bool, optional): Whether to train relaxation values for LRU. Default is True.
     relax_minmax (list, optional): Minimum and maximum relaxation values for LRU. Default is [0.1, 0.9].
@@ -106,7 +106,7 @@ class SequenceModelBase(torch.nn.Module):
               rnn_dropout_p = 0,
               rnn_bidirectional = False,
               rnn_attn=False,
-              rnn_weight_reg=[0.001, 1], rnn_weight_norm=None,
+              weight_reg=[0.001, 1], weight_norm=None,
               relax_init=[0.5], relax_train=True, relax_minmax=[0.1, 0.9], num_filterbanks=1,
               lru_feature_associated = False,
               lru_input_block_weight_to_ones = False,
@@ -451,10 +451,10 @@ class SequenceModelBase(torch.nn.Module):
     '''
     if self.base_type == 'lru':
         self.base.clamp_relax()
-    elif self.rnn_weight_norm is not None:
+    elif self.weight_norm is not None:
         for name, param in self.named_parameters():
             if 'weight' in name:
-                param = torch.nn.functional.normalize(param, p=self.rnn_weight_norm, dim=1).contiguous()
+                param = torch.nn.functional.normalize(param, p=self.weight_norm, dim=1).contiguous()
 
   def penalize(self):
     '''
@@ -470,7 +470,7 @@ class SequenceModelBase(torch.nn.Module):
     else:
         for name, param in self.named_parameters():
             if 'weight' in param:
-                loss += self.rnn_weight_reg[0] * torch.norm(param, p=self.rnn_weight_reg[1]) * int(
+                loss += self.weight_reg[0] * torch.norm(param, p=self.weight_reg[1]) * int(
                     param.requires_grad)
 
     return loss
