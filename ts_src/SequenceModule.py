@@ -182,7 +182,7 @@ class SequenceModule(pl.LightningModule):
     input_batch = input_batch[:batch_size]
     target_batch = target_batch[:batch_size]
     steps_batch = steps_batch[:batch_size]
-
+    
     # Perform forward pass to compute gradients
     prediction_batch, self.hiddens = self.forward(input=input_batch,
                                                    steps=steps_batch,
@@ -201,7 +201,6 @@ class SequenceModule(pl.LightningModule):
     prediction_batch_masked = prediction_batch * self.trainer.datamodule.train_output_mask
     target_batch_masked = target_batch * self.trainer.datamodule.train_output_mask
 
-    metric = None
     loss, metric = [], []
     j = 0
     for i in range(self.model.num_outputs):
@@ -209,16 +208,13 @@ class SequenceModule(pl.LightningModule):
         opt_i = self.opt[i]
         loss_fn_i = self.loss_fn[i]
         metric_fn_i = self.metric_fn[i]
-        retain_graph = True
       else:
         opt_i = self.opt
         loss_fn_i = self.loss_fn
         metric_fn_i = self.metric_fn
-        retain_graph = False
 
       loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
                          target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
-
       loss.append(loss_i.unsqueeze(0))
 
       if metric_fn_i is not None:
@@ -228,9 +224,15 @@ class SequenceModule(pl.LightningModule):
 
       j += self.model.output_size[i]
 
-    opt_i.zero_grad()
-    loss_i.sum().backward()
-    opt_i.step()
+    if isinstance(self.loss_fn, list):
+      for i in range(self.model.num_outputs):
+        self.opt[i].zero_grad()        
+        sum(loss[i]).backward(retain_graph = True)
+        self.opt[i].step()
+    else:
+      self.opt.zero_grad()
+      sum(loss).backward()
+      self.opt.step()
 
     loss = torch.cat(loss)
     if metric is not None: metric = torch.cat(metric)
