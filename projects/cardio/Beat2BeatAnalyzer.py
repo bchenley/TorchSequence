@@ -329,12 +329,11 @@ class Beat2BeatAnalyzer():
     self.hrv, self.intervalv = self.hrv - self.hrv.mean(), self.intervalv - self.intervalv.mean()
 
   def remove_outliers(self,
-                      max_sbp_change = 20, z_sbp_change_critical = 4,
-                      max_dbp_change = 20, z_dbp_change_critical = 4,
+                      max_mabp_change = 20, z_mabp_change_critical = 4,
                       max_hr_change = 0.1, z_hr_change_critical = 4,
                       interp_type = 'linear'):
 
-    hr, interval, dbp, sbp = self.hr.copy(), self.interval.copy(), self.dbp.copy(), self.sbp.copy()
+    hr, interval, mabp = self.hr.copy(), self.interval.copy(), self.mabp.copy()
 
     ## hr/interval
     i_hr_all = np.arange(len(hr),  dtype = np.compat.long)
@@ -372,75 +371,42 @@ class Beat2BeatAnalyzer():
     # plt.plot(i_hr_all, self.hr)
     # plt.plot(i_hr, hr)
 
-    ## dbp
-    i_dbp_all = np.arange(len(dbp),  dtype = np.compat.long)
-    i_dbp = i_dbp_all
+    ## mabp
+    i_mabp_all = np.arange(len(mabp),  dtype = np.compat.long)
+    i_mabp = i_mabp_all
 
-    dbp_diff = np.diff(dbp,1,0)
-    z_dbp_diff = (dbp_diff - dbp_diff.mean())/dbp_diff.std()
+    mabp_diff = np.diff(mabp,1,0)
+    z_mabp_diff = (mabp_diff - mabp_diff.mean())/mabp_diff.std()
 
-    i_discard = np.where((np.abs(z_dbp_diff) > z_dbp_change_critical) | (np.abs(dbp_diff) > max_dbp_change))[0]
+    i_discard = np.where((np.abs(z_mabp_diff) > z_mabp_change_critical) | (np.abs(mabp_diff) > max_mabp_change))[0]
 
     if len(i_discard):
-      dbp_interpolator = Interpolator(kind = interp_type)
+      mabp_interpolator = Interpolator(kind = interp_type)
     else:
-      dbp_interpolator = None
+      mabp_interpolator = None
 
     while len(i_discard) > 0:
 
       j_discard = i_discard[0] + [0, 1]
-      j_discard = j_discard[j_discard < len(dbp)]
+      j_discard = j_discard[j_discard < len(mabp)]
 
-      j_discard = j_discard[np.abs(dbp.mean() - dbp[j_discard]).argmax()]
-      dbp = np.delete(dbp, j_discard)
-      i_dbp = np.delete(i_dbp, j_discard)
+      j_discard = j_discard[np.abs(mabp.mean() - mabp[j_discard]).argmax()]
+      mabp = np.delete(mabp, j_discard)
+      i_mabp = np.delete(i_mabp, j_discard)
 
-      dbp_diff = np.diff(dbp,1,0)
-      z_dbp_diff = (dbp_diff - dbp_diff.mean())/dbp_diff.std()
+      mabp_diff = np.diff(mabp,1,0)
+      z_mabp_diff = (mabp_diff - mabp_diff.mean())/mabp_diff.std()
 
-      i_discard = np.where((np.abs(z_dbp_diff) > z_dbp_change_critical) | (np.abs(dbp_diff) > max_dbp_change))[0]
-
-    # plt.figure(2)
-    # plt.plot(i_dbp_all, self.dbp)
-    # plt.plot(i_dbp, dbp)
-    ##
-
-    ## sbp
-    i_sbp_all = np.arange(len(sbp),  dtype = np.compat.long)
-    i_sbp = i_sbp_all
-
-    sbp_diff = np.diff(sbp,1,0)
-    z_sbp_diff = (sbp_diff - sbp_diff.mean())/sbp_diff.std()
-
-    i_discard = np.where((np.abs(z_sbp_diff) > z_sbp_change_critical) | (np.abs(sbp_diff) > max_sbp_change))[0]
-
-    if len(i_discard):
-      sbp_interpolator = Interpolator(kind = interp_type)
-    else:
-      sbp_interpolator = None
-
-    while len(i_discard) > 0:
-
-      j_discard = i_discard[0] + [0, 1]
-      j_discard = j_discard[j_discard < len(sbp)]
-
-      j_discard = j_discard[np.abs(sbp.mean() - sbp[j_discard]).argmax()]
-      sbp = np.delete(sbp, j_discard)
-      i_sbp = np.delete(i_sbp, j_discard)
-
-      sbp_diff = np.diff(sbp,1,0)
-      z_sbp_diff = (sbp_diff - sbp_diff.mean())/sbp_diff.std()
-
-      i_discard = np.where((np.abs(z_sbp_diff) > z_sbp_change_critical) | (np.abs(sbp_diff) > max_sbp_change))[0]
+      i_discard = np.where((np.abs(z_mabp_diff) > z_mabp_change_critical) | (np.abs(mabp_diff) > max_mabp_change))[0]
 
     # plt.figure(3)
-    # plt.plot(i_sbp_all, self.sbp)
-    # plt.plot(i_sbp, sbp)
+    # plt.plot(i_mabp_all, self.mabp)
+    # plt.plot(i_mabp, mabp)
     ##
 
     ##
-    i_min = np.max([np.min(i_hr), np.min(i_dbp), np.min(i_sbp)])
-    i_max = np.min([np.max(i_hr), np.max(i_dbp), np.max(i_sbp)])
+    i_min = np.max([np.min(i_hr), np.min(i_mabp)])
+    i_max = np.min([np.max(i_hr), np.max(i_mabp)])
 
     i_all = np.arange(i_min, i_max+1, dtype = np.compat.long)
     self.beat_t = self.beat_t[i_all]
@@ -454,21 +420,15 @@ class Beat2BeatAnalyzer():
       self.hr = hr[i_all]
       self.interval = interval[i_all]
 
-    if dbp_interpolator is not None:
-      dbp_interpolator.fit(i_dbp, dbp)
-      self.dbp = dbp_interpolator.interp_fn(i_all)
+    if mabp_interpolator is not None:
+      mabp_interpolator.fit(i_mabp, mabp)
+      self.mabp = mabp_interpolator.interp_fn(i_all)
     else:
-      self.dbp = dbp[i_all]
-
-    if sbp_interpolator is not None:
-      sbp_interpolator.fit(i_sbp, sbp)
-      self.sbp = sbp_interpolator.interp_fn(i_all)
-    else:
-      self.sbp = sbp[i_all]
-
-    self.mabp = self.mabp[i_all]
+      self.mabp = mabp[i_all]
     ##
 
+    self.sbp, self.dbp = self.sbp[i_all], self.dbp[i_all]
+    
   def interpolate(self, beat_dt_new, kind='linear'):
 
     beat_t_new = np.arange(self.beat_t.min(), self.beat_t.max(), beat_dt_new)
