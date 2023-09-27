@@ -29,6 +29,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                pad_data = False,
                shuffle_train = False,
                print_summary = False,
+               num_cpus = 1,
                device = 'cpu', dtype = torch.float32):
 
     """
@@ -506,7 +507,8 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                                             forecast = True,
                                             print_summary = False,
                                             device = self.device,
-                                            dtype = self.dtype)
+                                            dtype = self.dtype,
+                                            num_cpus = self.num_cpus)
 
       # Store the forecast output mask and window indices
       self.forecast_output_mask = self.forecast_dl.output_mask
@@ -545,8 +547,8 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             shuffle=self.shuffle_train,
             print_summary=self.print_summary,
             device=self.device,
-            dtype=self.dtype
-        )
+            dtype=self.dtype,
+            num_cpus = self.num_cpus)
 
         # Update training batch size
         self.train_batch_size = self.train_dl.batch_size
@@ -587,7 +589,8 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                                         init_input=self.val_init_input,
                                         print_summary=self.print_summary,
                                         device=self.device,
-                                        dtype=self.dtype)
+                                        dtype=self.dtype,
+                                        num_cpus = self.num_cpus)
 
       # Store validation batch size
       self.val_batch_size = self.val_dl.batch_size
@@ -627,7 +630,8 @@ class TimeSeriesDataModule(pl.LightningDataModule):
                                         init_input=self.test_init_input,
                                         print_summary=self.print_summary,
                                         device=self.device,
-                                        dtype=self.dtype)
+                                        dtype=self.dtype,
+                                        num_cpus = self.num_cpus)
       
       # Store test batch size
       self.test_batch_size = self.test_dl.batch_size
