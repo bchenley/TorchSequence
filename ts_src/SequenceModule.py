@@ -213,13 +213,13 @@ class SequenceModule(pl.LightningModule):
         loss_fn_i = self.loss_fn
         metric_fn_i = self.metric_fn
 
-      loss_i = sum(loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
-                         target_batch_masked[...,j:(j+self.model.output_size[i])]))
+      loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
+                         target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
       loss.append(loss_i.unsqueeze(0))
 
       if metric_fn_i is not None:
-        metric_i = sum(metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
-                               target_batch_masked[...,j:(j+self.model.output_size[i])]))
+        metric_i = metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
+                               target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
         metric.append(metric_i.unsqueeze(0))
 
       j += self.model.output_size[i]
@@ -227,11 +227,11 @@ class SequenceModule(pl.LightningModule):
     if isinstance(self.loss_fn, list):
       for i in range(len(self.loss_fn)):
         self.opt[i].zero_grad()        
-        sum(loss[i]).backward(retain_graph = True)
+        loss[i].sum().backward(retain_graph = True)
         self.opt[i].step()
     else:
       self.opt.zero_grad()
-      sum(loss).backward()
+      loss.sum().backward()
       self.opt.step()
 
     loss = torch.cat(loss)
@@ -294,7 +294,7 @@ class SequenceModule(pl.LightningModule):
         loss_name_i = self.loss_fn.name + '_' + output_names[i]
 
       self.log(f"train_step_{loss_name_i}", train_step_loss[i], on_step=True, prog_bar=True)
-    self.log(f"train_step_loss", sum(train_step_loss), on_step=True, prog_bar=False)
+    self.log(f"train_step_loss", train_step_loss.sum(), on_step=True, prog_bar=False)
     #
 
     if self.track_performance or self.track_params:
@@ -435,14 +435,14 @@ class SequenceModule(pl.LightningModule):
         loss_fn_i = self.loss_fn
         metric_fn_i = self.metric_fn
 
-      loss_i = sum(loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
-                         target_batch_masked[...,j:(j+self.model.output_size[i])]))
+      loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
+                         target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
 
       loss.append(loss_i.unsqueeze(0))
 
       if metric_fn_i is not None:
-        metric_i = sum(metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
-                               target_batch_masked[...,j:(j+self.model.output_size[i])]))
+        metric_i = metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
+                               target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
         metric.append(metric_i.unsqueeze(0))
 
       j += self.model.output_size[i]
@@ -478,7 +478,7 @@ class SequenceModule(pl.LightningModule):
         loss_name_i = self.loss_fn.name + '_' + output_names[i]
 
       self.log(f"val_epoch_{loss_name_i}", val_epoch_loss[i], on_epoch=True, prog_bar=True)
-    self.log(f"val_epoch_loss", sum(val_epoch_loss), on_epoch=True, prog_bar=False)
+    self.log(f"val_epoch_loss", val_epoch_loss.sum(), on_epoch=True, prog_bar=False)
     #
 
     if self.track_performance:
@@ -582,14 +582,14 @@ class SequenceModule(pl.LightningModule):
         loss_fn_i = self.loss_fn
         metric_fn_i = self.metric_fn
 
-      loss_i = sum(loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
-                         target_batch_masked[...,j:(j+self.model.output_size[i])]))
+      loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
+                         target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
 
       loss.append(loss_i.unsqueeze(0))
 
       if metric_fn_i is not None:
-        metric_i = sum(metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
-                               target_batch_masked[...,j:(j+self.model.output_size[i])]))
+        metric_i = metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
+                               target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
         metric.append(metric_i.unsqueeze(0))
 
       j += self.model.output_size[i]
