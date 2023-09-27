@@ -77,7 +77,10 @@ class SequenceModel(torch.nn.Module):
                base_constrain = [False], base_penalize = [False],
                ##
                # hidden layer parameters
-               hidden_out_features = [0], hidden_bias = [False], hidden_activation = ['identity'], hidden_degree = [1],
+               hidden_out_features = [0], hidden_bias = [False], 
+               hidden_groups = [1],
+               hidden_activation = ['identity'], 
+               hidden_degree = [1],
                hidden_coef_init = [None], hidden_coef_train = [True], hidden_coef_reg = [[0.001, 1]], hidden_zero_order = [False],
                hidden_softmax_dim = [-1],
                hidden_constrain = [False], hidden_penalize = [False],
@@ -216,7 +219,9 @@ class SequenceModel(torch.nn.Module):
           input_size = self.input_size[i]
 
         hidden_layer_i = HiddenLayer(# linear transformation
-                                     in_features = hidden_in_features_i, out_features = self.hidden_out_features[i],
+                                     in_features = hidden_in_features_i, 
+                                     out_features = self.hidden_out_features[i],
+                                     groups = self.hidden_groups[i],
                                      bias = self.hidden_bias[i],
                                      # activation
                                      activation = self.hidden_activation[i],
@@ -770,10 +775,10 @@ class SequenceModel(torch.nn.Module):
         if f == 0:
           ax_if_time.set_ylabel(input_names[i] if input_names is not None else f"Input {i}",
                                 fontsize = 20)
-
+        
         freq_if, x_fft_mag_if, _ = fft(x = ir_if,
-                                      fs = 1/self.dt, dim = dim, nfft = nfft, norm = 'backward',
-                                      device = self.device, dtype = torch.complex64)
+                                       fs = 1/self.dt, dim = dim, nfft = nfft, norm = 'backward',
+                                       device = self.device, dtype = torch.complex64)
 
         ax_if_freq = ax[i,1] if self.num_inputs > 1 else ax[1]
 
