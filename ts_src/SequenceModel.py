@@ -35,8 +35,8 @@ class SequenceModel(torch.nn.Module):
                base_encoder_bias = [False], base_decoder_bias = [False],
                base_rnn_weight_reg = [[0.001, 1]], base_rnn_weight_norm = [None],
                # LRU parameters
-               base_relax_init = [[0.5]], base_relax_train = [True], base_relax_minmax = [[[0.1, 0.9]]], base_num_filterbanks = [1],
-               base_feature_associated = [False],
+               base_lru_relax_init = [[0.5]], base_lru_relax_train = [True], base_lru_relax_minmax = [[[0.1, 0.9]]], base_lru_num_filterbanks = [1],
+               base_lru_feature_associated = [False],
                base_lru_input_block_weight_to_ones = [False], 
                # CNN parameters
                base_cnn_out_channels = [[1]],
@@ -154,8 +154,8 @@ class SequenceModel(torch.nn.Module):
                                      rnn_attn = self.base_rnn_attn[i],
                                      rnn_weight_reg = self.base_rnn_weight_reg[i], rnn_weight_norm = self.base_rnn_weight_norm[i],
                                      # LRU parameters
-                                     relax_init = self.base_relax_init[i], relax_train = self.base_relax_train[i], relax_minmax = self.base_relax_minmax[i], num_filterbanks = self.base_num_filterbanks[i],
-                                     feature_associated = self.base_feature_associated[i]
+                                     relax_init = self.base_lru_relax_init[i], relax_train = self.base_lru_relax_train[i], relax_minmax = self.base_lru_relax_minmax[i], num_filterbanks = self.base_lru_num_filterbanks[i],
+                                     lru_feature_associated = self.base_lru_feature_associated[i],
                                      lru_input_block_weight_to_ones = self.base_lru_input_block_weight_to_ones[i],
                                      # CNN parameters
                                      cnn_out_channels = self.base_cnn_out_channels[i],
@@ -199,8 +199,8 @@ class SequenceModel(torch.nn.Module):
                                      device = self.device, dtype = self.dtype)
 
       if self.base_type[i] == 'lru':
-        self.base_relax_init[i] = seq_base_i.base.relax_init
-        self.base_relax_minmax[i] = seq_base_i.base.relax_minmax
+        self.base_lru_relax_init[i] = seq_base_i.base.relax_init
+        self.base_lru_relax_minmax[i] = seq_base_i.base.relax_minmax
 
       self.seq_base.append(seq_base_i)
       #
@@ -209,7 +209,7 @@ class SequenceModel(torch.nn.Module):
       if self.hidden_out_features[i] > 0:
         if self.base_hidden_size[i] > 0:
           if self.base_type[i] == 'lru':
-            hidden_in_features_i = self.base_hidden_size[i]*self.base_num_filterbanks[i]
+            hidden_in_features_i = self.base_hidden_size[i]*self.base_lru_num_filterbanks[i]
           else:
             hidden_in_features_i = (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
         else:
@@ -248,7 +248,7 @@ class SequenceModel(torch.nn.Module):
           if self.base_type[i] in ['lstm','gru']:
             interaction_in_features += (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
           elif self.base_type[i] == 'lru':
-            interaction_in_features += self.base_num_filterbanks[i]*self.base_hidden_size[i]
+            interaction_in_features += self.base_lru_num_filterbanks[i]*self.base_hidden_size[i]
           elif self.base_type[i] == 'transformer':
             interaction_in_features += self.base_transformer_dim_feedforward[i]
           else:
@@ -324,7 +324,7 @@ class SequenceModel(torch.nn.Module):
           if self.base_type[i] in ['lstm', 'gru']:
             output_in_features_i = (1 + int(self.base_rnn_bidirectional[i]))*self.base_hidden_size[i]
           elif self.base_type[i] == 'lru':
-            output_in_features_i = self.base_num_filterbanks[i]*self.base_hidden_size[i]
+            output_in_features_i = self.base_lru_num_filterbanks[i]*self.base_hidden_size[i]
           elif self.base_type[i] == 'cnn':
             output_in_features_i = self.base_hidden_size[i]
           else:
@@ -337,7 +337,7 @@ class SequenceModel(torch.nn.Module):
             if self.base_type[j] in ['lstm', 'gru']:
               output_in_features_i += (1 + int(self.base_rnn_bidirectional[j]))*self.base_hidden_size[j]
             elif self.base_type[j] == 'lru':
-              output_in_features_i += self.base_num_filterbanks[j]*self.base_hidden_size[j]
+              output_in_features_i += self.base_lru_num_filterbanks[j]*self.base_hidden_size[j]
             else: # elif self.base_type[j] == 'cnn':
               output_in_features_i += self.base_hidden_size[j]
 
@@ -462,7 +462,7 @@ class SequenceModel(torch.nn.Module):
         if self.seq_base[i].base_type in ['lstm', 'gru']:
           hidden_out_features_i = (1 + int(self.base_rnn_bidirectional[i])) * self.base_hidden_size[i]
         elif self.seq_base[i].base_type == 'lru':
-          hidden_out_features_i = self.base_hidden_size[i] * self.base_num_filterbanks[i]
+          hidden_out_features_i = self.base_hidden_size[i] * self.base_lru_num_filterbanks[i]
         else:
           hidden_out_features_i = self.base_hidden_size[i]
 
