@@ -36,6 +36,7 @@ class SequenceModel(torch.nn.Module):
                base_rnn_weight_reg = [[0.001, 1]], base_rnn_weight_norm = [None],
                # LRU parameters
                base_relax_init = [[0.5]], base_relax_train = [True], base_relax_minmax = [[[0.1, 0.9]]], base_num_filterbanks = [1],
+               base_feature_associated = [False],
                base_lru_input_block_weight_to_ones = [False], 
                # CNN parameters
                base_cnn_out_channels = [[1]],
@@ -154,6 +155,7 @@ class SequenceModel(torch.nn.Module):
                                      rnn_weight_reg = self.base_rnn_weight_reg[i], rnn_weight_norm = self.base_rnn_weight_norm[i],
                                      # LRU parameters
                                      relax_init = self.base_relax_init[i], relax_train = self.base_relax_train[i], relax_minmax = self.base_relax_minmax[i], num_filterbanks = self.base_num_filterbanks[i],
+                                     feature_associated = self.base_feature_associated[i]
                                      lru_input_block_weight_to_ones = self.base_lru_input_block_weight_to_ones[i],
                                      # CNN parameters
                                      cnn_out_channels = self.base_cnn_out_channels[i],
