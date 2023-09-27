@@ -844,12 +844,14 @@ class SequenceModule(pl.LightningModule):
       self.predict_output_mask = self.trainer.datamodule.train_output_mask
       self.predict_input_window_idx = self.trainer.datamodule.train_input_window_idx
       self.predict_output_window_idx = self.trainer.datamodule.train_output_window_idx
-
+      
       shuffle_train_original = self.trainer.datamodule.shuffle_train
       if shuffle_train_original == True:
+        print("Unshuffling training data")
         self.trainer.datamodule.shuffle_train = False
         self.trainer.datamodule.predicting = False
         self.trainer.datamodule.train_dataloader()
+        print("Unshuffling complete")
 
       self.trainer.predict(self, self.trainer.datamodule.train_dl.dl)
       self.trainer.datamodule.shuffle_train = shuffle_train_original
@@ -1300,6 +1302,11 @@ class SequenceModule(pl.LightningModule):
 
       for i,output_name in enumerate(output_names):
 
+        if isinstance(self.loss_fn, list):  
+          loss_fn_i, metric_fn_i = self.loss_fn[i], self.metric_fn[i]
+        else:
+          loss_fn_i, metric_fn_i = self.loss_fn, self.metric_fn
+
         try:
           ax_i = ax[i, :]
           [ax_j.axis("off") for ax_j in ax_i]
@@ -1332,24 +1339,24 @@ class SequenceModule(pl.LightningModule):
 
           target_if = prediction_data[f"{output_name}_target"][:, f].cpu()
           prediction_if =prediction_data[f"{output_name}_prediction"][:, f].cpu()
-          loss_if = np.round(prediction_data[f"{output_name}_global_{self.loss_fn.name}"][f].item(), 2)
-          metric_if = np.round(prediction_data[f"{output_name}_global_{self.metric_fn.name}"][f].item(), 2) if self.metric_fn is not None else None
+          loss_if = np.round(prediction_data[f"{output_name}_global_{loss_fn_i.name}"][f].item(), 2)
+          metric_if = np.round(prediction_data[f"{output_name}_global_{metric_fn_i.name}"][f].item(), 2) if metric_fn_i is not None else None
           if include_baseline:
             baseline_prediction_if = prediction_data[f"{output_name}_baseline_prediction"][:, f].cpu()
-            baseline_loss_if = np.round(prediction_data[f"{output_name}_baseline_{self.loss_fn.name}"][f].item(),2)
-            baseline_metric_if = np.round(prediction_data[f"{output_name}_baseline_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
+            baseline_loss_if = np.round(prediction_data[f"{output_name}_baseline_{loss_fn_i.name}"][f].item(),2)
+            baseline_metric_if = np.round(prediction_data[f"{output_name}_baseline_{metric_fn_i.name}"][f].item(),2) if metric_fn_i is not None else None
 
           ax_if.plot(time, target_if, '-k', label = 'Actual')
           ax_if.plot(time, prediction_if, '-r', label = 'Prediction')
 
           output_name_ = output_name.upper() if output_size[i] == 1 else f"{output_name.upper()}:{output_feature_names[f]}"
 
-          title = f"ID {id} ({group}): {output_name_} | {self.loss_fn.name} = {loss_if}, {self.metric_fn.name} = {metric_if}" \
+          title = f"ID {id} ({group}): {output_name_} | {loss_fn_i.name} = {loss_if}, {metric_fn_i.name} = {metric_if}" \
                     if metric_if is not None \
-                    else f"{output_name_} ({self.loss_fn.name} = {loss_if})"
+                    else f"{output_name_} ({loss_fn_i.name} = {loss_if})"
           if include_baseline:
             ax_if.plot(time, baseline_prediction_if, '--g', linewidth = 1.0, label = 'Baseline')
-            title = title + f"| Baseline: {self.loss_fn.name} = {baseline_loss_if}, {self.metric_fn.name} = {baseline_metric_if}"
+            title = title + f"| Baseline: {loss_fn_i.name} = {baseline_loss_if}, {metric_fn_i.name} = {baseline_metric_if}"
 
           ax_if.set_title(title)
 
@@ -1954,6 +1961,7 @@ class SequenceModule(pl.LightningModule):
 
       j = 0
       for i, name in enumerate(self.trainer.datamodule.output_names):
+
         self.backtest_data[-1][f"{name}_target"] = forecast_target_id[..., j:(j+self.trainer.datamodule.output_size[i])]
         self.backtest_data[-1][f"{name}_prediction"] = forecast_id[..., j:(j+self.trainer.datamodule.output_size[i])]
 
