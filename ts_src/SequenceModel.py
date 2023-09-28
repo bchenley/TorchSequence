@@ -379,7 +379,7 @@ class SequenceModel(torch.nn.Module):
                                      # softmax parameter
                                      softmax_dim = self.output_softmax_dim[i],
                                      dropout_p = self.output_dropout_p[i],
-                                     weight_to_ones = (output_out_features_i == 1) & ((sum(self.hidden_out_features)>0) | (self.interaction_out_features>0) | (self.modulation_out_features>0)), # self.output_layer_weight_to_ones[i], #
+                                     weight_to_ones = (output_out_features_i == 1), # & ((sum(self.hidden_out_features)>0) | (self.interaction_out_features>0) | (self.modulation_out_features>0)), # self.output_layer_weight_to_ones[i], #
                                      device = self.device, dtype = self.dtype)
 
       else:
@@ -797,13 +797,13 @@ class SequenceModel(torch.nn.Module):
     fig.tight_layout()
 
   def predict(self,
-            input, steps=None,
-            hiddens=None,
-            encoder_output=None,
-            input_window_idx=None, output_window_idx=None,
-            input_mask=None, output_mask=None,
-            output_input_idx=[], input_output_idx=[],
-            output_transforms=None):
+              input, steps=None,
+              hiddens=None,
+              encoder_output=None,
+              input_window_idx=None, output_window_idx=None,
+              input_mask=None, output_mask=None,
+              output_input_idx=[], input_output_idx=[],
+              output_transforms=None):
     """
     Perform prediction using the model.
 
