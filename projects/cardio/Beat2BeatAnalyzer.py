@@ -50,10 +50,10 @@ class Beat2BeatAnalyzer():
                         sampling_rate = 1/self.dt)
 
   def get_beat2beat_features(self,
-                        z_ecg_amp_critical = 5,
-                        window = 0.5,
-                        min_prominence = 0.3,
-                        min_interval = 0.6, max_interval = 2, y_interval_critical = 1.5):
+                            z_ecg_amp_critical = 5,
+                            window = 0.5,
+                            min_prominence = 0.3,
+                            min_interval = 0.6, max_interval = 2, y_interval_critical = 1.5):
 
     ecg, abp = self.ecg, self.abp
     ecg = ecg/ecg.max()
@@ -432,7 +432,7 @@ class Beat2BeatAnalyzer():
   def interpolate(self, beat_dt_new, kind='linear'):
 
     beat_t_new = np.arange(self.beat_t.min(), self.beat_t.max(), beat_dt_new)
-
+    
     self.beat_t_original = self.beat_t
 
     self.sbp_original = self.sbp
