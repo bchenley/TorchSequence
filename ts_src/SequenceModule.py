@@ -22,6 +22,7 @@ class SequenceModule(pl.LightningModule):
                shuffle_train=False,
                teach=False,
                stateful = False,
+               penalty_scale = [1],
                track_performance=False, track_params=False,
                model_dir=None):
       """
@@ -61,14 +62,19 @@ class SequenceModule(pl.LightningModule):
         if len(opt) == 1:
           opt = opt * model.num_outputs
 
+      if len(penalty_scale) == 1: 
+        penalty_scale = penalty_scale*model.num_outputs
+        penalty_scale = [ps/model.num_outputs for ps in penalty_scale]
+
       self.opt, self.loss_fn, self.metric_fn = opt, loss_fn, metric_fn
+      self.penalty_scale = penalty_scale
 
       self.constrain, self.penalize = constrain, penalize
 
       self.teach = teach
       self.stateful = stateful
       self.hiddens = None
-
+      
       input_size, output_size = self.model.input_size, self.model.output_size
 
       self.train_history, self.val_history = None, None
@@ -214,7 +220,9 @@ class SequenceModule(pl.LightningModule):
         metric_fn_i = self.metric_fn
 
       loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
-                         target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
+                         target_batch_masked[...,j:(j+self.model.output_size[i])]).sum() \
+                         + penalty*self.penalty_scale[i]
+
       loss.append(loss_i.unsqueeze(0))
 
       if metric_fn_i is not None:
@@ -223,6 +231,9 @@ class SequenceModule(pl.LightningModule):
         metric.append(metric_i.unsqueeze(0))
 
       j += self.model.output_size[i]
+
+    loss = torch.cat(loss)
+    if metric is not None: metric = torch.cat(metric)
 
     if isinstance(self.loss_fn, list):
       for i in range(len(self.loss_fn)):
@@ -233,9 +244,6 @@ class SequenceModule(pl.LightningModule):
       self.opt.zero_grad()
       loss.sum().backward()
       self.opt.step()
-
-    loss = torch.cat(loss)
-    if metric is not None: metric = torch.cat(metric)
 
     # Store loss to be used later in `on_train_epoch_end`
     self.train_step_loss.append(loss)
