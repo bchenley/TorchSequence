@@ -13,3 +13,4 @@ def clear_cuda_tensors(glbs = globals()):
 
   for name in vars_to_del:
         del glbs[name]
+        glbs[name] = None
