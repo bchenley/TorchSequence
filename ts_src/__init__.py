@@ -38,6 +38,7 @@ __all__ = ['ExploratoryTimeSeriesAnalysis',
            'Naive',
            'MovingAverage',
            'clear_cuda_tensors',
+           'clear_modules',
            'cuda_summary']
 
 for module_name in __all__:
