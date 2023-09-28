@@ -1172,6 +1172,14 @@ class SequenceModule(pl.LightningModule):
 
       for i,output_name in enumerate(output_names):
 
+        metric_name_i = None
+        if isinstance(self.loss_fn, list):
+          loss_name_i = self.loss_fn[i].name
+          metric_name_i = self.metric_fn[i].name if self.metric_fn[i] is not None else None
+        else:
+          loss_name_i = self.loss_fn.name
+          metric_name_i = self.metric_fn.name if self.metric_fn is not None else None
+
         try:
           ax_i = ax[i, :]
           [ax_j.axis("off") for ax_j in ax_i]
@@ -1204,63 +1212,63 @@ class SequenceModule(pl.LightningModule):
 
           train_target_if = self.train_prediction_data[f"{output_name}_target"][:, f].cpu()
           train_prediction_if = self.train_prediction_data[f"{output_name}_prediction"][:, f].cpu()
-          train_loss_if = np.round(self.train_prediction_data[f"{output_name}_global_{self.loss_fn.name}"][f].item(), 2)
-          train_metric_if = np.round(self.train_prediction_data[f"{output_name}_global_{self.metric_fn.name}"][f].item(), 2) if self.metric_fn is not None else None
+          train_loss_if = np.round(self.train_prediction_data[f"{output_name}_global_{loss_name_i}"][f].item(), 2)
+          train_metric_if = np.round(self.train_prediction_data[f"{output_name}_global_{metric_name_i}"][f].item(), 2) if self.metric_fn is not None else None
           if include_baseline:
             train_baseline_prediction_if = self.train_prediction_data[f"{output_name}_baseline_prediction"][:, f].cpu()
-            train_baseline_loss_if = np.round(self.train_prediction_data[f"{output_name}_baseline_{self.loss_fn.name}"][f].item(),2)
-            train_baseline_metric_if = np.round(self.train_prediction_data[f"{output_name}_baseline_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
+            train_baseline_loss_if = np.round(self.train_prediction_data[f"{output_name}_baseline_{loss_name_i}"][f].item(),2)
+            train_baseline_metric_if = np.round(self.train_prediction_data[f"{output_name}_baseline_{metric_name_i}"][f].item(),2) if self.metric_fn is not None else None
 
           ax_if.plot(train_time, train_target_if, '-k', label = 'Actual')
           ax_if.plot(train_time, train_prediction_if, '-r', label = 'Prediction')
-          train_label = f"Train ({self.loss_fn.name} = {train_loss_if}, {self.metric_fn.name} = {train_metric_if})" \
+          train_label = f"Train ({loss_name_i} = {train_loss_if}, {metric_name_i} = {train_metric_if})" \
                         if train_metric_if is not None \
-                        else f"Train ({self.loss_fn.name} = {train_loss_if})"
+                        else f"Train ({loss_name_i} = {train_loss_if})"
           if include_baseline:
             ax_if.plot(train_time, train_baseline_prediction_if, '--g', linewidth = 1.0, label = 'Baseline')
-            train_label = train_label + f", Baseline ({self.loss_fn.name} = {train_baseline_loss_if}, {self.metric_fn.name} = {train_baseline_metric_if})"
+            train_label = train_label + f", Baseline ({loss_name_i} = {train_baseline_loss_if}, {metric_name_i} = {train_baseline_metric_if})"
 
           ax_if.axvspan(train_time.values.min(), train_time.values.max(), facecolor='gray', alpha=0.2, label = train_label)
 
           if val_time is not None:
             val_target_if = self.val_prediction_data[f"{output_name}_target"][:, f].cpu()
             val_prediction_if = self.val_prediction_data[f"{output_name}_prediction"][:, f].cpu()
-            val_loss_if = np.round(self.val_prediction_data[f"{output_name}_global_{self.loss_fn.name}"][f].item(),2)
-            val_metric_if = np.round(self.val_prediction_data[f"{output_name}_global_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
+            val_loss_if = np.round(self.val_prediction_data[f"{output_name}_global_{loss_name_i}"][f].item(),2)
+            val_metric_if = np.round(self.val_prediction_data[f"{output_name}_global_{metric_name_i}"][f].item(),2) if self.metric_fn is not None else None
             if include_baseline:
               val_baseline_prediction_if = self.val_prediction_data[f"{output_name}_baseline_prediction"][:, f].cpu()
-              val_baseline_loss_if = np.round(self.val_prediction_data[f"{output_name}_baseline_{self.loss_fn.name}"][f].item(),2)
-              val_baseline_metric_if = np.round(self.val_prediction_data[f"{output_name}_baseline_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
+              val_baseline_loss_if = np.round(self.val_prediction_data[f"{output_name}_baseline_{loss_name_i}"][f].item(),2)
+              val_baseline_metric_if = np.round(self.val_prediction_data[f"{output_name}_baseline_{metric_name_i}"][f].item(),2) if self.metric_fn is not None else None
 
             ax_if.plot(val_time, val_target_if, '-k')
             ax_if.plot(val_time, val_prediction_if, '-r')
-            val_label = f"Val ({self.loss_fn.name} = {val_loss_if}, {self.metric_fn.name} = {val_metric_if})" \
+            val_label = f"Val ({loss_name_i} = {val_loss_if}, {metric_name_i} = {val_metric_if})" \
                           if val_metric_if is not None \
-                          else f"Val ({self.loss_fn.name} = {val_loss_if})"
+                          else f"Val ({loss_name_i} = {val_loss_if})"
             if include_baseline:
               ax_if.plot(val_time, val_baseline_prediction_if, '--g', linewidth = 1.0)
-              val_label = val_label + f", Baseline ({self.loss_fn.name} = {val_baseline_loss_if}, {self.metric_fn.name} = {val_baseline_metric_if})"
+              val_label = val_label + f", Baseline ({loss_name_i} = {val_baseline_loss_if}, {metric_name_i} = {val_baseline_metric_if})"
 
             ax_if.axvspan(val_time.values.min(), val_time.values.max(), facecolor='blue', alpha=0.2, label = val_label)
 
           if test_time is not None:
             test_target_if = self.test_prediction_data[f"{output_name}_target"][:, f].cpu()
             test_prediction_if = self.test_prediction_data[f"{output_name}_prediction"][:, f].cpu()
-            test_loss_if = np.round(self.test_prediction_data[f"{output_name}_global_{self.loss_fn.name}"][f].item(),2)
-            test_metric_if = np.round(self.test_prediction_data[f"{output_name}_global_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
+            test_loss_if = np.round(self.test_prediction_data[f"{output_name}_global_{loss_name_i}"][f].item(),2)
+            test_metric_if = np.round(self.test_prediction_data[f"{output_name}_global_{metric_name_i}"][f].item(),2) if self.metric_fn is not None else None
             if include_baseline:
               test_baseline_prediction_if = self.test_prediction_data[f"{output_name}_global_baseline_prediction"][:, f].cpu()
-              test_baseline_loss_if = np.round(self.test_prediction_data[f"{output_name}_global_baseline_{self.loss_fn.name}"][f].item(),2)
-              test_baseline_metric_if = np.round(self.test_prediction_data[f"{output_name}_global_baseline_{self.metric_fn.name}"][f].item(),2) if self.metric_fn is not None else None
+              test_baseline_loss_if = np.round(self.test_prediction_data[f"{output_name}_global_baseline_{loss_name_i}"][f].item(),2)
+              test_baseline_metric_if = np.round(self.test_prediction_data[f"{output_name}_global_baseline_{metric_name_i}"][f].item(),2) if self.metric_fn is not None else None
 
             ax_if.plot(test_time, test_target_if, '-k')
             ax_if.plot(test_time, test_prediction_if, '-r')
-            test_label = f"Test ({self.loss_fn.name} = {test_loss_if}, {self.metric_fn.name} = {test_metric_if})" \
+            test_label = f"Test ({loss_name_i} = {test_loss_if}, {metric_name_i} = {test_metric_if})" \
                           if test_metric_if is not None \
-                          else f"Test ({self.loss_fn.name} = {test_loss_if})"
+                          else f"Test ({loss_name_i} = {test_loss_if})"
             if include_baseline:
               ax_if.plot(test_time, test_baseline_prediction_if, '--g', linewidth = 1.0)
-              test_label = test_label + f", Baseline ({self.loss_fn.name} = {test_baseline_loss_if}, {self.metric_fn.name} = {test_baseline_metric_if})"
+              test_label = test_label + f", Baseline ({loss_name_i} = {test_baseline_loss_if}, {metric_name_i} = {test_baseline_metric_if})"
 
             ax_if.axvspan(test_time.values.min(), test_time.values.max(), facecolor='red', alpha=0.2, label = test_label)
 
@@ -1981,7 +1989,7 @@ class SequenceModule(pl.LightningModule):
           loss_name_i = self.loss_fn[i].name
           metric_name_i = self.metric_fn[i].name if self.metric_fn[i] is not None else None
         else:
-          loss_name_i = self.loss_fn.name
+          loss_name_i = self.loss_fn.name 
           metric_name_i = self.metric_fn.name if self.metric_fn is not None else None
 
         self.backtest_data[-1][f"{name}_{loss_name_i}"] = Criterion(loss_name_i,
