@@ -90,8 +90,8 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     self.input_output_names = np.unique(self.input_names + self.output_names).tolist()
     self.input_output_names_original = self.input_output_names
 
-    if not isinstance(self.dt, timedelta):
-      self.dt = timedelta(seconds = self.dt)
+    # if not isinstance(self.dt, timedelta):
+    #   self.dt = timedelta(seconds = self.dt)
 
     if self.transforms is None:
       self.transforms = {'all': FeatureTransform(transform_type = 'identity')}
@@ -196,7 +196,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
               if not isinstance(time_idx, pd.Series):
                 if isinstance(time_idx, torch.Tensor):
                     time_idx = time_idx.cpu().numpy()
-                data[self.time_name] = pd.Series(time_idx.squeeze() * self.dt)
+                data[self.time_name] = pd.Series(time_idx.squeeze())
 
             # Iterate over input and output feature names
             for name in self.input_output_names_original:
