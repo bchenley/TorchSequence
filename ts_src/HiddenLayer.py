@@ -133,26 +133,28 @@ class HiddenLayer(torch.nn.Module):
         else:
             self.norm_layer = torch.nn.Identity()
 
+        if (self.groups > self.in_features) | (self.groups > self.out_features):
+          raise ValueError(f"Number of groups ({self.groups}) cannot be larger than the number of input features ({self.in_features}) or output features ({self.out_features}).")
+
         # Calculate the number of full groups and the size of the last group
-        num_full_groups = self.in_features // self.groups
-        last_group_size = self.in_features % self.groups
+        group_size = self.in_features // self.groups
         
         # Determine group sizes
-        group_sizes = [self.groups] * num_full_groups        
-        if last_group_size > 0:
-            group_sizes.append(last_group_size)
+        row_sizes = [group_size] * self.groups
+        col_sizes = [group_size] * self.groups
+
+        if sum(row_sizes) < self.in_features: row_sizes[-1] += self.in_features - sum(row_sizes)
+        if sum(col_sizes) < self.out_features: col_sizes[-1] += self.out_features - sum(col_sizes)
         
         # Generate the mask based on group sizes
         self.group_mask = torch.zeros_like(self.F[0].weight,
-                                           requires_grad = False)       
+                                          requires_grad = False)       
         
-        in_idx = torch.arange(self.in_features).to(device = self.device,
-                                                   dtype = self.dtype)        
-        
-        group_size = self.in_features // self.groups
-        
-        for row,i in enumerate(range(0, self.in_features, group_size)):        
-          self.group_mask[row, i:(i+group_size)] = 1.
+        i,j = 0,0
+        for row_size, col_size in zip(row_sizes, col_sizes):        
+          self.group_mask[i:(i+row_size), j:(j+col_size)] = 1.
+          i += row_size
+          j += col_size
 
     def forward(self, input):
         """
