@@ -647,27 +647,27 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     else:
         return None
 
-def generate_samples(self, dl):
-  input, target, steps = [], [], []
-  for batch in dl.dl:
-    input.append(batch[0][:batch[3]])
-    target.append(batch[1][:batch[3]])
-    steps.append(batch[2][:batch[3]])
+  def generate_samples(self, dl):
+    input, target, steps = [], [], []
+    for batch in dl.dl:
+      input.append(batch[0][:batch[3]])
+      target.append(batch[1][:batch[3]])
+      steps.append(batch[2][:batch[3]])
+    
+    input = torch.cat(input,0)
+    target = torch.cat(target,0)
+    steps = torch.cat(steps,0)
+    
+    input_window_idx = dl.input_window_idx
+    output_window_idx = dl.output_window_idx
+    
+    output_mask = dl.output_mask
+    
+    input_output_idx = dl.input_output_idx
+    output_input_idx = dl.output_input_idx
+    
+    print(f"Input batch shape: {list(input.shape)}")
+    print(f"Label batch shape: {list(target.shape)}")
+    print(f"Steps batch shape: {list(steps.shape)}")
   
-  input = torch.cat(input,0)
-  target = torch.cat(target,0)
-  steps = torch.cat(steps,0)
-  
-  input_window_idx = dl.input_window_idx
-  output_window_idx = dl.output_window_idx
-  
-  output_mask = dl.output_mask
-  
-  input_output_idx = dl.input_output_idx
-  output_input_idx = dl.output_input_idx
-  
-  print(f"Input batch shape: {list(input.shape)}")
-  print(f"Label batch shape: {list(target.shape)}")
-  print(f"Steps batch shape: {list(steps.shape)}")
-
-  return input, target, steps
+    return input, target, steps
