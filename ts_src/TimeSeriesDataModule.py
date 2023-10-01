@@ -647,73 +647,73 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     else:
         return None
 
-    def get_train_samples(self, unshuffle = False):
+  def get_train_samples(self, unshuffle = False):
 
-      if self.shuffle_train & unshuffle:
-          self.shuffle_train = False
-          self.train_dataloader()
-          self.shuffle_train = True
-      else:
-        if not hasattr(self, 'train_dl'):
-          self.train_dataloader()
-      dl = self.train_dl    
-    
-      input, target, steps = [], [], []
-      for batch in dl.dl:
-        input.append(batch[0][:batch[3]])
-        target.append(batch[1][:batch[3]])
-        steps.append(batch[2][:batch[3]])
-    
-      input = torch.cat(input,0)
-      target = torch.cat(target,0)
-      steps = torch.cat(steps,0)
-    
-      print(f"Train input batch shape: {list(input.shape)}")
-      print(f"Train label batch shape: {list(target.shape)}")
-      print(f"Train steps batch shape: {list(steps.shape)}")
-    
-      return input, target, steps
+    if self.shuffle_train & unshuffle:
+        self.shuffle_train = False
+        self.train_dataloader()
+        self.shuffle_train = True
+    else:
+      if not hasattr(self, 'train_dl'):
+        self.train_dataloader()
+    dl = self.train_dl    
+  
+    input, target, steps = [], [], []
+    for batch in dl.dl:
+      input.append(batch[0][:batch[3]])
+      target.append(batch[1][:batch[3]])
+      steps.append(batch[2][:batch[3]])
+  
+    input = torch.cat(input,0)
+    target = torch.cat(target,0)
+    steps = torch.cat(steps,0)
+  
+    print(f"Train input batch shape: {list(input.shape)}")
+    print(f"Train label batch shape: {list(target.shape)}")
+    print(f"Train steps batch shape: {list(steps.shape)}")
+  
+    return input, target, steps
 
-    def get_val_samples(self):
+  def get_val_samples(self):
 
-      if not hasattr(self, 'val_dl'):
-        self.val_dataloader()
-      dl = self.val_dl    
-    
-      input, target, steps = [], [], []
-      for batch in dl.dl:
-        input.append(batch[0][:batch[3]])
-        target.append(batch[1][:batch[3]])
-        steps.append(batch[2][:batch[3]])
-    
-      input = torch.cat(input,0)
-      target = torch.cat(target,0)
-      steps = torch.cat(steps,0)
-    
-      print(f"Val input batch shape: {list(input.shape)}")
-      print(f"Val label batch shape: {list(target.shape)}")
-      print(f"Val Steps batch shape: {list(steps.shape)}")
-    
-      return input, target, steps
+    if not hasattr(self, 'val_dl'):
+      self.val_dataloader()
+    dl = self.val_dl    
+  
+    input, target, steps = [], [], []
+    for batch in dl.dl:
+      input.append(batch[0][:batch[3]])
+      target.append(batch[1][:batch[3]])
+      steps.append(batch[2][:batch[3]])
+  
+    input = torch.cat(input,0)
+    target = torch.cat(target,0)
+    steps = torch.cat(steps,0)
+  
+    print(f"Val input batch shape: {list(input.shape)}")
+    print(f"Val label batch shape: {list(target.shape)}")
+    print(f"Val Steps batch shape: {list(steps.shape)}")
+  
+    return input, target, steps
 
-    def get_test_samples(self):
+  def get_test_samples(self):
 
-      if not hasattr(self, 'test_dl'):
-        self.test_dataloader()
-      dl = self.test_dl    
-    
-      input, target, steps = [], [], []
-      for batch in dl.dl:
-        input.append(batch[0][:batch[3]])
-        target.append(batch[1][:batch[3]])
-        steps.append(batch[2][:batch[3]])
-    
-      input = torch.cat(input,0)
-      target = torch.cat(target,0)
-      steps = torch.cat(steps,0)
-    
-      print(f"Test input batch shape: {list(input.shape)}")
-      print(f"Test label batch shape: {list(target.shape)}")
-      print(f"Test Steps batch shape: {list(steps.shape)}")
-    
-      return input, target, steps
+    if not hasattr(self, 'test_dl'):
+      self.test_dataloader()
+    dl = self.test_dl    
+  
+    input, target, steps = [], [], []
+    for batch in dl.dl:
+      input.append(batch[0][:batch[3]])
+      target.append(batch[1][:batch[3]])
+      steps.append(batch[2][:batch[3]])
+  
+    input = torch.cat(input,0)
+    target = torch.cat(target,0)
+    steps = torch.cat(steps,0)
+  
+    print(f"Test input batch shape: {list(input.shape)}")
+    print(f"Test label batch shape: {list(target.shape)}")
+    print(f"Test Steps batch shape: {list(steps.shape)}")
+  
+    return input, target, steps
