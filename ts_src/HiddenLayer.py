@@ -88,7 +88,7 @@ class HiddenLayer(torch.nn.Module):
                 f1 = torch.nn.Linear(in_features=self.in_features, out_features=self.out_features,
                                      bias=self.bias, device=self.device, dtype=self.dtype)
 
-                if self.weight_to_ones or (self.in_features == 1):
+                if self.weight_to_ones: # or (self.in_features == 1):
                     f1.weight.data.fill_(1.0)
                     f1.weight.requires_grad = False
 
