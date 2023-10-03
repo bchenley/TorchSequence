@@ -1970,10 +1970,10 @@ class SequenceModule(pl.LightningModule):
                                                                         hiddens = hiddens_id,
                                                                         invert = invert,
                                                                         eval = True)
-
-      forecast_id = forecast_id[::-stride][::-1]
+      
+      forecast_id = forecast_id[torch.arange(forecast_id.shape[0]-1, -1, -stride)]
       forecast_time_id = forecast_time_id[::-stride][::-1]
-      forecast_target_id = forecast_target_id[::-stride][::-1]
+      forecast_target_id = forecast_target_id[torch.arange(forecast_target_id.shape[0]-1, -1, -stride)]
 
       self.backtest_data[-1][time_name] = forecast_time_id
 
