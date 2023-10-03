@@ -75,68 +75,76 @@ class Beat2BeatAnalyzer():
 
     i_ecg_peaks_all, i_ecg_troughs_all = i_ecg_peaks, i_ecg_troughs
 
-    i_ecg_troughs = i_ecg_troughs[p_ecg_peaks > min_prominence]
-    i_ecg_peaks = i_ecg_peaks[p_ecg_peaks > min_prominence]
-    p_ecg_peaks = p_ecg_peaks[p_ecg_peaks > min_prominence]
+    threshold = np.inf
 
-    p_data = p_ecg_peaks.reshape(-1, 1)
+    loop = True
+    num_loops = 0
+    while loop & (num_loops < 1):
 
-    kmeans = KMeans(n_clusters=2, n_init = 'auto')
-    kmeans.fit(p_data)
-    centers = kmeans.cluster_centers_
-    labels = kmeans.labels_
+      num_loops += 1
 
-    cluster_sizes = np.bincount(labels)
+      p_data = p_ecg_peaks.reshape(-1, 1)
 
-    valid_cluster_idx = np.where(cluster_sizes >= 20)[0]
+      kmeans = KMeans(n_clusters=2, n_init = 'auto')
+      kmeans.fit(p_data)
+      centers = kmeans.cluster_centers_
+      labels = kmeans.labels_
 
-    centers = centers[valid_cluster_idx]
+      cluster_sizes = np.bincount(labels)
 
-    i_ecg_troughs = i_ecg_troughs[np.isin(labels, valid_cluster_idx)]
-    i_ecg_peaks = i_ecg_peaks[np.isin(labels, valid_cluster_idx)]
-    p_ecg_peaks = p_ecg_peaks[np.isin(labels, valid_cluster_idx)]
+      valid_cluster_idx = np.where(cluster_sizes >= 20)[0]
 
-    p_data = p_data[np.isin(labels, valid_cluster_idx)]
-    labels = labels[np.isin(labels, valid_cluster_idx)]
+      centers = centers[valid_cluster_idx]
 
-    max_center_idx = np.argmax(np.sum(centers, axis=1))
-    max_center = centers[max_center_idx]
-    max_center_data = p_data[labels == max_center_idx]
+      i_ecg_troughs = i_ecg_troughs[np.isin(labels, valid_cluster_idx)]
+      i_ecg_peaks = i_ecg_peaks[np.isin(labels, valid_cluster_idx)]
+      p_ecg_peaks = p_ecg_peaks[np.isin(labels, valid_cluster_idx)]
 
-    sdev = max_center_data.std()
-    threshold = max_center - 4*sdev
+      p_data = p_data[np.isin(labels, valid_cluster_idx)]
+      labels = labels[np.isin(labels, valid_cluster_idx)]
 
-    # plt.close()
-    # fig, ax = plt.subplots(3, 1, figsize = (20, 10))
-    # xlim = [None, None] # [0, 10/self.dt]
-    # ax[0].plot(np.arange(len(ecg)), ecg, '-')
-    # ax[0].plot(i_ecg_peaks, ecg[i_ecg_peaks], '.g', label = 'ecg peaks')
-    # ax[0].legend()
-    # ax[0].set_xlim(xlim)
+      max_center_idx = np.argmax(np.sum(centers, axis=1))
+      max_center = centers[max_center_idx]
+      max_center_data = p_data[labels == max_center_idx]
 
-    # ax[1].plot(i_ecg_peaks, p_ecg_peaks, '*g', label = 'ecg peak prominence')
-    # ax[1].axhline(y=threshold, color='red', linestyle='--')
-    # ax[1].legend()
+      sdev = max_center_data.std()
+      threshold = max_center - 5*sdev
 
-    # ax[2].scatter(p_data, np.zeros_like(p_data), c=labels, cmap='viridis')
-    # ax[2].scatter(centers, np.zeros_like(centers), marker='x', color='red', label='Centers')
-    # ax[2].axvline(x=threshold, color='red', linestyle='--')
-    # ax[2].set_xlabel('Prominences')
-    # ax[2].set_title('K-means Clustering of ECG Prominences (K=2)')
-    # ax[2].legend()
+      loop = (sum(p_ecg_peaks < threshold)/len(p_ecg_peaks))*100 > 10
 
-    # plt.tight_layout()
+      # plt.close()
+      # fig, ax = plt.subplots(3, 1, figsize = (20, 10))
+      # xlim = [400, 430] # [0, 10/self.dt]
+      # ax[0].plot(np.arange(len(ecg))*self.dt, ecg, '-')
+      # ax[0].plot(i_ecg_peaks*self.dt, ecg[i_ecg_peaks], '.g', label = 'ecg peaks')
+      # ax[0].legend()
+      # ax[0].set_xlim(xlim)
 
-    i_ecg_troughs = i_ecg_troughs[p_ecg_peaks > threshold] # [labels == max_center_idx] #
-    i_ecg_peaks = i_ecg_peaks[p_ecg_peaks > threshold] # [labels == max_center_idx] #
-    p_ecg_peaks = p_ecg_peaks[p_ecg_peaks > threshold] # [labels == max_center_idx] #
+      # ax[1].plot(i_ecg_peaks, p_ecg_peaks, '*g', label = 'ecg peak prominence')
+      # ax[1].axhline(y=threshold, color='red', linestyle='--')
+      # ax[1].legend()
+
+      # ax[2].scatter(p_data, np.zeros_like(p_data), c=labels, cmap='viridis')
+      # ax[2].scatter(centers, np.zeros_like(centers), marker='x', color='red', label='Centers')
+      # ax[2].axvline(x=threshold, color='red', linestyle='--')
+      # ax[2].set_xlabel('Prominences')
+      # ax[2].set_title('K-means Clustering of ECG Prominences (K=2)')
+      # ax[2].legend()
+
+      # plt.tight_layout()
+
+      i_ecg_troughs = i_ecg_troughs[p_ecg_peaks > threshold] # [labels == max_center_idx] #
+      i_ecg_peaks = i_ecg_peaks[p_ecg_peaks > threshold] # [labels == max_center_idx] #
+      p_ecg_peaks = p_ecg_peaks[p_ecg_peaks > threshold] # [labels == max_center_idx] #
+
+      i_ecg_peaks_all, i_ecg_troughs_all = i_ecg_peaks, i_ecg_troughs
 
     # plt.close(fig = 1)
     # plt.figure(num = 1)
     # plt.plot(np.arange(len(ecg)), ecg, '-') ;
     # plt.plot(i_ecg_peaks, ecg[i_ecg_peaks], '.b', label = f'{len(i_ecg_peaks)} ecg peaks') ;
     # plt.plot(i_ecg_troughs, ecg[i_ecg_troughs], '.r', label = f'{len(i_ecg_troughs)} ecg troughs') ;
-    # plt.xlim(np.array([15, 25])/self.dt) ;
+    # plt.xlim(np.array([400, 415])/self.dt) ;
     # plt.legend() ;
 
     ##
@@ -164,15 +172,15 @@ class Beat2BeatAnalyzer():
 
     # plt.close(fig = 2)
     # fig, ax = plt.subplots(2, 1, figsize = (20, 5), num = 2) ;
-    # xlim = np.array([15, 25])/self.dt
-    # ax[0].plot(np.arange(len(ecg)), ecg) ;
-    # ax[0].plot(i_ecg_peaks, ecg[i_ecg_peaks],'.b') ;
-    # ax[0].plot(i_ecg_troughs, ecg[i_ecg_troughs],'.r') ;
+    # xlim = np.array([400, 430])
+    # ax[0].plot(np.arange(len(ecg))*self.dt, ecg) ;
+    # ax[0].plot(i_ecg_peaks*self.dt, ecg[i_ecg_peaks],'.b') ;
+    # ax[0].plot(i_ecg_troughs*self.dt, ecg[i_ecg_troughs],'.r') ;
     # ax[0].set_xlim(xlim)
 
-    # # ax[1].plot(i_ecg_peaks[1:]*self.dt, interval) ;
-    # # ax[1].set_xlim(xlim)
-
+    # ax[1].plot(i_ecg_peaks[1:]*self.dt, interval) ;
+    # ax[1].set_xlim(xlim)
+    
     i_ecg_r = i_ecg_peaks
 
     i_ecg_troughs_fill = i_ecg_troughs_all[~np.isin(i_ecg_peaks_all, i_ecg_r)]
@@ -193,6 +201,8 @@ class Beat2BeatAnalyzer():
         j_far = i_far[i] + [0, 1]
 
         j_ecg_peaks = i_ecg_peaks_fill[(i_ecg_peaks_fill > i_ecg_r[j_far[0]]) & (i_ecg_peaks_fill < i_ecg_r[j_far[1]])]
+
+        i_ecg_r_fill = None
         if len(j_ecg_peaks) > 0:
           i_ecg_r_fill = j_ecg_peaks[ecg[j_ecg_peaks].argmax()]
 
@@ -204,14 +214,18 @@ class Beat2BeatAnalyzer():
 
         # plt.close()
         # fig, ax = plt.subplots(2, 1, figsize = (20, 5)) ;
-        # xlim = [15, 25]
+        # xlim = [400, 415]
         # ax[0].plot(np.arange(len(ecg))*self.dt,ecg) ;
         # ax[0].plot(i_ecg_r*self.dt, ecg[i_ecg_r],'.b') ;
-        # # ax[0].plot(i_ecg_r_fill*self.dt, ecg[i_ecg_r_fill],'or') ;
+        # if i_ecg_r_fill is not None:
+        #   ax[0].plot(i_ecg_r_fill*self.dt, ecg[i_ecg_r_fill],'or') ;
         # ax[0].set_xlim(xlim)
 
-        # ax[1].plot(i_ecg_r[1:]*self.dt, y_interval) ;
-        # ax[1].set_xlim(xlim)
+        # # ax[1].plot(y_interval) ;
+        # # ax[1].set_xlim(xlim)
+
+        # if i_ecg_r_fill is not None:
+        #   if 400 < i_ecg_r_fill*self.dt < 415: dfdf
 
       interval = np.diff(i_ecg_r)*self.dt
       y_interval = interval/np.median(interval)
@@ -328,7 +342,7 @@ class Beat2BeatAnalyzer():
     self.sbpv, self.dbpv, self.mabpv = self.sbpv - self.sbpv.mean(), self.dbpv - self.dbpv.mean(), self.mabpv - self.mabpv.mean()
     self.hrv, self.intervalv = self.hrv - self.hrv.mean(), self.intervalv - self.intervalv.mean()
 
-  def remove_outliers(self,
+  def remove_extreme_changes(self,
                       max_mabp_change = 20, z_mabp_change_critical = 4,
                       max_hr_change = 0.1, z_hr_change_critical = 4,
                       interp_type = 'linear'):
@@ -428,11 +442,22 @@ class Beat2BeatAnalyzer():
     ##
 
     self.sbp, self.dbp = self.sbp[i_all], self.dbp[i_all]
-    
+
+  def clip_outliers(self, num_sdevs = 2):
+
+    def clip(x, threshold):
+      return np.clip(x, x.mean() - threshold, x.mean() + threshold)
+
+    self.sbpv = clip(self.sbpv, num_sdevs*self.sbpv.std())
+    self.dbpv = clip(self.dbpv, num_sdevs*self.dbpv.std())
+    self.mabpv = clip(self.mabpv, num_sdevs*self.mabpv.std())
+    self.intervalv = clip(self.intervalv, num_sdevs*self.intervalv.std())
+    self.hrv = clip(self.hrv, num_sdevs*self.hrv.std())
+
   def interpolate(self, beat_dt_new, kind='linear'):
 
     beat_t_new = np.arange(self.beat_t.min(), self.beat_t.max(), beat_dt_new)
-    
+
     self.beat_t_original = self.beat_t
 
     self.sbp_original = self.sbp
@@ -519,10 +544,12 @@ class Beat2BeatAnalyzer():
     ax[1,0].set_ylabel('HR', fontsize = 20)
     ax[1,0].plot(self.beat_t, self.hr_ma, 'b')
     ax[1,0].set_xlabel('Time [s]', fontsize = 20)
+    ax[1,0].set_xlim(tlim)
 
     ax[1,1].plot(self.beat_t, self.hrv, 'b')
     ax[1,1].grid()
     ax[1,1].set_xlabel('Time [s]', fontsize = 20)
+    ax[1,1].set_xlim(tlim)
 
     ax[1,2].plot(self.f_psd, self.hr_psd, 'b')
     ax[1,2].grid()
