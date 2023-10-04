@@ -50,22 +50,10 @@ class SequenceModule(pl.LightningModule):
       # Set the accelerator based on the device (GPU or CPU)
       self.accelerator = 'gpu' if self.model.device == 'cuda' else 'cpu'
 
-      if isinstance(loss_fn, list):
-        if len(loss_fn) == 1:
-          loss_fn = loss_fn * model.num_outputs
-
-        metric_fn = [metric_fn] if not isinstance(metric_fn, list) else metric_fn
-        if len(metric_fn) == 1:
-          metric_fn = metric_fn * model.num_outputs
-
-        opt = [opt] if not isinstance(opt, list) else opt
-        if len(opt) == 1:
-          opt = opt * model.num_outputs
-
-      if len(penalty_scale) == 1: 
+      if len(penalty_scale) == 1:
         penalty_scale = penalty_scale*model.num_outputs
         penalty_scale = [ps/model.num_outputs for ps in penalty_scale]
-
+      
       self.opt, self.loss_fn, self.metric_fn = opt, loss_fn, metric_fn
       self.penalty_scale = penalty_scale
 
@@ -74,7 +62,7 @@ class SequenceModule(pl.LightningModule):
       self.teach = teach
       self.stateful = stateful
       self.hiddens = None
-      
+
       input_size, output_size = self.model.input_size, self.model.output_size
 
       self.train_history, self.val_history = None, None
@@ -188,17 +176,17 @@ class SequenceModule(pl.LightningModule):
     input_batch = input_batch[:batch_size]
     target_batch = target_batch[:batch_size]
     steps_batch = steps_batch[:batch_size]
-    
+
     # Perform forward pass to compute gradients
     prediction_batch, self.hiddens = self.forward(input=input_batch,
-                                                   steps=steps_batch,
-                                                   hiddens=self.hiddens,
-                                                   target=target_batch if self.teach else None,
-                                                   input_window_idx=self.trainer.datamodule.train_input_window_idx,
-                                                   output_window_idx=self.trainer.datamodule.train_output_window_idx,
-                                                   output_input_idx=self.trainer.datamodule.output_input_idx,
-                                                   input_output_idx=self.trainer.datamodule.input_output_idx,
-                                                   output_mask=self.trainer.datamodule.train_output_mask)
+                                                  steps=steps_batch,
+                                                  hiddens=self.hiddens,
+                                                  target=target_batch if self.teach else None,
+                                                  input_window_idx=self.trainer.datamodule.train_input_window_idx,
+                                                  output_window_idx=self.trainer.datamodule.train_output_window_idx,
+                                                  output_input_idx=self.trainer.datamodule.output_input_idx,
+                                                  input_output_idx=self.trainer.datamodule.input_output_idx,
+                                                  output_mask=self.trainer.datamodule.train_output_mask)
 
     # Add penalty loss if desired
     penalty = 0
@@ -207,43 +195,45 @@ class SequenceModule(pl.LightningModule):
     prediction_batch_masked = prediction_batch * self.trainer.datamodule.train_output_mask
     target_batch_masked = target_batch * self.trainer.datamodule.train_output_mask
 
-    loss, metric = [], []
-    j = 0
-    for i in range(self.model.num_outputs):
-      if isinstance(self.loss_fn, list):
-        opt_i = self.opt[i]
+    if isinstance(self.loss_fn, list):
+      loss, metric = [], []
+      j = 0
+      for i in range(self.model.num_outputs):
+        opt_i = self.optimizers()[i]
         loss_fn_i = self.loss_fn[i]
         metric_fn_i = self.metric_fn[i]
-      else:
-        opt_i = self.opt
-        loss_fn_i = self.loss_fn
-        metric_fn_i = self.metric_fn
 
-      loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
-                         target_batch_masked[...,j:(j+self.model.output_size[i])]).sum() \
-                         + penalty*self.penalty_scale[i]
+        loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
+                           target_batch_masked[...,j:(j+self.model.output_size[i])]).sum() \
+                           + penalty*self.penalty_scale[i]
 
-      loss.append(loss_i.unsqueeze(0))
+        opt_i.zero_grad()
+        self.manual_backward(loss_i.sum(), retain_graph = True)
+        opt_i.step()
 
-      if metric_fn_i is not None:
-        metric_i = metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
-                               target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
-        metric.append(metric_i.unsqueeze(0))
+        loss.append(loss_i.unsqueeze(0))
 
-      j += self.model.output_size[i]
+        if metric_fn_i is not None:
+          metric_i = metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
+                                 target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
+          metric.append(metric_i.unsqueeze(0))
 
-    loss = torch.cat(loss)
-    if metric is not None: metric = torch.cat(metric)
+        j += self.model.output_size[i]
 
-    if isinstance(self.loss_fn, list):
-      for i in range(len(self.loss_fn)):
-        self.opt[i].zero_grad()        
-        loss[i].sum().backward(retain_graph = True)
-        self.opt[i].step()
+      loss = torch.cat(loss)
+      if metric is not None: metric = torch.cat(metric)
+      
     else:
-      self.opt.zero_grad()
-      loss.sum().backward()
-      self.opt.step()
+      
+      loss = self.loss_fn(prediction_batch_masked, target_batch_masked) + penalty
+
+      if self.metric_fn is not None:
+        metric = self.metric_fn(prediction_batch_masked, target_batch_masked)
+
+      opt = self.optimizers()
+      opt.zero_grad()
+      self.manual_backward(loss.sum())
+      opt.step()
 
     # Store loss to be used later in `on_train_epoch_end`
     self.train_step_loss.append(loss)
@@ -432,31 +422,34 @@ class SequenceModule(pl.LightningModule):
     prediction_batch_masked = prediction_batch * self.trainer.datamodule.val_output_mask
     target_batch_masked = target_batch * self.trainer.datamodule.val_output_mask
 
-    metric = None
-    loss, metric = [], []
-    j = 0
-    for i in range(self.model.num_outputs):
-      if isinstance(self.loss_fn, list):
+    if isinstance(self.loss_fn, list):
+      loss, metric = [], []
+      j = 0
+      for i in range(self.model.num_outputs):
+        opt_i = self.opt[i]
         loss_fn_i = self.loss_fn[i]
         metric_fn_i = self.metric_fn[i]
-      else:
-        loss_fn_i = self.loss_fn
-        metric_fn_i = self.metric_fn
 
-      loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
-                         target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
+        loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
+                           target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
 
-      loss.append(loss_i.unsqueeze(0))
+        loss.append(loss_i.unsqueeze(0))
 
-      if metric_fn_i is not None:
-        metric_i = metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
-                               target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
-        metric.append(metric_i.unsqueeze(0))
+        if metric_fn_i is not None:
+          metric_i = metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
+                                 target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
+          metric.append(metric_i.unsqueeze(0))
 
-      j += self.model.output_size[i]
+        j += self.model.output_size[i]
 
-    loss = torch.cat(loss)
-    if metric is not None: metric = torch.cat(metric)
+      loss = torch.cat(loss)
+      if metric is not None: metric = torch.cat(metric)
+      
+    else:
+      loss = self.loss_fn(prediction_batch_masked, target_batch_masked)
+
+      if self.metric_fn is not None:
+        metric = self.metric_fn(prediction_batch_masked, target_batch_masked)
 
     # Store loss to be used later in `on_validation_epoch_end`
     self.val_step_loss.append(loss)
@@ -564,7 +557,7 @@ class SequenceModule(pl.LightningModule):
     input_batch = input_batch[:batch_size]
     target_batch = target_batch[:batch_size]
     steps_batch = steps_batch[:batch_size]
-
+    
     # Perform forward pass to compute gradients
     prediction_batch, self.hiddens = self.forward(input=input_batch,
                                                    steps=steps_batch,
@@ -579,31 +572,34 @@ class SequenceModule(pl.LightningModule):
     prediction_batch_masked = prediction_batch * self.trainer.datamodule.val_output_mask
     target_batch_masked = target_batch * self.trainer.datamodule.val_output_mask
 
-    metric = None
-    loss, metric = [], []
-    j = 0
-    for i in range(self.model.num_outputs):
-      if isinstance(self.loss_fn, list):
+    if isinstance(self.loss_fn, list):
+      loss, metric = [], []
+      j = 0
+      for i in range(self.model.num_outputs):
+        opt_i = self.opt[i]
         loss_fn_i = self.loss_fn[i]
         metric_fn_i = self.metric_fn[i]
-      else:
-        loss_fn_i = self.loss_fn
-        metric_fn_i = self.metric_fn
 
-      loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
-                         target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
+        loss_i = loss_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
+                           target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
 
-      loss.append(loss_i.unsqueeze(0))
+        loss.append(loss_i.unsqueeze(0))
 
-      if metric_fn_i is not None:
-        metric_i = metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
-                               target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
-        metric.append(metric_i.unsqueeze(0))
+        if metric_fn_i is not None:
+          metric_i = metric_fn_i(prediction_batch_masked[...,j:(j+self.model.output_size[i])],
+                                 target_batch_masked[...,j:(j+self.model.output_size[i])]).sum()
+          metric.append(metric_i.unsqueeze(0))
 
-      j += self.model.output_size[i]
+        j += self.model.output_size[i]
 
-    loss = torch.cat(loss)
-    if metric is not None: metric = torch.cat(metric)
+      loss = torch.cat(loss)
+      if metric is not None: metric = torch.cat(metric)
+      
+    else:
+      loss = self.loss_fn(prediction_batch_masked, target_batch_masked)
+
+      if self.metric_fn is not None:
+        metric = self.metric_fn(prediction_batch_masked, target_batch_masked)
 
     # Store loss to be used later in `on_test_epoch_end`
     self.test_step_loss.append(loss)
@@ -854,7 +850,7 @@ class SequenceModule(pl.LightningModule):
       self.predict_output_mask = self.trainer.datamodule.train_output_mask
       self.predict_input_window_idx = self.trainer.datamodule.train_input_window_idx
       self.predict_output_window_idx = self.trainer.datamodule.train_output_window_idx
-      
+
       shuffle_train_original = self.trainer.datamodule.shuffle_train
       if shuffle_train_original == True:
         print("Unshuffling training data")
@@ -944,7 +940,7 @@ class SequenceModule(pl.LightningModule):
       # Predict on validation data
       self.val_prediction_data = None
       if len(val_data) > 0:
-
+      
         if not isinstance(val_data, list):
           val_data = [val_data]
         val_ids = [data_['id'] for data_ in val_data]
@@ -1320,7 +1316,7 @@ class SequenceModule(pl.LightningModule):
 
       for i,output_name in enumerate(output_names):
 
-        if isinstance(self.loss_fn, list):  
+        if isinstance(self.loss_fn, list):
           loss_fn_i, metric_fn_i = self.loss_fn[i], self.metric_fn[i]
         else:
           loss_fn_i, metric_fn_i = self.loss_fn, self.metric_fn
@@ -1970,10 +1966,10 @@ class SequenceModule(pl.LightningModule):
                                                                         hiddens = hiddens_id,
                                                                         invert = invert,
                                                                         eval = True)
-      
-      forecast_id = forecast_id[torch.arange(forecast_id.shape[0]-1, -1, -stride).flip(0)]
+
+      forecast_id = forecast_id[::-stride][::-1]
       forecast_time_id = forecast_time_id[::-stride][::-1]
-      forecast_target_id = forecast_target_id[torch.arange(forecast_target_id.shape[0]-1, -1, -stride).flip(0)]
+      forecast_target_id = forecast_target_id[::-stride][::-1]
 
       self.backtest_data[-1][time_name] = forecast_time_id
 
@@ -1989,7 +1985,7 @@ class SequenceModule(pl.LightningModule):
           loss_name_i = self.loss_fn[i].name
           metric_name_i = self.metric_fn[i].name if self.metric_fn[i] is not None else None
         else:
-          loss_name_i = self.loss_fn.name 
+          loss_name_i = self.loss_fn.name
           metric_name_i = self.metric_fn.name if self.metric_fn is not None else None
 
         self.backtest_data[-1][f"{name}_{loss_name_i}"] = Criterion(loss_name_i,
