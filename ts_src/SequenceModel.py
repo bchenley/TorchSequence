@@ -14,12 +14,12 @@ from ts_src.fft import fft
 
 class SequenceModel(torch.nn.Module):
   def __init__(self,
-               num_inputs, num_outputs,
+               input_names, output_names,
                #
                input_size = [1], input_len = [1],
                output_size = [1], output_len = [1],
                process_by_step = False, joint_prediction = False,
-               dt = 1,
+               dt = 1, time_unit = 'S',
                norm_type = None, affine_norm = False,
                store_layer_outputs = False,
                encoder_output_size = None,
@@ -39,7 +39,7 @@ class SequenceModel(torch.nn.Module):
                # LRU parameters
                base_lru_relax_init = [[0.5]], base_lru_relax_train = [True], base_lru_relax_minmax = [[[0.1, 0.9]]], base_lru_num_filterbanks = [1],
                base_lru_feature_associated = [False],
-               base_lru_input_block_weight_to_ones = [False], 
+               base_lru_input_block_weight_to_ones = [False],
                # CNN parameters
                base_cnn_out_channels = [[1]],
                base_cnn_kernel_size = [[(1,)]], base_cnn_kernel_stride = [[(1,)]],
@@ -79,9 +79,9 @@ class SequenceModel(torch.nn.Module):
                base_constrain = [False], base_penalize = [False],
                ##
                # hidden layer parameters
-               hidden_out_features = [0], hidden_bias = [False], 
+               hidden_out_features = [0], hidden_bias = [False],
                hidden_groups = [1],
-               hidden_activation = ['identity'], 
+               hidden_activation = ['identity'],
                hidden_degree = [1],
                hidden_coef_init = [None], hidden_coef_train = [True], hidden_coef_reg = [[0.001, 1]], hidden_zero_order = [False],
                hidden_softmax_dim = [-1],
@@ -105,7 +105,9 @@ class SequenceModel(torch.nn.Module):
                modulation_bias = True, modulation_pure = False,
                # output layer
                output_associated = [False],
-               output_bias = [True], output_activation = ['identity'], output_degree = [1],
+               output_bias = [True],
+               output_groups = [1],
+               output_activation = ['identity'], output_degree = [1],
                output_coef_init = [None], output_coef_train = [True], output_coef_reg = [[0.001, 1]], output_zero_order = [False], output_softmax_dim = [-1],
                output_constrain = [False], output_penalize = [False],
                output_dropout_p = [0.],
@@ -115,6 +117,8 @@ class SequenceModel(torch.nn.Module):
                device = 'cpu', dtype = torch.float32):
 
     super(SequenceModel, self).__init__()
+
+    num_inputs, num_outputs = len(input_names), len(output_names)
 
     locals_ = locals().copy()
 
@@ -134,6 +138,8 @@ class SequenceModel(torch.nn.Module):
             setattr(self, arg, value)
         else:
             setattr(self, arg, value)
+
+    self.time_scale = 1*(self.time_unit == 'S') + 1/60*(self.time_unit == 'M') + 1/3600*(self.time_unit == 'H') + 1/(24*3600)*(self.time_unit == 'd')
 
     self.max_input_len, self.max_output_len = np.max(self.input_len), np.max(self.output_len)
 
@@ -221,7 +227,7 @@ class SequenceModel(torch.nn.Module):
           input_size = self.input_size[i]
 
         hidden_layer_i = HiddenLayer(# linear transformation
-                                     in_features = hidden_in_features_i, 
+                                     in_features = hidden_in_features_i,
                                      out_features = self.hidden_out_features[i],
                                      groups = self.hidden_groups[i],
                                      bias = self.hidden_bias[i],
@@ -263,7 +269,7 @@ class SequenceModel(torch.nn.Module):
 
       self.interaction_layer = HiddenLayer(# linear transformation
                                           in_features = interaction_in_features, out_features = self.interaction_out_features,
-                                          bias = self.interaction_bias,
+                                          bias = self.interaction_bias,                                          
                                           # activation
                                           activation = self.interaction_activation,
                                           # polynomial parameters
@@ -293,7 +299,7 @@ class SequenceModel(torch.nn.Module):
         else:
           modulation_in_features += self.base_transformer_dim_feedforward[i]
       #
-      
+
       self.modulation_layer = ModulationLayer(window_len = self.modulation_window_len,
                                               in_features = self.modulation_in_features,
                                               associated = self.modulation_associated,
@@ -313,7 +319,7 @@ class SequenceModel(torch.nn.Module):
                                               device = self.device, dtype = self.dtype)
       self.modulation_out_features = self.modulation_layer.num_modulators
     #
-    
+
     # output layer
     self.output_layer, self.Flatten = torch.nn.ModuleList([]), torch.nn.ModuleList([])
     for i in range(self.num_outputs):
@@ -370,6 +376,7 @@ class SequenceModel(torch.nn.Module):
                                      in_features = output_in_features_i,
                                      out_features = output_out_features_i,
                                      bias = self.output_bias[i],
+                                     groups = self.output_groups[i],
                                      # activation
                                      activation = self.output_activation[i],
                                      # polynomial parameters
@@ -379,7 +386,7 @@ class SequenceModel(torch.nn.Module):
                                      # softmax parameter
                                      softmax_dim = self.output_softmax_dim[i],
                                      dropout_p = self.output_dropout_p[i],
-                                     weight_to_ones = (output_out_features_i == 1), # & ((sum(self.hidden_out_features)>0) | (self.interaction_out_features>0) | (self.modulation_out_features>0)), # self.output_layer_weight_to_ones[i], #
+                                     weight_to_ones = self.output_layer_weight_to_ones,
                                      device = self.device, dtype = self.dtype)
 
       else:
@@ -433,7 +440,7 @@ class SequenceModel(torch.nn.Module):
               hiddens = None,
               steps = None,
               encoder_output = None):
-    
+
     """
     Process the input data through the sequence model.
 
@@ -454,14 +461,14 @@ class SequenceModel(torch.nn.Module):
 
     input_window_idx = [torch.arange(input_len).to(device=self.device, dtype=torch.long)
                         for _ in range(self.num_inputs)] if input_window_idx is None else input_window_idx
-    
+
     # Initialize hidden states if not provided
     if hiddens is None: hiddens = self.init_hiddens()
     
     hidden_output = []
     # Process each input in the batch individually
     for i, input_i in enumerate(input.split(self.input_size, -1)):
-
+      
       # Determine the output feature size for the hidden layer
       if self.hidden_out_features[i] > 0:
         hidden_out_features_i = self.hidden_out_features[i]
@@ -481,20 +488,20 @@ class SequenceModel(torch.nn.Module):
                                                    else input_i[:, input_window_idx[i]],
                                                    hiddens = hiddens[i],
                                                    encoder_output = encoder_output)
-      
+
       # Store the output of the base layer if desired
       if self.store_layer_outputs:
         self.base_layer_output[i].append(base_output_i)
 
       # Generate hidden layer outputs for the ith input
       hidden_output_i[:, -base_output_i.shape[1]:] = self.hidden_layer[i](base_output_i)
-      
+
       hidden_output.append(hidden_output_i)
 
       # Store the output of the hidden layer if desired
       if self.store_layer_outputs:
         self.hidden_layer_output[i].append(hidden_output_i)
-
+    
     output_ = torch.cat(hidden_output, -1)
 
     # Generate interaction layer output
@@ -588,7 +595,7 @@ class SequenceModel(torch.nn.Module):
     input = input.to(device=self.device, dtype=self.dtype)
     steps = steps.to(device=self.device, dtype=torch.long) if steps is not None else None
     output_mask = output_mask.to(device=self.device, dtype=torch.long) if output_mask is not None else None
-    
+
     # Get the dimensions of the input
     num_samples, input_len, input_size = input.shape
 
@@ -606,7 +613,7 @@ class SequenceModel(torch.nn.Module):
 
     # Initiate hiddens if None
     if hiddens is None: hiddens = self.init_hiddens()
-    
+
     # Process output and update hiddens
     # if 'encoder' in [base.seq_type for base in self.seq_base]: # model is an encoder
 
@@ -741,60 +748,127 @@ class SequenceModel(torch.nn.Module):
 
         for f in range(self.input_size[i]):
           # self.impulse_response[i][f] = [[] for _ in range(self.hidden_out_features[i])]
-          
+
           # Create impulse input signal for the current feature
           impulse_i = torch.zeros((1, seq_len, self.input_size[i])).to(device=self.device,
                                                                         dtype=self.dtype)
 
-          impulse_i[0, 0, f] = 1.
+          impulse_i[:, 0, f] = 1.
 
           # Pass the impulse input through sequence base and hidden layer
           base_output_if, _ = self.seq_base[i](input = impulse_i)
           base_output_if = base_output_if.reshape(seq_len, -1)
 
-          self.impulse_response[i][f] = self.hidden_layer[0].F[0](base_output_if)
+          self.impulse_response[i][f] = self.hidden_layer[i].F[0](base_output_if)
 
-        self.lag.append(np.arange(self.impulse_response[i][0].shape[0])*self.dt)
+        lag_i = np.arange(self.impulse_response[i][0].shape[0]) * self.dt
 
-  def plot_impulse_response(self, 
+        lag_i = torch.tensor([td.total_seconds()*self.time_scale for td in lag_i]).to(device = self.device, 
+                                                                                      dtype = self.dtype)
+        
+        self.lag.append(lag_i)
+
+  def plot_impulse_response(self,
                             dim = (0),
-                            nfft = None, figsize = None, 
-                            input_names = None, 
-                            time_unit = None, freq_unit = None):
-    
+                            nfft = None, figsize = None,
+                            input_names = None,
+                            time_unit = None, freq_unit = None,
+                            flim = None):
+
     fig, ax = plt.subplots(self.num_inputs, 2, figsize = figsize or (10, 5*self.num_inputs))
     for i in range(self.num_inputs):
 
       lag_i = self.lag[i]
-      
+
       for f in range(self.input_size[i]):
         ir_if = self.impulse_response[i][f]
-        
+
         ax_if_time = ax[i,0] if self.num_inputs > 1 else ax[0]
-        
-        ax_if_time.plot(lag_i, ir_if.cpu())
+
+        ax_if_time.plot(lag_i.cpu(), ir_if.cpu())
         ax_if_time.grid()
         ax_if_time.set_xlabel(f"Lags [{time_unit}]" if time_unit is not None else f"Lags")
-        
+
         if f == 0:
           ax_if_time.set_ylabel(input_names[i] if input_names is not None else f"Input {i}",
                                 fontsize = 20)
-        
+
         freq_if, x_fft_mag_if, _ = fft(x = ir_if,
-                                       fs = 1/self.dt, dim = dim, nfft = nfft, norm = 'backward',
+                                       fs = 1/(self.dt.total_seconds()*self.time_scale), dim = dim, nfft = nfft, norm = 'backward',
                                        device = self.device, dtype = torch.complex64)
 
         ax_if_freq = ax[i,1] if self.num_inputs > 1 else ax[1]
 
         for h,x_fft_mag_if_h in enumerate(x_fft_mag_if.split(1, 1)):
-          label = f"Feature {f+1}, Mode {h+1}" if self.input_size[i] > 1 else f"Mode {h+1}" 
+          label = f"Feature {f+1}, Mode {h+1}" if self.input_size[i] > 1 else f"Mode {h+1}"
           ax_if_freq.plot(freq_if.cpu(), x_fft_mag_if_h.cpu(), label = label)
-          
+
         ax_if_freq.grid()
         ax_if_freq.set_xlabel(f"Frequency [{freq_unit}]" if freq_unit is not None else f"Frequency")
         ax_if_freq.legend(fontsize = 14, loc = 'upper left', bbox_to_anchor = (1.02, 1), ncol = 1)
-        
+        ax_if_freq.set_xlim(flim or [0, 1/(2*self.dt)])
+
     fig.tight_layout()
+
+  def generate_hidden_activations(self, transforms):
+
+    with torch.no_grad():
+
+      hidden_input, hidden_output = [], []
+      # for each input
+      j = 0
+      for i in range(self.num_inputs):
+        # produce a [100, input_size[i]] input based on the scaler type
+        hidden_out_features_i = self.hidden_layer[i].out_features
+        input_name = self.input_names[i]
+        if transforms[input_name].transform_type == 'identity':
+          input_i = torch.linspace(transforms[input_name].min_, transforms[input_name].max_, 100).reshape(100, 1, 1).repeat(1, self.input_len[i], self.input_size[i])
+        elif transforms[input_name].transform_type == 'standard':
+          input_i = torch.linspace(-3, 3, 100).reshape(100, 1, 1).repeat(1, self.input_len[i], self.input_size[i])
+        elif transforms[input_name].transform_type == 'minmax':
+          input_i = torch.linspace(transforms[input_name].minmax[0], transforms[input_name].minmax[1], 100).reshape(100, 1, 1).repeat(1, self.input_len[i], self.input_size[i])
+
+        input_i = input_i.to(device = self.device,
+                            dtype = self.dtype)
+
+        base_output_i = self.seq_base[i](input_i)[0][:, -1:]
+
+        hidden_input_i =  self.hidden_layer[i].F[0](base_output_i)
+
+        hidden_input.append(hidden_input_i.squeeze(1))
+
+        # generate hidden layer output for give input
+        hidden_output_i = self.hidden_layer[i].F[1](hidden_input_i)
+
+        hidden_output.append(hidden_output_i.squeeze(1))
+
+        j += hidden_out_features_i
+
+    self.hidden_input, self.hidden_output = hidden_input, hidden_output
+
+  def generate_interaction_activations(self):
+
+    with torch.no_grad():
+
+      interaction_input = torch.cat([torch.linspace(self.hidden_output[i].min(), self.hidden_output[i].max(), 100).view(-1, 1).repeat(1, self.hidden_out_features[i]) for i in range(self.num_inputs)], -1).unsqueeze(0)
+
+      interaction_output = self.interaction_layer(interaction_input) # .squeeze(0)
+      if self.modulation_layer is not None:
+          bias_m = self.modulation_layer.bias
+          weight_m = self.modulation_layer.weight
+
+          if self.modulation_layer.num_modulators == 'associated':
+            interaction_output += bias_m[:interaction_output.shape[-1]]
+          else:
+            interaction_output = interaction_output[:, :, None]*weight_m.t()[None, :, :] + bias_m[:weight_m.shape[0]][None,None,:]
+
+    self.interaction_input, self.interaction_output = interaction_input.squeeze(0), interaction_output.squeeze(0)
+
+  def generate_temporal_modulations(self, steps):
+
+    temporal_modulations = (self.modulation_layer.F[steps] @ self.modulation_layer.coef.t()).detach()
+
+    self.temporal_modulations = temporal_modulations
 
   def predict(self,
               input, steps=None,
